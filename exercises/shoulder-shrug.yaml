@@ -1,0 +1,42 @@
+id: shoulder-shrug
+title: Shoulder Shrug
+subtitle: Gentle shoulder mobility
+recovery_phase: weeks-1-2
+phase_label: Week 1-2 after surgery
+target_area: shoulder elevation and relaxation
+affected_side: right
+start_criteria: >-
+  Can usually start in the first days after surgery. Confirm with your surgeon or
+  physiotherapist, especially if you have a drain in place.
+frequency: 3 times a day
+repetitions: 5
+repetitions_max: 10
+hold_seconds: 5
+movement_tempo: slow and controlled
+precautions:
+  - Keep your arms relaxed and below shoulder level in the first week.
+  - Do not shrug into pain; stop before the stretch becomes sharp.
+  - Keep your chin slightly tucked and your shoulders down between repetitions.
+  - Follow any range-of-motion limit given by your surgeon.
+stop_if:
+  - Pain increases during or after the exercise.
+  - The wound area becomes more swollen, red, or warm.
+  - You feel dizzy, breathless, or unwell.
+source:
+  title: Exercises after breast cancer surgery
+  publisher: Breast Cancer Now
+  year: 2024
+  url: https://breastcancernow.org/media-assets/dmbpk1rz/bcc6-excercises-after-breast-cancer-surgery-web-pdf.pdf
+  note: >-
+    Shoulder shrugs are a week 1 exercise; do not raise the arms above shoulder
+    level during the first week. Wait until drains or removable stitches are out
+    before progressing.
+secondary_sources:
+  - title: Exercises after breast surgery
+    publisher: Canadian Cancer Society
+    year: 2024
+    note: Hold 5 to 10 seconds, repeat 5 to 10 times.
+clinical_review:
+  status: pending
+  reviewer: null
+  reviewed_on: null

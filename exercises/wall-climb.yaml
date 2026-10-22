@@ -1,0 +1,50 @@
+id: wall-climb
+title: Wall Climb
+subtitle: Assisted shoulder flexion
+recovery_phase: weeks-2-6
+phase_label: Weeks 2-6 after surgery
+target_area: shoulder flexion (assisted range of motion)
+affected_side: right
+start_criteria: >-
+  Start around the second week after surgery, once any drain or removable stitches
+  have been removed and your surgeon or physiotherapist has said you are ready.
+frequency: 3 times a day
+repetitions: 5
+repetitions_max: 10
+hold_seconds: 10
+movement_tempo: slow and controlled
+precautions:
+  - Move only within a comfortable stretch, never into pain.
+  - Keep your shoulder relaxed and down; do not shrug toward your ear.
+  - Keep your back straight and avoid arching your lower back.
+  - Stop the exercise if you feel a sharp pinch at the top of your shoulder.
+  - Do not lift more than 5 kg (10 lb) during the first 6 weeks after surgery.
+  - Follow any range-of-motion limit given by your surgeon.
+stop_if:
+  - Pain increases during or after the exercise.
+  - You feel a sharp pinch at the top of your shoulder.
+  - The wound area becomes more swollen, red, or warm.
+  - You feel dizzy, breathless, or unwell.
+source:
+  title: Exercises after breast surgery
+  publisher: Canadian Cancer Society
+  year: 2024
+  url: https://cdn.cancer.ca/-/media/files/cancer-information/resources/publications/exercises-after-breast-surgery/32437-exercises-after-breast-surgery-en.pdf
+  note: >-
+    Wall climbing is listed in the first stage of healing (first 6 weeks); hold
+    10 seconds and repeat 5 to 10 times, reaching only to a stretch and avoiding
+    the exercise if it causes a pinch at the top of the shoulder.
+secondary_sources:
+  - title: Exercises after breast cancer surgery
+    publisher: Breast Cancer Now
+    year: 2024
+    note: >-
+      Wall climbing starts in week 2 and beyond; wait until drains or removable
+      stitches are removed; do not raise the arm above shoulder level in week 1.
+  - title: Exercises after mastectomy or breast reconstruction
+    publisher: Memorial Sloan Kettering Cancer Center
+    note: Follow the range-of-motion limit given by your care team.
+clinical_review:
+  status: pending
+  reviewer: null
+  reviewed_on: null

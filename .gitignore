@@ -1,0 +1,15 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# generated artefacts (video is a release asset, not source)
+build/
+out/
+
+# local GPU toolchain (ComfyUI checkout + model weights, ~20 GB)
+tools/ComfyUI/
+
+# os
+.DS_Store

@@ -1,0 +1,121 @@
+{
+  "exercise": "wall-climb",
+  "phase": "weeks-2-6",
+  "language": "en",
+  "frames": [
+    {
+      "id": "01",
+      "kind": "intro",
+      "title": "Before you begin",
+      "heading": "Before you begin",
+      "pose": "intro",
+      "narration": "Wall climbing helps you regain shoulder movement after breast surgery. Start around week two, once any drain or stitches have been removed, and only when your care team agrees.",
+      "bullets": [
+        "This exercise gently stretches the front of your shoulder.",
+        "Start around week 2, once drains or stitches are out.",
+        "Do it 3 times a day."
+      ]
+    },
+    {
+      "id": "02",
+      "kind": "action",
+      "title": "Starting position",
+      "heading": "Starting position",
+      "pose": "stance",
+      "narration": "Stand facing the wall, close enough to touch it. Place both hands on the wall at shoulder level. This video shows the right arm. If your surgery was on the left, use your left arm instead.",
+      "bullets": [
+        "Stand facing the wall, close enough to reach it.",
+        "Place both hands on the wall at shoulder level.",
+        "Use your affected arm to climb."
+      ]
+    },
+    {
+      "id": "03",
+      "kind": "action",
+      "title": "Stand tall",
+      "heading": "Stand tall before you climb",
+      "pose": "hands",
+      "narration": "Stand with your feet slightly apart. Tuck your tummy in, keep your back straight, and gently squeeze your shoulder blades together.",
+      "bullets": [
+        "Feet slightly apart for balance.",
+        "Tummy tucked, back straight, no arching.",
+        "Keep your shoulder relaxed and down."
+      ]
+    },
+    {
+      "id": "04",
+      "kind": "action",
+      "title": "Walk up",
+      "heading": "Walk your fingers up",
+      "pose": "climb",
+      "narration": "Now walk the fingers of your affected arm up the wall, a little at a time. Move slowly and keep your shoulder relaxed.",
+      "bullets": [
+        "Move only the affected arm.",
+        "Small steps, without shrugging.",
+        "Keep looking straight ahead."
+      ]
+    },
+    {
+      "id": "05",
+      "kind": "action",
+      "title": "Comfortable height",
+      "heading": "Reach a comfortable height",
+      "pose": "high",
+      "narration": "Climb only as high as feels comfortable. You should feel a gentle stretch, but not pain.",
+      "bullets": [
+        "Stop at a stretch, not at pain.",
+        "Try to reach a little higher each day."
+      ]
+    },
+    {
+      "id": "06",
+      "kind": "hold",
+      "title": "Hold",
+      "heading": "Hold for 10 seconds",
+      "pose": "hold",
+      "timer": true,
+      "narration": "Hold at your highest comfortable point for ten seconds and breathe normally. Keep your back straight and your shoulder relaxed.",
+      "bullets": [
+        "Breathe normally while you hold.",
+        "Keep your shoulder relaxed and down."
+      ]
+    },
+    {
+      "id": "07",
+      "kind": "action",
+      "title": "Return",
+      "heading": "Return slowly",
+      "pose": "lower",
+      "narration": "Slowly walk your fingers back down to shoulder level. Then rest for a moment before the next repetition.",
+      "bullets": [
+        "Walk the fingers back down slowly.",
+        "Rest briefly, then begin again."
+      ]
+    },
+    {
+      "id": "08",
+      "kind": "action",
+      "title": "Repeat",
+      "heading": "Repeat the movement",
+      "pose": "close",
+      "narration": "Repeat the movement five times, building up to ten. Do the full set three times a day, and rest between repetitions.",
+      "bullets": [
+        "5 repetitions, building up to 10.",
+        "3 times a day, once your care team agrees."
+      ]
+    },
+    {
+      "id": "09",
+      "kind": "precaution",
+      "title": "Stay safe",
+      "heading": "Stay safe",
+      "pose": "close",
+      "narration": "Stop if you feel a sharp pinch at the top of your shoulder, or if pain increases. For the first six weeks, avoid lifting more than five kilograms.",
+      "bullets": [
+        "Stop for a sharp pinch or increasing pain.",
+        "No lifting over 5 kg in the first 6 weeks.",
+        "Follow any movement limit from your surgeon."
+      ]
+    }
+  ]
+}

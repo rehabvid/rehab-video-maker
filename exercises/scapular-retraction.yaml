@@ -1,0 +1,35 @@
+id: scapular-retraction
+title: Scapular Retraction
+subtitle: Shoulder blade squeeze
+recovery_phase: weeks-2-6
+phase_label: Weeks 2-6 after surgery
+target_area: scapular retraction and posture
+affected_side: right
+start_criteria: >-
+  Usually added once early range-of-motion exercises are comfortable and your
+  surgeon or physiotherapist has said you are ready.
+frequency: 3 times a day
+repetitions: 5
+repetitions_max: 10
+hold_seconds: 5
+movement_tempo: slow and controlled
+precautions:
+  - Squeeze gently; the movement should feel like posture, not effort.
+  - Keep your shoulders down, away from your ears.
+  - Do not pull on the wound or stretch the scar sharply.
+  - Follow any range-of-motion limit given by your surgeon.
+stop_if:
+  - Pain increases during or after the exercise.
+  - The wound area becomes more swollen, red, or warm.
+  - You feel dizzy, breathless, or unwell.
+source:
+  title: Exercises after mastectomy or breast reconstruction
+  publisher: Memorial Sloan Kettering Cancer Center
+  url: https://www.mskcc.org/pdf/cancer-care/patient-education/exercises-after-mastectomy-or-reconstruction
+  note: >-
+    Shoulder blade squeezes are held for about 5 seconds and repeated, building
+    toward 10 repetitions as the movement becomes easier.
+clinical_review:
+  status: pending
+  reviewer: null
+  reviewed_on: null

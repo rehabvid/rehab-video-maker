@@ -1,0 +1,37 @@
+id: pendulum-swing
+title: Pendulum Swing
+subtitle: Passive shoulder mobility
+recovery_phase: weeks-1-2
+phase_label: Week 1-2 after surgery
+target_area: shoulder relaxation and gentle circumduction
+affected_side: right
+start_criteria: >-
+  Usually started in the first days after surgery. Confirm with your surgeon or
+  physiotherapist before starting.
+frequency: 3 times a day
+repetitions: 5
+repetitions_max: 10
+hold_seconds: null
+hold_note: No hold; the arm swings freely in small circles.
+movement_tempo: slow and relaxed
+precautions:
+  - Let the arm hang and move it with your body, not with shoulder effort.
+  - Keep the circles small at first.
+  - Do not force the arm or lift it actively above shoulder level in week 1.
+  - Follow any range-of-motion limit given by your surgeon.
+stop_if:
+  - Pain increases during or after the exercise.
+  - The wound area becomes more swollen, red, or warm.
+  - You feel dizzy, breathless, or unwell.
+source:
+  title: Exercises after breast surgery
+  publisher: Canadian Cancer Society
+  year: 2024
+  url: https://cdn.cancer.ca/-/media/files/cancer-information/resources/publications/exercises-after-breast-surgery/32437-exercises-after-breast-surgery-en.pdf
+  note: >-
+    Pendulum movements are used for gentle early shoulder mobility; keep the
+    movement passive and within a comfortable range.
+clinical_review:
+  status: pending
+  reviewer: null
+  reviewed_on: null
