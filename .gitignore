@@ -15,6 +15,7 @@ out/
 tools/ComfyUI/
 
 # private character packs: source photos, voice references and generated renders
+characters/
 characters/*/photos/
 characters/*/canonical/
 characters/*/renders/
