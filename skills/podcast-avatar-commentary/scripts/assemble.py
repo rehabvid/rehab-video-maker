@@ -165,6 +165,8 @@ def _encode_segment(
     tail: float,
     fps: int,
     dest: Path,
+    preset: str = "medium",
+    crf: int = 18,
 ) -> Path:
     filters = [
         f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase",
@@ -220,9 +222,9 @@ def _encode_segment(
         "-c:v",
         "libx264",
         "-preset",
-        "medium",
+        preset,
         "-crf",
-        "18",
+        str(crf),
         "-pix_fmt",
         "yuv420p",
         "-r",
@@ -233,7 +235,7 @@ def _encode_segment(
     return dest
 
 
-def _concat(segments: list[Path], dest: Path, fps: int) -> Path:
+def _concat(segments: list[Path], dest: Path, fps: int, preset: str = "medium", crf: int = 18) -> Path:
     listing = dest.parent / "segments.txt"
     listing.write_text("".join(f"file '{p.resolve().as_posix()}'\n" for p in segments))
     try:
@@ -251,9 +253,9 @@ def _concat(segments: list[Path], dest: Path, fps: int) -> Path:
                 "-c:v",
                 "libx264",
                 "-preset",
-                "medium",
+                preset,
                 "-crf",
-                "18",
+                str(crf),
                 "-pix_fmt",
                 "yuv420p",
                 "-r",
@@ -452,6 +454,8 @@ def build(args) -> int:
             float(shot.get("tail") or 0) if shot["kind"] == "avatar" else 0.0,
             fps,
             dest,
+            args.preset,
+            args.crf,
         )
         got = ffprobe_duration(dest)
         checks.append(
@@ -465,7 +469,7 @@ def build(args) -> int:
 
     concat = build_dir / "video-track.mp4"
     print("concatenating segments")
-    _concat(segments, concat, fps)
+    _concat(segments, concat, fps, args.preset, args.crf)
 
     music = Path(args.music) if args.music else None
     print("mixing audio and normalising loudness")
@@ -526,6 +530,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=".", help="project root for visual paths")
     parser.add_argument("--music", help="optional background music file")
     parser.add_argument("--music-volume", type=float, default=0.06)
+    parser.add_argument("--preset", default="medium", choices=["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow"])
+    parser.add_argument("--crf", type=int, default=18)
     args = parser.parse_args(argv)
     return build(args)
 

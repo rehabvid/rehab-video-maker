@@ -79,7 +79,8 @@ def _chart_option(spec: dict) -> dict | None:
     if chart_type == "area":
         chart_type = "line"
     option = {
-        "grid": {"left": 76, "right": 40, "top": 54, "bottom": 64, "containLabel": True},
+        "grid": {"left": 76, "right": 40, "top": 78 if len(normalized) > 1 else 54, "bottom": 64, "containLabel": True},
+        **({"legend": {"top": 10, "right": 10, "textStyle": {"fontSize": 14}}} if len(normalized) > 1 else {}),
         "xAxis": {"type": "category", "data": categories, "axisLabel": {"hideOverlap": True}},
         "yAxis": {
             "type": "value",

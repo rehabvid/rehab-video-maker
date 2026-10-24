@@ -21,6 +21,27 @@ def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-") or "scene"
 
 
+def _duration(path: Path) -> float:
+    try:
+        out = subprocess.check_output([
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=nw=1:nk=1", str(path),
+        ], text=True).strip()
+        return float(out)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return 0.0
+
+
+def _freeze_tail(src: Path, dest: Path, duration: float) -> None:
+    current = _duration(src)
+    extra = max(0.0, duration - current)
+    cmd = ["ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(src),
+           "-vf", f"tpad=stop_mode=clone:stop_duration={extra:.3f}",
+           "-t", f"{duration:.3f}", "-an", "-c:v", "libx264",
+           "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", str(dest)]
+    subprocess.run(cmd, check=True)
+
+
 def _run(cmd: list[str], cwd: Path) -> None:
     print("+ " + " ".join(str(part) for part in cmd))
     result = subprocess.run(cmd, cwd=cwd)
@@ -35,6 +56,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--module", default="modules/linkZagShow")
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--base-url", help="reuse a running LinkZag renderer")
+    parser.add_argument(
+        "--animation-seconds",
+        type=float,
+        default=5.0,
+        help="capture only the first N seconds of animation, then hold the last frame",
+    )
     parser.add_argument("--keep-scenes", action="store_true", help="keep generated YAML/assets")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
@@ -66,11 +93,14 @@ def main(argv: list[str] | None = None) -> int:
         scene_path = scene.get("scene")
         duration = float(scene.get("duration") or 8.0)
         if scene.get("animated"):
+            capture_to = min(duration, args.animation_seconds) if args.animation_seconds > 0 else duration
             cmd = npm + [
                 "video",
                 "--scene", scene_path,
                 "--format", "mp4",
                 "--fps", str(args.fps),
+                "--from", "0",
+                "--to", f"{capture_to:.3f}",
                 "--out", str(visuals),
             ] + base
             if args.dry_run:
@@ -85,7 +115,11 @@ def main(argv: list[str] | None = None) -> int:
                     if not candidates:
                         raise RuntimeError(f"no MP4 produced for shot {sid}")
                     produced = candidates[-1]
-                if produced != target:
+                if duration > _duration(produced) + 0.05:
+                    _freeze_tail(produced, target, duration)
+                    if produced != target and produced.exists():
+                        produced.unlink()
+                elif produced != target:
                     produced.replace(target)
                 print(f"visual {sid}: {target.name} ({duration:.1f}s)")
             except Exception as exc:  # noqa: BLE001 - report all, keep prior renders

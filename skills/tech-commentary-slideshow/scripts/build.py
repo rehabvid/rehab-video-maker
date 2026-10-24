@@ -59,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--voice-python", default=str(REPO / ".venv-voice" / "bin" / "python"))
     parser.add_argument("--module", default=str(LINKZAG_MODULE))
     parser.add_argument("--base-url", help="reuse a running LinkZag renderer")
+    parser.add_argument("--animation-seconds", type=float, default=5.0)
+    parser.add_argument("--preset", default="veryfast")
+    parser.add_argument("--crf", type=int, default=20)
     parser.add_argument("--keep-scenes", action="store_true")
     parser.add_argument("--skip-visuals", action="store_true")
     parser.add_argument("--prebuilt-manifest", help="use an existing visuals manifest instead of planning/rendering")
@@ -127,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             ]
             if args.base_url:
                 render += ["--base-url", args.base_url]
+            render += ["--animation-seconds", str(args.animation_seconds)]
             if args.keep_scenes:
                 render.append("--keep-scenes")
             if _run(render):
@@ -165,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
         "--timing", str(timing_path),
         "--out", str(out),
         "--root", str(REPO),
+        "--preset", args.preset,
+        "--crf", str(args.crf),
     ]):
         return 1
 

@@ -277,6 +277,11 @@ the measured duration shorter, so trimming is the common case.
 ## Efficiency rules
 
 - Animate at most **8–12 slides** in a 15-minute video.
+- Capture only the first **5 seconds** of an animated scene, then freeze the
+  last frame for the rest of the slide (`--animation-seconds`). Rendering 15–20
+  seconds of static tail at 30 fps is pure waste.
+- Use `build.py --preset veryfast --crf 20` for slide-heavy videos; the final
+  quality is indistinguishable for charts and text.
 - Prefer a still for charts that only need to be read; animate if the change is
   the argument.
 - Keep animated scenes at the measured narration duration; do not render a
