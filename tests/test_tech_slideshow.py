@@ -115,6 +115,8 @@ class SceneFactoryTests(unittest.TestCase):
         self.assertIsNotNone(option)
         self.assertEqual(option["series"][0]["type"], "line")
         self.assertEqual(option["series"][0]["data"], [3, 7])
+        self.assertEqual(option["yAxis"]["min"], 0)
+        self.assertEqual(option["yAxis"]["max"], 7)
 
     def test_petrinet_alternates_places_and_transitions(self):
         nodes, edges = scenes._nodes_edges(

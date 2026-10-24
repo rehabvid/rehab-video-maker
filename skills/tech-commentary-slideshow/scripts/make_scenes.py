@@ -66,6 +66,14 @@ def _chart_option(spec: dict) -> dict | None:
     if not categories:
         categories = [str(i + 1) for i in range(max(len(item["data"]) for item in normalized))]
     chart_type = str(spec.get("chart_type") or normalized[0].get("type") or "bar").lower()
+    numeric_values = [
+        float(value)
+        for item in normalized
+        for value in item["data"]
+        if isinstance(value, (int, float))
+    ]
+    axis_max = max(numeric_values) if numeric_values else None
+    axis_min = min(numeric_values) if numeric_values else None
     if chart_type not in {"bar", "line", "area", "pie"}:
         chart_type = "bar"
     if chart_type == "area":
@@ -73,7 +81,11 @@ def _chart_option(spec: dict) -> dict | None:
     option = {
         "grid": {"left": 76, "right": 40, "top": 54, "bottom": 64, "containLabel": True},
         "xAxis": {"type": "category", "data": categories, "axisLabel": {"hideOverlap": True}},
-        "yAxis": {"type": "value"},
+        "yAxis": {
+            "type": "value",
+            **({"min": 0 if axis_min is not None and axis_min >= 0 else axis_min} if axis_min is not None else {}),
+            **({"max": axis_max} if axis_max is not None else {}),
+        },
         "series": [
             {
                 "name": item["name"],

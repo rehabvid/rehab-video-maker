@@ -289,6 +289,16 @@ the measured duration shorter, so trimming is the common case.
   narration/captions require a re-assemble; unchanged visuals do not need a
   re-render.
 
+### Chart animation detail
+
+LinkZag does **not** use ECharts' wall-clock animation engine. It sets
+`animation:false`, scales the series values as a pure function of scene time,
+and Playwright captures each frame. That makes the animation deterministic and
+seekable. The catch is that ECharts may re-autoscale a value axis on every
+snapshot, which looks like a shaking bar. `make_scenes.py` pins the value-axis
+`min`/`max` from the final data, and LinkZag also preserves explicit axis bounds.
+Keep those bounds when you edit a chart scene.
+
 ## Visual correctness
 
 - Every chart value must come from the episode or a cited source.
