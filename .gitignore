@@ -1,7 +1,10 @@
 # python
 .venv/
+.venv-voice/
 __pycache__/
 *.pyc
+*.swp
+*.swo
 .pytest_cache/
 
 # generated artefacts (video is a release asset, not source)
@@ -10,6 +13,24 @@ out/
 
 # local GPU toolchain (ComfyUI checkout + model weights, ~20 GB)
 tools/ComfyUI/
+
+# private character packs: source photos, voice references and generated renders
+characters/*/photos/
+characters/*/canonical/
+characters/*/renders/
+characters/*/audio/
+characters/*/voice/
+characters/*/*.wav
+characters/*/*.mp3
+
+# personal voice profiles and recordings
+voices/
+
+# local YouTube OAuth credentials and receipts
+.secrets/
+client_secret*.json
+youtube-token*.json
+youtube-upload.json
 
 # os
 .DS_Store

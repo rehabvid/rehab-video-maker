@@ -10,6 +10,16 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
+[project.optional-dependencies]
+youtube = [
+    "google-api-python-client>=2.100",
+    "google-auth-oauthlib>=1.2",
+]
+trending = [
+    "google-api-python-client>=2.100",
+    "youtube-transcript-api>=1.2",
+]
+
 [project.scripts]
 rehab-slideshow = "rehab_slideshow.cli:main"
 

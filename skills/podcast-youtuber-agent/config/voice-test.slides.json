@@ -1,0 +1,42 @@
+{
+  "slug": "voice-test",
+  "title": "Voice test",
+  "voice": "me",
+  "voice_profile": "voices/me",
+  "engine": "chatterbox",
+  "fps": 30,
+  "format": "broll-slides",
+  "shots": [
+    {
+      "id": "01",
+      "kind": "title",
+      "narration": "This is a short test of the personal voice pipeline. The tone should sound like the reference recording, not a generic narrator.",
+      "on_screen": "Voice test",
+      "subtitle": "Listen for timbre, pace and pronunciation",
+      "kicker": "PERSONAL VOICE",
+      "transition": "cut"
+    },
+    {
+      "id": "02",
+      "kind": "chart",
+      "narration": "Check three things. First, does the voice sound like you? Second, are the names and numbers clear? Third, is the pace comfortable for a ten to fifteen minute video?",
+      "heading": "Three things to check",
+      "bullets": [
+        "Timbre and cadence",
+        "Names, numbers and emphasis",
+        "A pace you can listen to for 15 minutes"
+      ],
+      "kicker": "QA",
+      "transition": "cut"
+    },
+    {
+      "id": "03",
+      "kind": "end",
+      "narration": "If this sounds right, the full episode can use the same reference and the same seed. If it does not, fix the recording before rendering a long script.",
+      "heading": "Ready for the full episode?",
+      "question": "Does this sound like the voice you want for the channel?",
+      "next_text": "AI voice narration. Re-record the reference if it does not.",
+      "transition": "cut"
+    }
+  ]
+}

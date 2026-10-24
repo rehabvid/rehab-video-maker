@@ -68,7 +68,9 @@ REACH_START = 352.0  # hand at shoulder level
 FONT_DIRS = [
     "/usr/share/fonts/truetype/dejavu",
     "/usr/share/fonts/truetype/liberation",
+    "/System/Library/Fonts/Supplemental",
     "/Library/Fonts",
+    "/System/Library/Fonts",
 ]
 _FONT_CACHE: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
 
@@ -80,7 +82,7 @@ def _font(style: str, size: int) -> ImageFont.FreeTypeFont:
     names = {
         "regular": ["DejaVuSans.ttf", "LiberationSans-Regular.ttf", "Arial.ttf"],
         "bold": ["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "Arial Bold.ttf"],
-        "italic": ["DejaVuSans-Oblique.ttf", "LiberationSans-Italic.ttf"],
+        "italic": ["DejaVuSans-Oblique.ttf", "LiberationSans-Italic.ttf", "Arial Italic.ttf"],
     }[style]
     for folder in FONT_DIRS:
         for name in names:

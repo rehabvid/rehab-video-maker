@@ -1,0 +1,19 @@
+Read this naturally, in the same calm, curious tone you want in the videos.
+Do not perform it, whisper it, or rush it. Pause briefly at the punctuation.
+
+Here's the thing I keep coming back to. In the last three years, the cost of
+training a frontier model fell sharply, while the amount of genuinely useful
+data did not double. That gap is where the interesting work begins. It is also
+where most of the easy explanations start to break down.
+
+Moritz Baier-Lentz makes a sharper version of the argument. He thinks language
+is a lossy abstraction of reality. A transcript tells you what someone said. A
+game tells you what they did, in space and time, with consequences. That sounds
+narrow, until you ask what kind of data an agent actually needs. Reading about
+a kitchen is not the same as opening a drawer, dropping a glass, and learning
+that the floor is now wet.
+
+So the question is not whether models can talk. They can. The question is
+whether they can act. And if the best training ground is a game, what happens
+when the game designs itself? That is the part I cannot answer yet. It is also
+the reason I keep listening.

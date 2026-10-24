@@ -1,0 +1,12 @@
+{
+  "name": "me",
+  "consent": "self",
+  "consent_note": "My own voice; I consent to synthetic narration for my channel.",
+  "synthetic_use_allowed": true,
+  "engine": "chatterbox",
+  "reference": "reference.wav",
+  "settings": {
+    "exaggeration": 0.5,
+    "cfg_weight": 0.5
+  }
+}

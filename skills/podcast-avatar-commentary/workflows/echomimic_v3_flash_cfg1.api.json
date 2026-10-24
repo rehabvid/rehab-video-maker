@@ -1,0 +1,125 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{IMAGE}}"
+    }
+  },
+  "2": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "{{AUDIO}}"
+    }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "4": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h_wan.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "Echo_LoadModel",
+    "inputs": {
+      "vae": "Wan2.1_VAE.pth",
+      "lora": "None",
+      "denoising": true,
+      "infer_mode": "audio_drived",
+      "lowvram": true,
+      "teacache_offload": false,
+      "block_offload": false,
+      "use_mmgp": "None",
+      "version": "V3_flash"
+    }
+  },
+  "6": {
+    "class_type": "Echo_Predata",
+    "inputs": {
+      "info": [
+        "5",
+        1
+      ],
+      "image": [
+        "1",
+        0
+      ],
+      "audio": [
+        "2",
+        0
+      ],
+      "prompt": "{{PROMPT}}",
+      "negative_prompt": "{{NEGATIVE_PROMPT}}",
+      "pose_dir": "pose_01",
+      "width": 768,
+      "height": 432,
+      "fps": 25,
+      "facemask_ratio": 0.1,
+      "facecrop_ratio": 0.8,
+      "length": "{{LENGTH}}",
+      "partial_video_length": 65,
+      "draw_mouse": false,
+      "motion_sync_": false,
+      "clip": [
+        "3",
+        0
+      ],
+      "clip_vision": [
+        "4",
+        0
+      ]
+    }
+  },
+  "7": {
+    "class_type": "Echo_Sampler",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "emb": [
+        "6",
+        0
+      ],
+      "seed": "{{SEED}}",
+      "cfg": 1.0,
+      "steps": 8,
+      "sample_rate": 16000,
+      "context_frames": 12,
+      "context_overlap": 3,
+      "save_video": false
+    }
+  },
+  "8": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": [
+        "7",
+        0
+      ],
+      "audio": [
+        "2",
+        0
+      ],
+      "frame_rate": [
+        "7",
+        1
+      ],
+      "loop_count": 0,
+      "filename_prefix": "avatar/{{PREFIX}}",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": false,
+      "trim_to_audio": false,
+      "pingpong": false,
+      "save_output": true
+    }
+  }
+}
