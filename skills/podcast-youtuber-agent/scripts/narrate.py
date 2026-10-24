@@ -81,6 +81,7 @@ def _fingerprint(
     rate: str,
     exaggeration: float,
     cfg_weight: float,
+    turbo: bool = False,
 ) -> str:
     blob = "|".join(
         [
@@ -90,6 +91,7 @@ def _fingerprint(
             rate,
             f"{exaggeration:.4f}",
             f"{cfg_weight:.4f}",
+            "turbo" if turbo else "standard",
             text,
         ]
     )
@@ -257,6 +259,8 @@ def _run_chatterbox(args, jobs: list[dict], profile: dict) -> None:
         "--max-chars",
         str(args.max_chars),
     ]
+    if args.turbo:
+        cmd.append("--turbo")
     print(f"synthesising {len(jobs)} cues with Chatterbox on {args.device}")
     result = subprocess.run(cmd)
     if result.returncode != 0:
@@ -332,6 +336,7 @@ def build(args) -> int:
             voice_rate if engine == "edge" else "",
             args.exaggeration,
             args.cfg_weight,
+            args.turbo,
         )
         for shot in shots
     }
@@ -486,6 +491,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cfg-weight", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=43)
     parser.add_argument("--max-chars", type=int, default=280)
+    parser.add_argument("--turbo", action="store_true", help="use Chatterbox no-CFG turbo inference")
     parser.add_argument("--voice", default=DEFAULT_EDGE_VOICE, help="edge-tts voice key")
     parser.add_argument("--rate", default=DEFAULT_RATE, help="edge-tts rate, use --rate=-6%%")
     parser.add_argument("--force", action="store_true", help="re-synthesise every cue")

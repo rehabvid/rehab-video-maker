@@ -84,6 +84,31 @@ def _load_model(device: str):
     return model, device
 
 
+def _enable_turbo(model) -> None:
+    """Use Chatterbox's no-CFG inference loop for lower latency.
+
+    The turbo loop drops classifier-free guidance and attention/hidden-state
+    outputs, which roughly halves the autoregressive work. It is opt-in until
+    the voice quality has been checked against the normal path.
+    """
+    import types
+
+    def turbo_inference(self, *, t3_cond, text_tokens, initial_speech_tokens=None, **kwargs):
+        if text_tokens.dim() == 2 and text_tokens.size(0) > 1:
+            text_tokens = text_tokens[:1]
+        text_tokens = text_tokens.long()
+        return self.inference_turbo(
+            t3_cond=t3_cond,
+            text_tokens=text_tokens,
+            temperature=float(kwargs.get("temperature", 0.8)),
+            top_p=float(kwargs.get("top_p", 0.95)),
+            repetition_penalty=float(kwargs.get("repetition_penalty", 1.2)),
+            max_gen_len=int(kwargs.get("max_new_tokens") or 1000),
+        )
+
+    model.t3.inference = types.MethodType(turbo_inference, model.t3)
+
+
 def _generate(model, text: str, reference: Path, exaggeration: float,
               cfg_weight: float, temperature: float):
     kwargs = {
@@ -139,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--seed", type=int, default=43)
     parser.add_argument("--max-chars", type=int, default=280)
+    parser.add_argument("--turbo", action="store_true", help="use the no-CFG turbo inference loop")
+    parser.add_argument("--no-cpu-fallback", action="store_true", help="fail instead of retrying a failed MPS chunk on CPU")
     parser.add_argument("--check", action="store_true", help="check imports only")
     args = parser.parse_args(argv)
 
@@ -165,6 +192,9 @@ def main(argv: list[str] | None = None) -> int:
     import torchaudio
 
     model, device = _load_model(args.device)
+    if args.turbo:
+        _enable_turbo(model)
+        print("turbo: enabled (no CFG)", file=sys.stderr)
     torch.manual_seed(args.seed)
     sample_rate = int(getattr(model, "sr", 24_000))
     failures: list[str] = []
@@ -193,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:  # noqa: BLE001 - model/runtime errors vary
                 message = f"{job_id} chunk {chunk_index}: {exc}"
                 print(f"error: {message}", file=sys.stderr)
-                if device == "mps":
+                if device == "mps" and not args.no_cpu_fallback:
                     print("retrying the remaining job on cpu", file=sys.stderr)
                     model, device = _load_model("cpu")
                     try:
@@ -236,6 +266,11 @@ def main(argv: list[str] | None = None) -> int:
                 wav = wav * (0.95 / peak)
             torchaudio.save(str(out), wav, sample_rate)
             print(f"  wrote {out}", file=sys.stderr)
+        if device == "mps":
+            try:
+                torch.mps.empty_cache()
+            except Exception:
+                pass
 
     if failures:
         print(json.dumps({"ok": False, "failures": failures}, indent=2))

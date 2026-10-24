@@ -155,6 +155,28 @@ If the voice environment is somewhere else, pass
 curated YouTube channels. If you only use PodcastTranscript.ai, the core
 pipeline still works without it.
 
+### Faster personal-voice inference
+
+Chatterbox has an opt-in no-CFG `inference_turbo` path:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/narrate.py \
+  --slides build/ep01/slides.json --out build/ep01 \
+  --voice-profile voices/me --engine chatterbox --turbo
+```
+
+In a three-slide test, turbo was about **2× faster** than the standard
+CFG path (57 s vs 115 s including model load). It is not the default because
+dropping classifier-free guidance can change voice character. Render a short
+sample and listen before using it for a full episode. `--no-cpu-fallback`
+makes an MPS error fail fast instead of silently dropping to CPU.
+
+For near-real-time production, PyTorch MPS Chatterbox is still the bottleneck.
+A quantized MLX/CoreML Chatterbox runtime is the promising next step; benchmark
+voice similarity and stability before switching. Do not run FFmpeg/Chromium
+assembly concurrently with Chatterbox: CPU contention caused a 15-minute
+single-clip stall in testing.
+
 ### Draft fallback
 
 `--engine edge` uses `edge-tts` and needs no voice environment. It is for
