@@ -1,0 +1,24 @@
+{
+  "animate_after_seconds": 7,
+  "max_custom_visuals": 12,
+  "min_visual_duration": 7,
+  "max_points": 3,
+  "chart_types": ["bar", "line", "area"],
+  "dag_keywords": [
+    "pipeline", "workflow", "architecture", "agent", "loop", "step",
+    "then", "first", "finally", "depends", "orchestrat", "component",
+    "input", "output", "upstream", "downstream"
+  ],
+  "petrinet_keywords": [
+    "concurrent", "parallel", "state machine", "transition", "token",
+    "queue", "race", "deadlock", "retry", "petri"
+  ],
+  "diagram_keywords": [
+    "framework", "flywheel", "stack", "layers", "versus", " vs ",
+    "trade-off", "tradeoff", "map", "relationship", "ecosystem"
+  ],
+  "svg_keywords": [
+    "timeline", "before and after", "before/after", "spectrum",
+    "matrix", "2x2", "funnel", "pyramid", "cycle"
+  ]
+}

@@ -216,22 +216,25 @@ as the pipeline above (measured TTS, burned captions, review sheets):
 
 - `rehab-narrated-slideshow/` — the clinical slideshow procedure implemented in
   this repository.
-- `podcast-youtuber-agent/` — research, scoring and scripting for podcast
-  commentary episodes, plus a personal-voice, b-roll-only 10–15 minute renderer
-  and an OAuth 2.0 YouTube uploader.
-- `podcast-avatar-commentary/` — a reusable AI presenter and a ~15-minute
+- `podcast-content-agent/` — content-only: fresh trending selection, people
+  research, slide-by-slide transcript, no rendering.
+- `tech-commentary-slideshow/` — preferred visual layer: charts, diagrams, SVG,
+  XYFlow DAG/PetriNet, deterministic LinkZag.Show rendering and final MP4.
+- `podcast-youtuber-agent/` — legacy all-in-one pipeline and shared content,
+  TTS, assembly and upload scripts.
+- `podcast-avatar-commentary/` — optional AI presenter and a ~15-minute
   commentary video, including the MacBook M2 / 32 GB model comparison
   (EchoMimicV3 vs InfiniteTalk vs LivePortrait) and the ComfyUI character
-  workflow.
+  workflow. Use only when a talking presenter is essential.
 
 The avatar skill is self-contained under `skills/podcast-avatar-commentary/`
 and writes to `build/` and `out/`. Its private character packs live under
 `characters/<name>/`; photos, canonical renders and voice references are
 gitignored.
 
-The podcast-youtuber agent writes a private voice profile to `voices/<name>/`
-and reads OAuth credentials from `~/.config/podcast-youtuber-agent/` by default.
-Both are gitignored. Its flow is:
+The content layer writes a private voice profile to `voices/<name>/` and reads
+OAuth credentials from `~/.config/podcast-youtuber-agent/` by default. Both are
+gitignored. The preferred split flow is:
 
 ```bash
 # 1. Record 45-90s in your own voice, then analyse and register it.
@@ -240,16 +243,21 @@ uv run python skills/podcast-youtuber-agent/scripts/voice_sample.py \
 uv run python skills/podcast-youtuber-agent/scripts/voice_sample.py \
   prepare voices/me/raw.wav --out voices/me --consent self
 
-# 2. Draft a b-roll slide list from the finished script.
-uv run python skills/podcast-youtuber-agent/scripts/slides.py draft \
+# 2. Draft the slide-by-slide transcript from the finished script.
+uv run python skills/podcast-content-agent/scripts/slides.py draft \
   --script build/ep01/script.txt --out build/ep01/slides.json \
   --visuals assets/ep01 --voice-profile voices/me
 
-# 3. Validate, render and upload private.
-uv run python skills/podcast-youtuber-agent/scripts/build.py \
+# 3. Render only the selected charts/diagrams through LinkZag.Show,
+#    then assemble narration, captions and final MP4.
+uv run python skills/tech-commentary-slideshow/scripts/build.py \
   --slides build/ep01/slides.json --out out/ep01/final.mp4 \
-  --voice-profile voices/me --engine chatterbox \
-  --upload --metadata build/ep01/youtube.json --privacy private
+  --voice-profile voices/me --engine chatterbox
+
+# 4. Upload privately after review.
+uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
+  --video out/ep01/final.mp4 --metadata build/ep01/youtube.json \
+  --privacy private
 ```
 
 Every run should start from the current popular lists, not a saved topic. The
@@ -258,7 +266,7 @@ markets YouTube channels, filters the used-episode ledger, and checks which
 videos have transcripts:
 
 ```bash
-uv run python skills/podcast-youtuber-agent/scripts/trending.py list \
+uv run python skills/podcast-content-agent/scripts/trending.py list \
   --limit 20 --transcript-check-limit 10 \
   --out build/ep01/candidates/ranked.json
 ```
@@ -269,7 +277,7 @@ weights are editable in `config/trending-sources.json` and
 guest briefs before scripting:
 
 ```bash
-uv run python skills/podcast-youtuber-agent/scripts/people.py \
+uv run python skills/podcast-content-agent/scripts/people.py \
   --name "Host Name" --name "Guest Name" --out build/ep01/people.json
 ```
 
@@ -277,7 +285,7 @@ uv run python skills/podcast-youtuber-agent/scripts/people.py \
 successful upload; if a video combines episodes, repeat `--id`:
 
 ```bash
-uv run python skills/podcast-youtuber-agent/scripts/fetch_popular.py mark \
+uv run python skills/podcast-content-agent/scripts/fetch_popular.py mark \
   --id <source-id> --title "Episode title" \
   --video-id <youtube-video-id> --url https://youtu.be/<youtube-video-id>
 ```
@@ -286,12 +294,17 @@ The default commentary is 10–15 minutes, roughly one quarter of the source
 audio. If a popular episode is under ~40 minutes, combine 2–3 current episodes
 around one thesis rather than padding a short one.
 
-`build.py` validates the deck, synthesises measured narration, assembles 1080p
-H.264/AAC with burned captions, and stops before upload if the review fails.
-The uploader defaults to private, sets YouTube's synthetic-media flag, supports
-resumable uploads, thumbnails, captions, playlists and `--publish-at` scheduling.
-See `skills/podcast-youtuber-agent/SKILL.md` for voice-recording guidance,
-Chatterbox setup and the Google Cloud OAuth steps.
+`tech-commentary-slideshow/build.py` synthesises measured narration, plans the
+visuals, renders only selected LinkZag scenes, then assembles 1080p H.264/AAC
+with burned captions. Static technical slides are PNGs; only selected charts and
+diagrams are encoded as MP4. LinkZag.Show lives at `modules/linkZagShow` and
+needs `npm install` plus `npx playwright install chromium` once.
+
+The legacy `podcast-youtuber-agent` renderer and the optional avatar pipeline
+remain available. The uploader defaults to private, sets YouTube's
+synthetic-media flag, supports resumable uploads, thumbnails, captions,
+playlists and `--publish-at` scheduling. See the skill documents for voice
+recording, Chatterbox setup and Google Cloud OAuth.
 
 ## Adding an exercise
 

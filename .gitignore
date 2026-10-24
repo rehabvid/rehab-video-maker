@@ -34,3 +34,13 @@ youtube-upload.json
 
 # os
 .DS_Store
+
+# LinkZag.Show local renderer and generated media
+modules/linkZagShow/node_modules/
+modules/linkZagShow/output/
+modules/linkZagShow/videos/
+modules/linkZagShow/.preview/
+modules/linkZagShow/playwright-report/
+modules/linkZagShow/test-results/
+modules/linkZagShow/content/scenes/generated/
+modules/linkZagShow/content/assets/generated/

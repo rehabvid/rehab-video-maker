@@ -3,7 +3,15 @@ name: podcast-youtuber-agent
 description: Turn current popular Business and Technology podcasts into 10–15 minute YouTube commentary videos with a personal cloned voice, b-roll slides (no avatar), measured captions, and an optional autonomous YouTube upload. Each run fetches fresh trending sources and filters a cross-run used-episode ledger so an episode is never repeated; short sources are combined around one thesis. Covers voice-sample preparation, a local Chatterbox voice-cloning workflow on Apple Silicon, slide-list drafting/validation, the 1080p renderer, and YouTube OAuth 2.0 best practices.
 ---
 
-# Podcast YouTuber Agent
+# Podcast YouTuber Agent (legacy all-in-one)
+
+> **Skill split.** For new productions use
+> [`../podcast-content-agent/SKILL.md`](../podcast-content-agent/SKILL.md) for
+> selection and the slide-by-slide transcript, then
+> [`../tech-commentary-slideshow/SKILL.md`](../tech-commentary-slideshow/SKILL.md)
+> for the preferred technical slideshow. This skill remains the reference
+> all-in-one implementation and the shared home of the content, TTS, assembly
+> and upload scripts.
 
 Turn one or more current popular podcast episodes into a **10–15 minute,
 b-roll-only YouTube commentary video** narrated in your own cloned voice. There is no talking

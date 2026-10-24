@@ -1,0 +1,115 @@
+{
+  "max_age_days": 45,
+  "min_duration_minutes": 20,
+  "max_per_channel": 20,
+  "channels": [
+    {
+      "name": "Lex Fridman",
+      "id": "UCSHZKyawb77ixDdsGog4iWA",
+      "tier": 1,
+      "topics": ["ai", "technology", "science"]
+    },
+    {
+      "name": "ALL IN",
+      "id": "UChJM-mF-4w_61Z6eCyl0eKQ",
+      "tier": 1,
+      "topics": ["ai", "technology", "business", "markets"]
+    },
+    {
+      "name": "a16z",
+      "id": "UC9cn0TuPq4dnbTY-CBsm8XA",
+      "tier": 1,
+      "topics": ["ai", "startups", "technology"]
+    },
+    {
+      "name": "Y Combinator",
+      "id": "UCcefcZRL2oaA_uBNeo5UOWg",
+      "tier": 1,
+      "topics": ["startups", "technology"]
+    },
+    {
+      "name": "No Priors",
+      "id": "UCSI7h9hydQ40K5MJHnCrQvw",
+      "tier": 1,
+      "topics": ["ai", "technology", "startups"]
+    },
+    {
+      "name": "20VC with Harry Stebbings",
+      "id": "UCf0PBRjhf0rF8fWBIxTuoWA",
+      "tier": 1,
+      "topics": ["startups", "venture", "technology"]
+    },
+    {
+      "name": "Acquired",
+      "id": "UCyFqFYfTW2VoIQKylJ04Rtw",
+      "tier": 1,
+      "topics": ["business", "technology", "markets"]
+    },
+    {
+      "name": "Bg2 Pod",
+      "id": "UC-yRDvpR99LUc5l7i7jLzew",
+      "tier": 1,
+      "topics": ["ai", "technology", "markets"]
+    },
+    {
+      "name": "Latent Space",
+      "id": "UCxBcwypKK-W3GHd_RZ9FZrQ",
+      "tier": 1,
+      "topics": ["ai", "technology"]
+    },
+    {
+      "name": "Bloomberg Podcasts",
+      "id": "UChF5O40UBqAc82I7-i5ig6A",
+      "tier": 2,
+      "topics": ["markets", "business", "technology"]
+    },
+    {
+      "name": "CNBC Television",
+      "id": "UCrp_UI8XtuYfpiqluWLD7Lw",
+      "tier": 2,
+      "topics": ["markets", "business", "technology"]
+    },
+    {
+      "name": "The Compound",
+      "id": "UCBRpqrzuuqE8TZcWw75JSdw",
+      "tier": 2,
+      "topics": ["markets", "investing"]
+    },
+    {
+      "name": "Yahoo Finance",
+      "id": "UCEAZeUIeJs0IjQiqTCdVSIg",
+      "tier": 2,
+      "topics": ["markets", "investing", "business"]
+    },
+    {
+      "name": "The Wall Street Journal",
+      "id": "UCK7tptUDHh-RYDsdxO1-5QQ",
+      "tier": 2,
+      "topics": ["markets", "business", "technology"]
+    },
+    {
+      "name": "TechCrunch",
+      "id": "UCCjyq_K1Xwfg8Lndy7lKMpA",
+      "tier": 2,
+      "topics": ["startups", "technology", "ai"]
+    },
+    {
+      "name": "This Week in Startups",
+      "id": "UC1UbgWkb41KrhF824U6t6uQ",
+      "tier": 2,
+      "topics": ["startups", "technology", "venture"]
+    },
+    {
+      "name": "The Diary Of A CEO",
+      "id": "UCGq-a57w-aPwyi3pW7XLiHw",
+      "tier": 2,
+      "topics": ["business", "entrepreneurship"]
+    },
+    {
+      "name": "Cognitive Revolution",
+      "id": "UCjNRVMBVI30Sak_p6HRWhIA",
+      "tier": 2,
+      "topics": ["ai", "technology", "startups"]
+    }
+  ]
+}
