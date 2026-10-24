@@ -300,6 +300,12 @@ with burned captions. Static technical slides are PNGs; only selected charts and
 diagrams are encoded as MP4. LinkZag.Show lives at `modules/linkZagShow` and
 needs `npm install` plus `npx playwright install chromium` once.
 
+Narration and visual rendering can overlap. Start `narrate.py` in the
+background, run `plan_visuals.py`/`make_scenes.py`/`render_scenes.py` using
+estimated durations, then assemble with `build.py --prebuilt-manifest ...
+--prebuilt-visuals ...`. The assembler trims longer animations; if measured
+narration is longer than a pre-rendered animation, re-render only that scene.
+
 The legacy `podcast-youtuber-agent` renderer and the optional avatar pipeline
 remain available. The uploader defaults to private, sets YouTube's
 synthetic-media flag, supports resumable uploads, thumbnails, captions,

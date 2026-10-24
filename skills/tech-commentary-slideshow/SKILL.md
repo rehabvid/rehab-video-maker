@@ -238,6 +238,41 @@ LinkZag is deterministic: the same scene and time produce byte-identical PNGs
 on the same machine. Use its `segment`/`video` only for the slides that need
 motion. A static PNG is much cheaper and looks identical when nothing moves.
 
+## Run visuals concurrently with narration
+
+Narration and slide generation do not have to be sequential. The visual plan can
+be built from word-count estimates while Chatterbox is still synthesising WAVs:
+
+```bash
+# Terminal 1: start narration in the background
+nohup uv run python skills/podcast-youtuber-agent/scripts/narrate.py \
+  --slides build/ep01/slides.json --out build/ep01 \
+  --voice-profile voices/me --engine chatterbox > build/ep01/narrate.log 2>&1 &
+
+# Terminal 2: build visuals from estimated durations
+uv run python skills/tech-commentary-slideshow/scripts/plan_visuals.py \
+  --slides build/ep01/slides.json --out build/ep01/visual-plan-pre.json
+uv run python skills/tech-commentary-slideshow/scripts/make_scenes.py \
+  --plan build/ep01/visual-plan-pre.json --out build/ep01/scenes-pre.json
+uv run python skills/tech-commentary-slideshow/scripts/render_scenes.py \
+  --manifest build/ep01/scenes-pre.json --visuals build/ep01/visuals-pre
+
+# After narration finishes, assemble with the prebuilt visuals.
+uv run python skills/tech-commentary-slideshow/scripts/build.py \
+  --slides build/ep01/slides.json --out out/ep01/final.mp4 \
+  --prebuilt-manifest build/ep01/scenes-pre.json \
+  --prebuilt-visuals build/ep01/visuals-pre
+```
+
+The assembler trims a longer animation to the measured narration. If the
+measured narration is **longer** than the pre-rendered animation, the assembler
+would loop it, which can restart the reveal. `build.py` prints a warning; in
+that case re-render only the affected scene with measured timing.
+
+Static PNG visuals have no timing dependency at all. Animated scenes use the
+estimated word-count duration as a safe upper bound; a fast voice usually makes
+the measured duration shorter, so trimming is the common case.
+
 ## Efficiency rules
 
 - Animate at most **8–12 slides** in a 15-minute video.

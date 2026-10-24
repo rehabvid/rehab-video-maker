@@ -61,6 +61,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url", help="reuse a running LinkZag renderer")
     parser.add_argument("--keep-scenes", action="store_true")
     parser.add_argument("--skip-visuals", action="store_true")
+    parser.add_argument("--prebuilt-manifest", help="use an existing visuals manifest instead of planning/rendering")
+    parser.add_argument("--prebuilt-visuals", help="directory containing shot-XX.png/mp4 for the prebuilt manifest")
     parser.add_argument("--force-narrate", action="store_true")
     parser.add_argument("--thumbnail")
     parser.add_argument("--no-thumbnail", action="store_true")
@@ -99,36 +101,39 @@ def main(argv: list[str] | None = None) -> int:
         plan_path = work / "visual-plan.json"
         scenes_path = work / "scenes.json"
         visuals_dir = work / "visuals"
-        if _run([
-            sys.executable, str(HERE / "plan_visuals.py"),
-            "--slides", str(slides_path),
-            "--timing", str(timing_path),
-            "--out", str(plan_path),
-        ]):
-            return 1
-        if _run([
-            sys.executable, str(HERE / "make_scenes.py"),
-            "--plan", str(plan_path),
-            "--module", args.module,
-            "--out", str(scenes_path),
-        ]):
-            return 1
-        render = [
-            sys.executable, str(HERE / "render_scenes.py"),
-            "--manifest", str(scenes_path),
-            "--visuals", str(visuals_dir),
-            "--module", args.module,
-        ]
-        if args.base_url:
-            render += ["--base-url", args.base_url]
-        if args.keep_scenes:
-            render.append("--keep-scenes")
-        if _run(render):
-            return 1
+        if args.prebuilt_manifest:
+            scenes_path = Path(args.prebuilt_manifest).resolve()
+            visuals_dir = Path(args.prebuilt_visuals or work / "visuals").resolve()
+        else:
+            if _run([
+                sys.executable, str(HERE / "plan_visuals.py"),
+                "--slides", str(slides_path),
+                "--timing", str(timing_path),
+                "--out", str(plan_path),
+            ]):
+                return 1
+            if _run([
+                sys.executable, str(HERE / "make_scenes.py"),
+                "--plan", str(plan_path),
+                "--module", args.module,
+                "--out", str(scenes_path),
+            ]):
+                return 1
+            render = [
+                sys.executable, str(HERE / "render_scenes.py"),
+                "--manifest", str(scenes_path),
+                "--visuals", str(visuals_dir),
+                "--module", args.module,
+            ]
+            if args.base_url:
+                render += ["--base-url", args.base_url]
+            if args.keep_scenes:
+                render.append("--keep-scenes")
+            if _run(render):
+                return 1
 
         # Apply the rendered visuals to the measured timeline. The assembler
         # already knows how to loop a still or an MP4 for a b-roll shot.
-        plan = _load(plan_path)
         scenes = _load(scenes_path)
         timing = _load(timing_path)
         by_id = {str(s.get("id")): s for s in scenes.get("scenes", [])}
@@ -142,12 +147,17 @@ def main(argv: list[str] | None = None) -> int:
             if not visual.exists():
                 print(f"warning: missing rendered visual {visual}", file=sys.stderr)
                 continue
+            if scene.get("animated") and float(shot.get("duration") or 0) > float(scene.get("duration") or 0) + 0.25:
+                print(
+                    f"warning: shot {sid} narration is longer than its animated visual; "
+                    "the assembler will loop it. Re-render with measured timing for a clean result.",
+                    file=sys.stderr,
+                )
             shot["kind"] = "broll"
             shot["visual"] = _rel(visual)
             shot["visual_type"] = scene.get("type")
         timing_path = work / "timing-visuals.json"
         timing_path.write_text(json.dumps(timing, indent=2) + "\n")
-        (work / "slides-visuals.json").write_text(json.dumps(plan, indent=2) + "\n")
 
     if _run([
         sys.executable,

@@ -56,6 +56,11 @@ def _duration(shot: dict, timing: dict[str, dict], policy: dict) -> float:
 
 
 def _points(shot: dict, policy: dict) -> list[str]:
+    visual = shot.get("visual")
+    if isinstance(visual, dict):
+        explicit_points = visual.get("points") or visual.get("points_override")
+        if isinstance(explicit_points, list) and explicit_points:
+            return [_short(str(item), 110) for item in explicit_points][: int(policy.get("max_points", 3))]
     bullets = shot.get("bullets")
     if isinstance(bullets, list):
         out = [_short(item, 110) for item in bullets if str(item).strip()]
@@ -200,6 +205,7 @@ def plan(slides: dict, timing: dict, policy: dict) -> dict:
                 "visual": {
                     "type": visual_type,
                     "animated": spec["animation"],
+                    "explicit": isinstance(shot.get("visual"), dict),
                     "reason": f"{visual_type} fits the narration and duration",
                     "spec": spec,
                 },
@@ -215,7 +221,11 @@ def plan(slides: dict, timing: dict, policy: dict) -> dict:
         keep = {
             p["id"] for p in sorted(
                 candidates,
-                key=lambda p: (priority.get(p["visual"]["type"], 0), float(p.get("duration") or 0)),
+                key=lambda p: (
+                    bool(p["visual"].get("explicit")),
+                    priority.get(p["visual"]["type"], 0),
+                    float(p.get("duration") or 0),
+                ),
                 reverse=True,
             )[:max_visuals]
         }
