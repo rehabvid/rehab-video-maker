@@ -40,9 +40,10 @@ process edge that is not supported by the transcript/source.
 - Python environment: `uv sync --extra youtube`
 - FFmpeg and ffprobe
 - Node 22.22.2+, npm 10+
-- LinkZag.Show installed at `modules/linkZagShow`:
+- LinkZag.Show installed at `modules/linkZagShow` (Git submodule):
 
 ```bash
+git submodule update --init --recursive
 cd modules/linkZagShow
 npm install
 npx playwright install chromium

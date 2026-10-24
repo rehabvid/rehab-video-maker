@@ -297,8 +297,9 @@ around one thesis rather than padding a short one.
 `tech-commentary-slideshow/build.py` synthesises measured narration, plans the
 visuals, renders only selected LinkZag scenes, then assembles 1080p H.264/AAC
 with burned captions. Static technical slides are PNGs; only selected charts and
-diagrams are encoded as MP4. LinkZag.Show lives at `modules/linkZagShow` and
-needs `npm install` plus `npx playwright install chromium` once.
+diagrams are encoded as MP4. LinkZag.Show is the `modules/linkZagShow` Git
+submodule; initialize it with `git submodule update --init --recursive`, then
+run `npm install` and `npx playwright install chromium` once.
 
 Narration and visual rendering can overlap. Start `narrate.py` in the
 background, run `plan_visuals.py`/`make_scenes.py`/`render_scenes.py` using
