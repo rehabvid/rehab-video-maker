@@ -84,8 +84,10 @@ skills/podcast-youtuber-agent/
     chatterbox_worker.py     # batch Chatterbox worker (voice venv)
     narrate.py               # voice synthesis, timing, master.wav, captions
     thumbnail.py             # 1280x720 title-card thumbnail from the slide list
+    translate.py             # EN -> zh-Hans deck + YouTube metadata via OpenCode
+    bilingual.py             # shared visuals + English/Mandarin narration + upload
     build.py                 # validate -> narrate -> assemble -> optional upload
-    youtube_upload.py        # OAuth 2.0 + resumable YouTube upload
+    youtube_upload.py        # OAuth 2.0 + resumable upload, captions, localizations
     autopilot.py             # queue: select -> editor -> Qwen3 video -> private upload
 voices/<name>/               # private: reference.wav, voice.json
 state/used-episodes.json     # cross-run ledger: source ids already used
@@ -784,7 +786,9 @@ Upload extras:
 
 - `--thumbnail path` — JPEG/PNG, 1280×720 or larger. `thumbnail.py` renders a
   title-card version from the slide list.
-- `--captions build/ep01/captions.srt` — uploaded as an English caption track.
+- `--captions build/ep01/captions.srt` — uploaded as an English caption track
+  (`--captions` may be repeated; use `--caption-track zh-Hans=path|中文` for
+  explicit language/name pairs).
 - `--playlist PLAYLIST_ID` — adds the video to a playlist.
 - `--publish-at 2026-11-01T18:00:00Z` — schedules publication. This forces
   `privacyStatus=private` and lets YouTube publish automatically at that time.
@@ -794,6 +798,68 @@ The uploader is resumable, retries 429/5xx with bounded exponential backoff,
 and writes `youtube-upload.json` next to the video. If the thumbnail, captions
 or playlist step fails after the video uploads, the receipt records the warning
 instead of discarding the successful upload.
+
+### 6.4b Bilingual English + Mandarin
+
+The pipeline can produce both languages from one English edit. Translate the
+deck and metadata first, then build and upload both versions:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/translate.py \
+  --slides build/ep01/slides.json \
+  --youtube build/ep01/youtube.json \
+  --out-dir build/ep01
+
+uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
+  --slides build/ep01/slides.json \
+  --slides-zh build/ep01/slides.zh.json \
+  --metadata build/ep01/youtube.json \
+  --metadata-zh build/ep01/youtube.zh.json \
+  --work build/ep01 \
+  --out-dir out/ep01-bilingual \
+  --upload
+```
+
+`translate.py` uses the same OpenCode model as the editorial writer. It
+translates only human-visible fields, preserves shot ids and the whole
+`visual`/chart payload, sets `language: "zh-Hans"`, and writes
+`slides.zh.json` plus `youtube.zh.json`.
+
+`bilingual.py` reuses the English visual track, synthesises Mandarin with the
+same Qwen3 cloned voice, and produces:
+
+```text
+out/ep01-bilingual/final.en.mp4
+out/ep01-bilingual/final.zh.mp4
+out/ep01-bilingual/thumbnail.en.png
+out/ep01-bilingual/thumbnail.zh.png
+out/ep01-bilingual/bilingual.json
+build/ep01/zh/captions.srt                     # Mandarin, Mandarin timings
+build/ep01/zh/captions-for-english.srt         # Mandarin, English timings
+build/ep01/zh/captions-en-for-zh.srt           # English, Mandarin timings
+build/ep01/zh/dub/dub.zh.m4a                   # exact English video length
+```
+
+Both videos are uploaded privately when `--upload` is present. The English
+upload gets English and Mandarin caption tracks plus a `zh-Hans` localized
+title/description; the Mandarin upload gets Mandarin and English caption
+tracks. `--localizations` on `youtube_upload.py` accepts a JSON map:
+
+```json
+{"zh-Hans": {"title": "中文标题", "description": "中文描述"}}
+```
+
+**YouTube limitation:** the public Data API can upload videos, captions and
+localized metadata, but it has no endpoint for a second audio track. To give
+viewers a single URL with an in-player language selector, use the generated
+`dub/dub.zh.m4a` in **YouTube Studio → Languages → Add language → Dub**. The
+file is already time-fitted to `final.en.mp4`. Uploading both complete videos
+is the fully automated fallback and lets viewers choose by video.
+
+`autopilot.py --bilingual` performs the translation, both builds and both
+uploads automatically. Mandarin captions use CJK-aware line wrapping and the
+system CJK font (STHeiti / Songti on macOS, Noto Sans CJK on Linux). Do not
+upload a burned-in Mandarin video that uses an Arial-only font path.
 
 ### 6.5 Quota and platform limits
 
@@ -849,6 +915,11 @@ nohup caffeinate -dimsu .venv/bin/python \
 It downloads the episode audio and runs local MLX Whisper ASR before writing,
 so the first run also downloads the ASR model. Use `--asr-model` to choose a
 smaller/faster model.
+
+Add `--bilingual` to translate the finished deck, render Mandarin narration,
+and upload private English and Mandarin videos. The two videos share the same
+visual edit; `bilingual.json` also contains a time-fitted `dub.zh.m4a` for the
+Studio multi-language-audio selector.
 
 Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
 private by default. Review each private video before publishing. The queue

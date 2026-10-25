@@ -23,6 +23,7 @@ LEAD = 0.25
 TAIL = 0.35
 TARGET_WPM = 150.0
 CAPTION_LINE = 42
+CAPTION_LINE_CJK = 34
 CAPTION_LINES = 2
 CAPTION_TAIL = 0.35
 
@@ -107,6 +108,10 @@ def quantize(seconds: float, fps: int = FPS) -> float:
 
 
 def estimate_seconds(text: str, wpm: float = TARGET_WPM) -> float:
+    if contains_cjk(text):
+        chars = len(re.findall(r"[\u4e00-\u9fff]", text))
+        # Measured Qwen3 Mandarin pace is roughly 260-300 characters/minute.
+        return max(1.0, chars / 270.0 * 60.0)
     words = len(re.findall(r"\S+", text))
     return max(1.0, words / wpm * 60.0)
 
@@ -134,10 +139,29 @@ FONT_BOLD = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ]
+FONT_CJK_REGULAR = [
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+]
+FONT_CJK_BOLD = [
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+]
 
 
-def find_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    for path in (FONT_BOLD if bold else FONT_REGULAR):
+def contains_cjk(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text or "")
+
+
+def find_font(size: int, bold: bool = False, text: str = "") -> ImageFont.FreeTypeFont:
+    candidates = FONT_CJK_BOLD if bold else FONT_CJK_REGULAR
+    if not contains_cjk(text):
+        candidates = FONT_BOLD if bold else FONT_REGULAR
+    for path in candidates:
         p = Path(path)
         if not p.exists():
             continue
@@ -151,6 +175,19 @@ def find_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
 
 
 def wrap_by_width(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    if contains_cjk(text):
+        lines: list[str] = []
+        current = ""
+        for char in text:
+            candidate = current + char
+            if current and font.getlength(candidate) > max_width:
+                lines.append(current)
+                current = char
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+        return lines
     words = text.split()
     lines: list[str] = []
     current = ""
@@ -176,6 +213,8 @@ def draw_paragraph(
     line_gap: int = 12,
     max_lines: int | None = None,
 ) -> int:
+    if contains_cjk(text):
+        font = find_font(font.size, text=text)
     x, y = xy
     lines = wrap_by_width(text, font, max_width)
     if max_lines is not None:
@@ -254,17 +293,22 @@ def render_title_card(
     draw = ImageDraw.Draw(img)
     margin = 180
     draw.rectangle([margin, 150, margin + 12, 430], fill=ACCENT)
-    kicker_font = find_font(38, bold=True)
+    kicker_font = find_font(38, bold=True, text=kicker)
     draw.text((margin + 44, 156), kicker.upper(), font=kicker_font, fill=ACCENT)
     title_font = find_font(112, bold=True)
     draw_paragraph(draw, title, title_font, (margin + 44, 230), MASTER_W - 2 * margin - 44, PAPER, 18)
     sub_font = find_font(48)
     draw_paragraph(draw, subtitle, sub_font, (margin + 44, 760), MASTER_W - 2 * margin - 44, MUTED, 12)
     # Keep the disclosure out of the lower third: burned captions live there.
+    disclosure = (
+        "AI 辅助评论。脚本、资料与观点均经人工核验。"
+        if contains_cjk(title) else
+        "An AI-assisted commentary. Script, sources and opinions are human-reviewed."
+    )
     draw.text(
         (margin + 44, 92),
-        "An AI-assisted commentary. Script, sources and opinions are human-reviewed.",
-        font=find_font(30),
+        disclosure,
+        font=find_font(30, text=disclosure),
         fill=MUTED,
     )
     return save_card(img, path)
@@ -299,7 +343,7 @@ def render_list_card(
     img = background_from(background)
     draw = ImageDraw.Draw(img)
     margin = 180
-    draw.text((margin, 150), kicker.upper(), font=find_font(36, bold=True), fill=ACCENT)
+    draw.text((margin, 150), kicker.upper(), font=find_font(36, bold=True, text=kicker), fill=ACCENT)
     draw_paragraph(draw, heading, find_font(88, bold=True), (margin, 230), MASTER_W - 2 * margin, PAPER, 16, 3)
     y = 570
     for i, bullet in enumerate(bullets[:5], start=1):
@@ -329,7 +373,8 @@ def render_end_card(
     img = background_from(background)
     draw = ImageDraw.Draw(img)
     margin = 180
-    draw.text((margin, 170), "YOUR TURN", font=find_font(38, bold=True), fill=ACCENT)
+    your_turn = "轮到你了" if contains_cjk(heading) else "YOUR TURN"
+    draw.text((margin, 170), your_turn, font=find_font(38, bold=True, text=your_turn), fill=ACCENT)
     draw_paragraph(draw, heading, find_font(96, bold=True), (margin, 250), MASTER_W - 2 * margin, PAPER, 14, 3)
     draw_paragraph(draw, question, find_font(50), (margin, 590), MASTER_W - 2 * margin, PAPER, 12, 4)
     draw.rectangle([margin, 870, margin + 140, 878], fill=ACCENT_2)
@@ -375,7 +420,7 @@ def render_caption_overlay(path: Path, text: str, size: tuple[int, int] = (OUT_W
     """
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    font = find_font(46, bold=True)
+    font = find_font(46, bold=True, text=text)
     lines = text.split("\n") or [text]
     line_h = int(font.size * 1.28)
     y = size[1] - 64 - line_h * len(lines)
@@ -401,7 +446,32 @@ def render_caption_overlay(path: Path, text: str, size: tuple[int, int] = (OUT_W
 # ---------------------------------------------------------------------------
 
 
+def _wrap_mixed(text: str, width: int) -> list[str]:
+    """Wrap mixed CJK/Latin text without splitting Latin words or URLs."""
+    tokens = re.findall(r"\s+|[A-Za-z0-9][A-Za-z0-9.'’/%+\-:]*|[\u4e00-\u9fff]|[^\s]", text)
+    lines: list[str] = []
+    current = ""
+    for token in tokens:
+        if token.isspace() and not current:
+            continue
+        candidate = current + token
+        if current and len(candidate) > width:
+            lines.append(current.rstrip())
+            current = token.lstrip()
+        else:
+            current = candidate
+        while len(current) > width:
+            lines.append(current[:width])
+            current = current[width:]
+    if current.strip():
+        lines.append(current.rstrip())
+    return lines
+
+
 def caption_chunks(text: str, max_line: int = CAPTION_LINE, max_lines: int = CAPTION_LINES) -> list[str]:
+    if contains_cjk(text):
+        lines = _wrap_mixed(text, CAPTION_LINE_CJK)
+        return ["\n".join(lines[i:i + max_lines]) for i in range(0, len(lines), max_lines)]
     width = max_line * max_lines
     text = text.strip()
     if len(text) <= width:
@@ -433,6 +503,11 @@ def caption_chunks(text: str, max_line: int = CAPTION_LINE, max_lines: int = CAP
 
 
 def _wrap_caption(text: str) -> str:
+    if "\n" in text:
+        return text
+    if contains_cjk(text):
+        lines = _wrap_mixed(text, CAPTION_LINE_CJK)
+        return "\n".join(lines[:CAPTION_LINES])
     return "\n".join(textwrap.wrap(text, width=CAPTION_LINE, break_long_words=False))
 
 

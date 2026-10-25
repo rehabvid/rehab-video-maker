@@ -210,6 +210,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--source", choices=["pt", "investment"], default="pt")
+    parser.add_argument("--bilingual", action="store_true", help="also translate, narrate and upload Mandarin")
     parser.add_argument("--asr-model", default="mlx-community/whisper-large-v3-turbo-asr-fp16")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
@@ -299,23 +300,63 @@ def main(argv: list[str] | None = None) -> int:
 
         out_dir = ROOT / "out" / "autopilot" / slug
         out_dir.mkdir(parents=True, exist_ok=True)
-        build_code = run([
-            sys.executable, str(TECH_SCRIPTS / "build.py"),
-            "--slides", str(work / "slides.json"),
-            "--out", str(out_dir / "final.mp4"),
-            "--work", str(work),
-            "--engine", "qwen3",
-            "--ref-text-file", str(REF_TEXT),
-            "--upload",
-            "--metadata", str(work / "youtube.json"),
-            "--privacy", "private",
-            "--max-seconds", "895",
-            "--preset", "veryfast",
-        ])
+        out_note = ""
+        if args.bilingual:
+            translate_code = run([
+                sys.executable, str(HERE / "translate.py"),
+                "--slides", str(work / "slides.json"),
+                "--youtube", str(work / "youtube.json"),
+                "--out-dir", str(work),
+                "--model", args.model,
+            ])
+            if translate_code:
+                log(f"Mandarin translation failed for {slug}; stopping")
+                break
+            zh_validate = run([
+                sys.executable, str(CONTENT_SCRIPTS / "slides.py"),
+                "validate", str(work / "slides.zh.json"), "--root", ".", "--wpm", "150",
+            ], quiet=True)
+            if zh_validate:
+                log(f"Mandarin slides failed validation for {slug}; stopping")
+                break
+            build_code = run([
+                sys.executable, str(HERE / "bilingual.py"), "build",
+                "--slides", str(work / "slides.json"),
+                "--slides-zh", str(work / "slides.zh.json"),
+                "--metadata", str(work / "youtube.json"),
+                "--metadata-zh", str(work / "youtube.zh.json"),
+                "--work", str(work),
+                "--out-dir", str(out_dir),
+                "--out-en", str(out_dir / "final.en.mp4"),
+                "--out-zh", str(out_dir / "final.zh.mp4"),
+                "--engine", "qwen3",
+                "--ref-text-file", str(REF_TEXT),
+                "--voice-python", str(ROOT / ".venv-voice" / "bin" / "python"),
+                "--max-seconds", "895",
+                "--preset", "veryfast",
+                "--upload",
+            ])
+            out_note = f"English {out_dir / 'final.en.mp4'}; Mandarin {out_dir / 'final.zh.mp4'}"
+            receipt_path = out_dir / "youtube-en.json"
+        else:
+            build_code = run([
+                sys.executable, str(TECH_SCRIPTS / "build.py"),
+                "--slides", str(work / "slides.json"),
+                "--out", str(out_dir / "final.mp4"),
+                "--work", str(work),
+                "--engine", "qwen3",
+                "--ref-text-file", str(REF_TEXT),
+                "--upload",
+                "--metadata", str(work / "youtube.json"),
+                "--privacy", "private",
+                "--max-seconds", "895",
+                "--preset", "veryfast",
+            ])
+            out_note = f"output {out_dir / 'final.mp4'}"
+            receipt_path = out_dir / "youtube-upload.json"
         if build_code:
             log(f"build/upload failed for {slug}; stopping")
             break
-        receipt_path = out_dir / "youtube-upload.json"
         video_id = ""
         if receipt_path.exists():
             try:
@@ -326,7 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         mark = [
             sys.executable, str(CONTENT_SCRIPTS / "fetch_popular.py"), "mark",
             "--id", source_id, "--title", title,
-            "--note", f"autopilot Qwen3 commentary; output {out_dir / 'final.mp4'}",
+            "--note", f"autopilot Qwen3 commentary; {out_note}",
         ]
         if video_id:
             mark += ["--video-id", video_id, "--url", f"https://youtu.be/{video_id}"]

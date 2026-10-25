@@ -30,6 +30,22 @@ def _load_model(model_name: str):
     return load_model(model_name)
 
 
+def _token_cap(text: str) -> int:
+    """Estimate a safe generation cap for English or CJK text.
+
+    Qwen3 emits roughly 12-13 audio tokens per second. Chinese has no spaces,
+    so a word count would collapse to one and truncate the sample; estimate
+    Mandarin duration from CJK character count instead (about 4.5 chars/sec).
+    """
+    cjk_chars = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
+    latin_words = max(1, len(text.split()))
+    seconds = max(
+        latin_words / 160.0 * 60.0,
+        cjk_chars / 4.5 if cjk_chars else 0.0,
+    )
+    return max(160, int(seconds * 13.0 * 1.35) + 48)
+
+
 def check() -> int:
     try:
         import mlx_audio
@@ -112,14 +128,9 @@ def main(argv: list[str] | None = None) -> int:
         out.parent.mkdir(parents=True, exist_ok=True)
         print(f"[{index}/{len(jobs)}] {job_id}", file=sys.stderr)
         try:
-            words = max(1, len(text.split()))
-            # Qwen3 emits roughly 12-13 tokens per second of audio. Cap the
-            # generation at ~1.35x the expected duration so a bad sample cannot
-            # loop for minutes.
-            max_tokens = args.max_tokens or max(
-                160,
-                int(words / 160.0 * 60.0 * 13.0 * 1.35) + 48,
-            )
+            # Cap generation at ~1.35x the expected duration so a bad sample
+            # cannot loop for minutes. CJK text is measured by characters.
+            max_tokens = args.max_tokens or _token_cap(text)
             results = list(
                 model.generate(
                     text=text,

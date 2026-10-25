@@ -95,11 +95,12 @@ def _segments(shot: dict, timing: dict, root: Path, build: Path) -> tuple[Path, 
         return path, False, None
     if kind == "end":
         path = cards / f"shot-{sid}.png"
-        disclosure = (
-            "AI voice narration. The script, research and opinions are the creator's own."
-            if timing.get("format") == "broll-slides"
-            else None
-        )
+        disclosure = None
+        if timing.get("format") == "broll-slides":
+            if str(timing.get("language") or "").lower().startswith(("zh", "cmn", "mandarin")):
+                disclosure = "AI 语音旁白。脚本、资料与观点均属于创作者本人。"
+            else:
+                disclosure = "AI voice narration. The script, research and opinions are the creator's own."
         render_end_card(
             path,
             shot.get("heading") or "What do you think?",

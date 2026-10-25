@@ -266,6 +266,27 @@ uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
   --privacy private
 ```
 
+For a bilingual release, translate the finished deck and metadata, then build
+both language versions from one visual edit:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/translate.py \
+  --slides build/ep01/slides.json --youtube build/ep01/youtube.json
+
+uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
+  --slides build/ep01/slides.json \
+  --slides-zh build/ep01/slides.zh.json \
+  --metadata build/ep01/youtube.json \
+  --metadata-zh build/ep01/youtube.zh.json \
+  --work build/ep01 --out-dir out/ep01-bilingual --upload
+```
+
+This writes `final.en.mp4`, `final.zh.mp4`, English/Chinese caption tracks and a
+time-fitted `dub.zh.m4a` for YouTube Studio's multi-language-audio selector. The
+public YouTube Data API cannot insert an alternate audio track, so the Studio
+attach step is manual; uploading both videos is fully automated. Autopilot has
+the same path with `--bilingual`.
+
 Every run should start from the current popular lists, not a saved topic. The
 ranked list merges PodcastTranscript.ai with curated AI, startup, technology and
 markets YouTube channels, filters the used-episode ledger, and checks which

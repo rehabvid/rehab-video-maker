@@ -508,6 +508,11 @@ def build(args) -> int:
         cursor += shot_duration
 
     total = round(cursor, 3)
+    language = data.get("language") or (
+        "zh-Hans" if any("\u4e00" <= c <= "\u9fff" for c in "".join(
+            str(shot.get("narration") or "") for shot in shots
+        )) else "en"
+    )
     save_json(
         manifest_path,
         {
@@ -536,6 +541,7 @@ def build(args) -> int:
         "slug": data.get("slug"),
         "title": data.get("title"),
         "format": "broll-slides",
+        "language": language,
         "engine": engine,
         "voice": {
             "name": voice_name,

@@ -234,6 +234,18 @@ def _load_metadata(args) -> dict:
         data["tags"] = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
     if args.category_id:
         data["categoryId"] = str(args.category_id)
+    if args.localizations:
+        loc_path = Path(args.localizations).expanduser()
+        try:
+            localizations = json.loads(loc_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"cannot read localizations {loc_path}: {exc}") from exc
+        if not isinstance(localizations, dict):
+            raise ValueError("localizations must be a JSON object")
+        for lang, fields in localizations.items():
+            if not isinstance(fields, dict) or not str(fields.get("title", "")).strip():
+                raise ValueError(f"localization {lang!r} needs a title")
+        data["localizations"] = localizations
 
     data.setdefault("title", Path(args.video).stem.replace("_", " ").replace("-", " ").title())
     data.setdefault("description", "")
@@ -311,7 +323,10 @@ def _body(data: dict) -> dict:
     }
     if data.get("publishAt"):
         status["publishAt"] = data["publishAt"]
-    return {"snippet": snippet, "status": status}
+    body = {"snippet": snippet, "status": status}
+    if data.get("localizations"):
+        body["localizations"] = data["localizations"]
+    return body
 
 
 def _sleep_backoff(attempt: int) -> None:
@@ -328,8 +343,11 @@ def _upload(youtube, args, data: dict, HttpError, MediaFileUpload) -> dict:
         chunksize=CHUNK_SIZE,
         resumable=True,
     )
+    part = "snippet,status"
+    if data.get("localizations"):
+        part += ",localizations"
     request = youtube.videos().insert(
-        part="snippet,status",
+        part=part,
         body=_body(data),
         media_body=media,
         notifySubscribers=not args.no_notify,
@@ -372,7 +390,7 @@ def _upload(youtube, args, data: dict, HttpError, MediaFileUpload) -> dict:
     return response
 
 
-def _add_extras(youtube, args, video_id: str, HttpError, MediaFileUpload) -> list[str]:
+def _add_extras(youtube, args, video_id: str, HttpError, MediaFileUpload) -> tuple[list[str], list[tuple[Path, str, str]]]:
     warnings: list[str] = []
     if args.thumbnail:
         thumbnail = Path(args.thumbnail).expanduser()
@@ -388,29 +406,47 @@ def _add_extras(youtube, args, video_id: str, HttpError, MediaFileUpload) -> lis
                 print(f"thumbnail: {thumbnail}")
             except Exception as exc:  # noqa: BLE001 - keep the upload
                 warnings.append(f"thumbnail failed: {exc}")
-    if args.captions:
-        captions = Path(args.captions).expanduser()
+    caption_tracks: list[tuple[Path, str, str]] = []
+    for value in args.captions or []:
+        caption_tracks.append((
+            Path(value).expanduser(),
+            args.caption_language or "en",
+            args.caption_name or "English",
+        ))
+    for spec in args.caption_track or []:
+        try:
+            language, rest = spec.split("=", 1)
+            path_text, *name_parts = rest.split("|", 1)
+        except ValueError:
+            warnings.append(f"caption track must be LANG=PATH or LANG=PATH|NAME: {spec}")
+            continue
+        caption_tracks.append((
+            Path(path_text).expanduser(),
+            language,
+            name_parts[0] if name_parts else language,
+        ))
+    for captions, language, name in caption_tracks:
         if not captions.exists():
             warnings.append(f"captions not found: {captions}")
-        else:
-            try:
-                youtube.captions().insert(
-                    part="snippet",
-                    body={
-                        "snippet": {
-                            "videoId": video_id,
-                            "language": args.caption_language,
-                            "name": args.caption_name,
-                            "isDraft": False,
-                        }
-                    },
-                    media_body=MediaFileUpload(
-                        str(captions), mimetype="application/octet-stream"
-                    ),
-                ).execute()
-                print(f"captions: {captions}")
-            except Exception as exc:  # noqa: BLE001 - keep the upload
-                warnings.append(f"captions failed: {exc}")
+            continue
+        try:
+            youtube.captions().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "videoId": video_id,
+                        "language": language,
+                        "name": name,
+                        "isDraft": False,
+                    }
+                },
+                media_body=MediaFileUpload(
+                    str(captions), mimetype="application/octet-stream"
+                ),
+            ).execute()
+            print(f"captions: {captions} ({language})")
+        except Exception as exc:  # noqa: BLE001 - keep the upload
+            warnings.append(f"captions failed for {language}: {exc}")
     if args.playlist:
         try:
             youtube.playlistItems().insert(
@@ -425,7 +461,7 @@ def _add_extras(youtube, args, video_id: str, HttpError, MediaFileUpload) -> lis
             print(f"playlist: {args.playlist}")
         except Exception as exc:  # noqa: BLE001 - keep the upload
             warnings.append(f"playlist failed: {exc}")
-    return warnings
+    return warnings, caption_tracks
 
 
 def _receipt_path(args, data: dict) -> Path:
@@ -446,9 +482,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--privacy", default=None, choices=["private", "unlisted", "public"])
     parser.add_argument("--publish-at", help="ISO 8601 schedule; forces privacyStatus=private")
     parser.add_argument("--thumbnail")
-    parser.add_argument("--captions", help="SRT or VTT sidecar")
-    parser.add_argument("--caption-language", default="en")
-    parser.add_argument("--caption-name", default="English")
+    parser.add_argument("--captions", action="append", default=[], help="SRT/VTT; may repeat")
+    parser.add_argument("--caption-language", default=None, help="language for --captions (default en)")
+    parser.add_argument("--caption-name", default=None, help="display name for --captions (default English)")
+    parser.add_argument(
+        "--caption-track", action="append", default=[],
+        help="additional caption track as LANG=PATH or LANG=PATH|NAME; may repeat",
+    )
+    parser.add_argument("--localizations", help="JSON map of language -> title/description")
     parser.add_argument("--playlist", help="playlist id")
     parser.add_argument("--made-for-kids", action="store_true")
     parser.add_argument(
@@ -484,8 +525,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.video:
         parser.error("--video is required unless --auth, --check-auth or --revoke is used")
-    if args.minimal_scope and (args.thumbnail or args.captions or args.playlist):
-        parser.error("--minimal-scope cannot be combined with thumbnail, captions or playlist")
+    if args.minimal_scope and (args.thumbnail or args.captions or args.caption_track or args.playlist or args.localizations):
+        parser.error("--minimal-scope cannot be combined with thumbnail, captions, localizations or playlist")
     try:
         data = _load_metadata(args)
     except (OSError, ValueError) as exc:
@@ -498,9 +539,17 @@ def main(argv: list[str] | None = None) -> int:
         if not video_path.exists() or video_path.stat().st_size == 0:
             print(f"error: video not found: {video_path}", file=sys.stderr)
             return 1
-        for label, value in (("thumbnail", args.thumbnail), ("captions", args.captions)):
+        for label, value in (("thumbnail", args.thumbnail),):
             if value and not Path(value).expanduser().exists():
                 print(f"warning: {label} not found: {Path(value).expanduser()}", file=sys.stderr)
+        for value in args.captions:
+            if not Path(value).expanduser().exists():
+                print(f"warning: captions not found: {Path(value).expanduser()}", file=sys.stderr)
+        for spec in args.caption_track:
+            _, rest = spec.split("=", 1)
+            path_text = rest.split("|", 1)[0]
+            if not Path(path_text).expanduser().exists():
+                print(f"warning: captions not found: {Path(path_text).expanduser()}", file=sys.stderr)
         print(json.dumps({"video": str(video_path), "body": body}, indent=2))
         return 0
 
@@ -513,13 +562,18 @@ def main(argv: list[str] | None = None) -> int:
         response = _upload(youtube, args, data, HttpError, MediaFileUpload)
         video_id = response["id"]
         print(f"uploaded: https://youtu.be/{video_id}")
-        warnings = _add_extras(youtube, args, video_id, HttpError, MediaFileUpload)
+        warnings, caption_tracks = _add_extras(youtube, args, video_id, HttpError, MediaFileUpload)
         receipt = {
             "video_id": video_id,
             "url": f"https://youtu.be/{video_id}",
             "privacyStatus": body["status"]["privacyStatus"],
             "publishAt": body["status"].get("publishAt"),
             "containsSyntheticMedia": body["status"]["containsSyntheticMedia"],
+            "caption_tracks": [
+                {"path": str(path), "language": language, "name": name}
+                for path, language, name in caption_tracks
+            ],
+            "localizations": sorted((body.get("localizations") or {}).keys()),
             "uploaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "warnings": warnings,
         }
