@@ -64,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--module", default=str(LINKZAG_MODULE))
     parser.add_argument("--base-url", help="reuse a running LinkZag renderer")
     parser.add_argument("--animation-seconds", type=float, default=5.0)
+    parser.add_argument("--max-seconds", type=float, default=0.0, help="refuse to assemble/upload longer than this")
     parser.add_argument("--preset", default="veryfast")
     parser.add_argument("--crf", type=int, default=20)
     parser.add_argument("--keep-scenes", action="store_true")
@@ -142,6 +143,17 @@ def main(argv: list[str] | None = None) -> int:
             if args.keep_scenes:
                 render.append("--keep-scenes")
             if _run(render):
+                return 1
+
+        # Enforce the platform duration limit before spending time on visuals.
+        if args.max_seconds:
+            measured = float(_load(timing_path).get("total_seconds") or 0)
+            if measured > args.max_seconds:
+                print(
+                    f"error: narration is {measured:.1f}s, over the {args.max_seconds:.0f}s limit; "
+                    "shorten the script or verify the YouTube channel",
+                    file=sys.stderr,
+                )
                 return 1
 
         # Apply the rendered visuals to the measured timeline. The assembler

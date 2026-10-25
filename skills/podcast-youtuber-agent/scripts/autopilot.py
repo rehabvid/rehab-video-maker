@@ -100,9 +100,9 @@ Source metadata is in {work / 'source.json'}. The full transcript is in the
 dates, and claims. You may use web research for the host/guest.
 
 Produce:
-1. `script.txt` - 1,900-2,100 words of continuous spoken commentary. At the
+1. `script.txt` - 1,850-2,000 words of continuous spoken commentary. At the
    measured Qwen3 slide-by-slide pace of roughly 145-150 wpm this is roughly
-   13-14.5 minutes. Do not exceed 2,100 words. Start with a 15-25 second who-is-who
+   12.5-14 minutes. Do not exceed 2,000 words. Start with a 15-25 second who-is-who
    introduction (host and guest, current roles, one credibility fact each), then
    a specific hook, 3-5 ideas with your own analysis, and a low-key close. No
    headings, bullets, stage directions, or invented facts. Cite claims in the
@@ -174,10 +174,30 @@ def main(argv: list[str] | None = None) -> int:
         if args.dry_run:
             log("dry-run: writer prompt written; not invoking OpenCode")
             return 0
-        write_code = run([
-            "opencode", "run", "--auto", "--model", args.model,
-            "--title", f"autopilot-writer-{slug}", prompt,
-        ])
+        write_code = 1
+        writer_log = work / "writer.log"
+        for attempt in range(1, 5):
+            with writer_log.open("a") as handle:
+                handle.write(f"\n=== writer attempt {attempt} ===\n")
+                handle.flush()
+                write_code = subprocess.run(
+                    [
+                        "opencode", "run", "--auto", "--model", args.model,
+                        "--title", f"autopilot-writer-{slug}-{attempt}", prompt,
+                    ],
+                    cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT, text=True,
+                ).returncode
+            if write_code == 0:
+                break
+            tail = writer_log.read_text(errors="replace")[-2000:].lower()
+            transient = any(marker in tail for marker in (
+                "ttft_admission_refused", "capacity", "upstream request failed",
+                "rate limit", "429", "timeout",
+            ))
+            if not transient or attempt == 4:
+                break
+            log(f"writer transient failure (attempt {attempt}); retrying in {attempt * 60}s")
+            time.sleep(attempt * 60)
         if write_code:
             log(f"writer failed for {slug}; stopping")
             break
@@ -204,6 +224,7 @@ def main(argv: list[str] | None = None) -> int:
             "--upload",
             "--metadata", str(work / "youtube.json"),
             "--privacy", "private",
+            "--max-seconds", "895",
             "--preset", "veryfast",
         ])
         if build_code:
