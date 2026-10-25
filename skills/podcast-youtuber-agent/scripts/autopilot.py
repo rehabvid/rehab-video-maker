@@ -98,8 +98,9 @@ Source metadata is in {work / 'source.json'}. The full transcript is in the
 dates, and claims. You may use web research for the host/guest.
 
 Produce:
-1. `script.txt` - 2,150-2,350 words of continuous spoken commentary. At Qwen3's
-   ~160 wpm this is roughly 13-15 minutes. Start with a 15-25 second who-is-who
+1. `script.txt` - 1,900-2,100 words of continuous spoken commentary. At the
+   measured Qwen3 slide-by-slide pace of roughly 145-150 wpm this is roughly
+   13-14.5 minutes. Do not exceed 2,100 words. Start with a 15-25 second who-is-who
    introduction (host and guest, current roles, one credibility fact each), then
    a specific hook, 3-5 ideas with your own analysis, and a low-key close. No
    headings, bullets, stage directions, or invented facts. Cite claims in the
@@ -107,7 +108,7 @@ Produce:
 2. `people.json` - host/guest names, roles, 2-4 sentence verified notes, source
    URLs. If the host is unnamed, say so and use `the host`.
 3. `slides.json` - run:
-   `uv run python skills/podcast-content-agent/scripts/slides.py draft --script {work / 'script.txt'} --out {work / 'slides.json'} --title "{title}" --voice-profile voices/me --engine qwen3 --fps 30 --wpm 160`
+   `uv run python skills/podcast-content-agent/scripts/slides.py draft --script {work / 'script.txt'} --out {work / 'slides.json'} --title "{title}" --voice-profile voices/me --engine qwen3 --fps 30 --wpm 150`
    Then edit it: 35-55 slides, clear headings, first title and last end card.
    Keep `"format": "broll-slides"` and `"engine": "qwen3"`. Add explicit
    `visual` hints to 6-10 technical slides. Use only real data in chart data;
@@ -118,7 +119,7 @@ Produce:
    `"containsSyntheticMedia": true`, `"privacyStatus": "private"`.
    Chapters may be approximate at this stage.
 5. Run `uv run python skills/podcast-content-agent/scripts/slides.py validate
-   {work / 'slides.json'} --root . --wpm 160` and fix all errors.
+   {work / 'slides.json'} --root . --wpm 150` and fix all errors.
 
 Do not run narrate.py, build.py, render_scenes.py, or upload anything. Stop
 after the files validate. Work efficiently; read the transcript in chunks.

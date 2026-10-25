@@ -153,11 +153,17 @@ def main(argv: list[str] | None = None) -> int:
             sid = str(shot.get("id"))
             scene = by_id.get(sid)
             if not scene:
+                # The writer may leave an unconsumed visual hint on a slide.
+                # The assembler expects a path string, not a dict.
+                if isinstance(shot.get("visual"), dict):
+                    shot.pop("visual", None)
                 continue
             suffix = ".mp4" if scene.get("animated") else ".png"
             visual = visuals_dir / f"shot-{sid}{suffix}"
             if not visual.exists():
                 print(f"warning: missing rendered visual {visual}", file=sys.stderr)
+                if isinstance(shot.get("visual"), dict):
+                    shot.pop("visual", None)
                 continue
             if scene.get("animated") and float(shot.get("duration") or 0) > float(scene.get("duration") or 0) + 0.25:
                 print(

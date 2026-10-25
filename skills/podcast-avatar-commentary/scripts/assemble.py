@@ -51,7 +51,12 @@ def _segments(shot: dict, timing: dict, root: Path, build: Path) -> tuple[Path, 
     """Return (visual, is_video, overlay)."""
     sid = shot["id"]
     kind = shot["kind"]
-    background = (root / shot["visual"]).resolve() if shot.get("visual") else None
+    visual_value = shot.get("visual")
+    background = (
+        (root / visual_value).resolve()
+        if isinstance(visual_value, str) and visual_value
+        else None
+    )
     if background is not None and not background.exists():
         background = None
 

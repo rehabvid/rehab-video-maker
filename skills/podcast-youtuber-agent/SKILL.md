@@ -32,10 +32,11 @@ production layer:
 - One 1920×1080 MP4, 30 fps (or 25), H.264 + AAC 48 kHz stereo.
 - **Default 10–15 minutes** (target 12–15), roughly **one quarter of the
   source audio** (25%, with a 10-minute floor and a 15-minute cap).
-- **35–60 slides.** Qwen3-TTS Base 0.6B reads at roughly **160 wpm** on the
-  reference voice. A 10–15 minute commentary therefore needs about
-  **1,600–2,400 words**. Use `slides.py --wpm 160` for planning and the measured
-  `timing.json` runtime for the final check.
+- **35–60 slides.** Qwen3-TTS Base 0.6B measured about **145–155 wpm** on
+  slide-by-slide narration. Plan with **150 wpm**: a 10–15 minute commentary
+  needs about **1,500–2,250 words**. Use `slides.py --wpm 150` and the measured
+  `timing.json` runtime for the final check. A 100-word calibration sample is
+  the best way to refine the budget for a new reference voice.
 - A source episode shorter than ~40 minutes is combined with 1–2 other current
   popular episodes that share a thesis, until the source pool is ~40–60
   minutes. Do not pad a single short episode into 10 minutes.
@@ -418,7 +419,7 @@ commentary, not the biography, is the reason the video exists.
 ### 2.3 Write the spoken script
 
 
-Aim for **1,600–2,400 words at 160 wpm**. One continuous script, no headings,
+Aim for **1,500–2,250 words at 150 wpm**. One continuous script, no headings,
 no bullets, no “first / second / third.” Write for the ear. If the source pool
 is only ~40 minutes, stay near the 10–12 minute end; if it is 55–60 minutes,
 stay near 14–15 minutes. Qwen3-TTS follows the reference pace: measure a sample,
@@ -514,12 +515,12 @@ uv run python skills/podcast-youtuber-agent/scripts/slides.py \
   validate build/ep01/slides.json --root .
 
 uv run python skills/podcast-youtuber-agent/scripts/slides.py \
-  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 160
+  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 150
 ```
 
 Validation warns when the estimated runtime is outside 10–15 minutes, when
 there are no b-roll visuals, or when the slide mix is monotonous. The default
-estimate assumes 160 wpm; pass `--wpm` with your measured voice pace (Qwen3 is around 160, Chatterbox can be 190–210) when checking the final deck. It errors on
+estimate assumes 150 wpm; pass `--wpm` with your measured voice pace (Qwen3 is around 145–155, Chatterbox can be 190–210) when checking the final deck. It errors on
 missing visuals, missing quote sources, invalid kinds, duplicate ids and
 narration over 340 characters. Fix errors before rendering. The 10–15 minute
 window is the default release target, not a suggestion; add or remove source

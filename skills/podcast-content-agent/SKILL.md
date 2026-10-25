@@ -34,8 +34,8 @@ skill keeps a copy for its old pipeline; change the content skill first.
 - If the episode is over ~60 minutes, keep the strongest through-line and stop
   at 15 minutes.
 - `slides.json` should contain **35–60 beats**. Qwen3-TTS Base 0.6B reads at
-  roughly **160 wpm**; a 10–15 minute commentary needs about **1,600–2,400
-  words**. Use `slides.py --wpm 160`, then verify with measured timing.
+  roughly **150 wpm**; a 10–15 minute commentary needs about **1,500–2,250
+  words**. Use `slides.py --wpm 150`, then verify with measured timing.
 
 ## Freshness and no repeats
 
@@ -107,7 +107,7 @@ uv run python skills/podcast-content-agent/scripts/slides.py draft \
   --title "Episode title" \
   --voice-profile voices/me \
   --engine qwen3 \
-  --fps 30 --wpm 160
+  --fps 30 --wpm 150
 ```
 
 Then edit the deck by hand. Each `narration` is what the narrator says; each
@@ -140,10 +140,10 @@ Validate and plan:
 
 ```bash
 uv run python skills/podcast-content-agent/scripts/slides.py \
-  validate build/ep01/slides.json --root . --wpm 160
+  validate build/ep01/slides.json --root . --wpm 150
 
 uv run python skills/podcast-content-agent/scripts/slides.py \
-  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 160
+  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 150
 ```
 
 ## Script shape
