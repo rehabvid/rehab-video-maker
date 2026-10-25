@@ -85,6 +85,7 @@ skills/podcast-youtuber-agent/
     thumbnail.py             # 1280x720 title-card thumbnail from the slide list
     build.py                 # validate -> narrate -> assemble -> optional upload
     youtube_upload.py        # OAuth 2.0 + resumable YouTube upload
+    autopilot.py             # queue: select -> editor -> Qwen3 video -> private upload
 voices/<name>/               # private: reference.wav, voice.json
 state/used-episodes.json     # cross-run ledger: source ids already used
 build/<slug>/                # private build artefacts
@@ -821,6 +822,25 @@ uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
 | `youtube.upload` scope only | minimal scope cannot read the channel or set extras | drop `--minimal-scope` |
 
 ---
+
+## Fully unattended queue
+
+`autopilot.py` is the unattended coordinator. It picks the highest-ranked fresh
+AI/tech/market episode with a transcript, invokes an OpenCode editorial writer
+to create `script.txt`, `people.json`, `slides.json` and `youtube.json`, then
+builds with Qwen3 and uploads privately.
+
+```bash
+nohup caffeinate -dimsu .venv/bin/python \
+  skills/podcast-youtuber-agent/scripts/autopilot.py --episodes 2 \
+  >> build/autopilot/autopilot.log 2>&1 &
+```
+
+Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
+private by default. Review each private video before publishing. The queue
+requires the Qwen3 voice environment, the OpenCode CLI, and enough YouTube
+quota; it stops rather than reusing a source if no fresh transcript-backed
+candidate clears the filter.
 
 ## Autonomous workflow
 
