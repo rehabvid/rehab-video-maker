@@ -64,6 +64,44 @@ uv run python skills/podcast-content-agent/scripts/fetch_popular.py mark \
 
 Repeat `--id` for a combined episode.
 
+## Apple Podcasts and investment RSS sources
+
+Apple Podcasts has in-app transcripts, but it does **not** provide a public
+transcript API. Apple's iTunes Search API can resolve a show to its RSS feed:
+
+```bash
+curl -s 'https://itunes.apple.com/search?term=Top%20Traders%20Unplugged&entity=podcast&limit=2'
+```
+
+Use the returned `feedUrl` to fetch full episodes. Because the RSS enclosure is
+audio, run local ASR (MLX Whisper) before writing the commentary. The curated
+investment feeds live in `config/investment-sources.json`:
+
+- Top Traders Unplugged
+- Macro Voices
+- Invest Like the Best
+- The Compound and Friends
+- Odd Lots
+- Forward Guidance
+
+List the latest episodes:
+
+```bash
+uv run python skills/podcast-content-agent/scripts/investment_sources.py \
+  list --per-feed 2 --out build/investment.json
+```
+
+Transcribe one episode locally (the first run downloads the ASR model):
+
+```bash
+uv run python skills/podcast-content-agent/scripts/investment_sources.py \
+  transcript --audio-url "<enclosure url>" --out build/ep01/transcript.txt
+```
+
+RSS candidates have no provider ranking. Rank them by feed tier, recency and
+title/person relevance, and **always transcribe before writing**. Do not treat
+the Apple Podcasts app's transcript as an API.
+
 ## Research the people
 
 At the beginning of the eventual video, name the interviewer and interviewee

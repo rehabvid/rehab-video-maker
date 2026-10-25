@@ -1,0 +1,10 @@
+{
+  "feeds": [
+    {"name": "Top Traders Unplugged", "feed": "https://feeds.captivate.fm/top-traders-unplugged/", "tier": 1, "topics": ["markets", "trading", "macro"]},
+    {"name": "Macro Voices", "feed": "https://feed.podbean.com/macrovoices/feed.xml", "tier": 1, "topics": ["macro", "markets", "commodities"]},
+    {"name": "Invest Like the Best", "feed": "https://feeds.megaphone.fm/CLS2859450455", "tier": 1, "topics": ["investing", "business", "technology"]},
+    {"name": "The Compound and Friends", "feed": "https://feeds.megaphone.fm/TCP4771071679", "tier": 2, "topics": ["markets", "investing"]},
+    {"name": "Odd Lots", "feed": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss", "tier": 1, "topics": ["markets", "business", "technology"]},
+    {"name": "Forward Guidance", "feed": "https://feeds.megaphone.fm/forwardguidance", "tier": 1, "topics": ["markets", "macro", "crypto"]}
+  ]
+}
