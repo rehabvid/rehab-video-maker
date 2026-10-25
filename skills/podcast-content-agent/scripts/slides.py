@@ -50,7 +50,7 @@ VISUAL_SUFFIXES = {
 MAX_NARRATION_CHARS = 340
 TARGET_MIN_MINUTES = 10.0
 TARGET_MAX_MINUTES = 15.0
-TARGET_WPM = 150
+TARGET_WPM = 160
 
 
 def _clean_script(text: str) -> str:
@@ -427,7 +427,7 @@ def plan(data: dict, summary: dict, wpm: float = TARGET_WPM) -> str:
         "```bash",
         "uv run python skills/podcast-youtuber-agent/scripts/build.py \\",
         "  --slides build/ep01/slides.json --out out/ep01/final.mp4 \\",
-        "  --voice-profile voices/me --engine chatterbox",
+        "  --voice-profile voices/me --engine qwen3",
         "```",
         "",
         "## Upload",
@@ -462,7 +462,7 @@ def main(argv: list[str] | None = None) -> int:
     p_draft.add_argument("--slug")
     p_draft.add_argument("--voice", default="me")
     p_draft.add_argument("--voice-profile", default="voices/me")
-    p_draft.add_argument("--engine", default="chatterbox", choices=["chatterbox", "edge"])
+    p_draft.add_argument("--engine", default="qwen3", choices=["qwen3", "chatterbox", "edge"])
     p_draft.add_argument("--fps", type=int, default=30, choices=[24, 25, 30])
     p_draft.add_argument("--max-words", type=int, default=62)
     p_draft.add_argument(

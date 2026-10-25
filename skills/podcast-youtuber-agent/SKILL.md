@@ -32,10 +32,10 @@ production layer:
 - One 1920×1080 MP4, 30 fps (or 25), H.264 + AAC 48 kHz stereo.
 - **Default 10–15 minutes** (target 12–15), roughly **one quarter of the
   source audio** (25%, with a 10-minute floor and a 15-minute cap).
-- **35–60 slides.** Word count depends on the voice: 1,800–2,250 words at
-  150 wpm, but a fast reference can read 190–210 wpm, so a 15-minute cut may
-  need 2,700–3,000 words. Use the measured `timing.json` runtime, not a fixed
-  word count, as the final check.
+- **35–60 slides.** Qwen3-TTS Base 0.6B reads at roughly **160 wpm** on the
+  reference voice. A 10–15 minute commentary therefore needs about
+  **1,600–2,400 words**. Use `slides.py --wpm 160` for planning and the measured
+  `timing.json` runtime for the final check.
 - A source episode shorter than ~40 minutes is combined with 1–2 other current
   popular episodes that share a thesis, until the source pool is ~40–60
   minutes. Do not pad a single short episode into 10 minutes.
@@ -128,10 +128,20 @@ is large and does not belong in the project venv.
 uv venv --python 3.11 .venv-voice
 uv pip install --python .venv-voice/bin/python --upgrade pip
 uv pip install --python .venv-voice/bin/python chatterbox-tts 'setuptools<81'
+uv pip install --python .venv-voice/bin/python mlx-audio
 
 .venv-voice/bin/python \
   skills/podcast-youtuber-agent/scripts/chatterbox_worker.py --check
+.venv-voice/bin/python \
+  skills/podcast-youtuber-agent/scripts/qwen3_worker.py --check
 ```
+
+Qwen3-TTS Base 0.6B is the default now. It uses MLX and the
+`mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16` model. The first run downloads the
+model; later loads are a few seconds. Chatterbox remains the fallback/alternate.
+Qwen3 voice cloning needs the **exact transcript** of the reference recording;
+the default is `config/sample-passage.txt`, which is what the sample passage is
+for. Pass `--ref-text-file` if your reference uses different text.
 
 `setuptools<81` keeps `pkg_resources`, which `resemble-perth` (Chatterbox's
 watermarker) still imports. Without it, the model loads but fails at
@@ -145,8 +155,9 @@ the upstream Chatterbox issues. See
 **Licence note.** Chatterbox is MIT. F5-TTS and XTTS-v2 pretrained weights have
 non-commercial terms; do not use them for a monetised channel without checking
 the current licence. OpenVoice is MIT but its tone-colour clone is a different
-quality trade-off. The pipeline below uses Chatterbox by default because it is
-permissively licensed and practical on a Mac.
+quality trade-off. The pipeline now defaults to Qwen3-TTS Base 0.6B on MLX for
+near-realtime generation; Chatterbox remains an alternate if its voice matches
+better.
 
 If the voice environment is somewhere else, pass
 `--voice-python /path/to/python` or set `VOICE_PYTHON`.
@@ -278,8 +289,8 @@ uv run python skills/podcast-youtuber-agent/scripts/narrate.py \
   --slides skills/podcast-youtuber-agent/config/voice-test.slides.json \
   --out build/voice-test \
   --voice-profile voices/me \
-  --engine chatterbox \
-  --device mps
+  --engine qwen3 \
+  --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt
 ```
 
 The test deck is short on purpose. Do not render a 15-minute script until the
@@ -406,13 +417,14 @@ commentary, not the biography, is the reason the video exists.
 ### 2.3 Write the spoken script
 
 
-Aim for **1,800–2,250 words at 150 wpm**. One continuous script, no headings,
+Aim for **1,600–2,400 words at 160 wpm**. One continuous script, no headings,
 no bullets, no “first / second / third.” Write for the ear. If the source pool
 is only ~40 minutes, stay near the 10–12 minute end; if it is 55–60 minutes,
-stay near 14–15 minutes. Chatterbox follows your reference pace: a reference
-that reads around 200 wpm can cover 2,700–3,000 words in 15 minutes. Record the
-measured runtime from `timing.json` and adjust the script, not the estimate.
-Do not pad to hit a word count.
+stay near 14–15 minutes. Qwen3-TTS follows the reference pace: measure a sample,
+then use `words / (measured wpm) * 60` as the script budget. A 100-word test
+sample is a quick way to calibrate. Record the measured runtime from
+`timing.json` and adjust the script, not the estimate. Do not pad to hit a word
+count.
 
 Flow:
 
@@ -501,13 +513,12 @@ uv run python skills/podcast-youtuber-agent/scripts/slides.py \
   validate build/ep01/slides.json --root .
 
 uv run python skills/podcast-youtuber-agent/scripts/slides.py \
-  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 198
+  plan build/ep01/slides.json --out build/ep01/plan.md --wpm 160
 ```
 
 Validation warns when the estimated runtime is outside 10–15 minutes, when
 there are no b-roll visuals, or when the slide mix is monotonous. The default
-estimate assumes 150 wpm; pass `--wpm` with your measured voice pace (often
-190–210 for Chatterbox) when checking the final deck. It errors on
+estimate assumes 160 wpm; pass `--wpm` with your measured voice pace (Qwen3 is around 160, Chatterbox can be 190–210) when checking the final deck. It errors on
 missing visuals, missing quote sources, invalid kinds, duplicate ids and
 narration over 340 characters. Fix errors before rendering. The 10–15 minute
 window is the default release target, not a suggestion; add or remove source
@@ -524,8 +535,8 @@ uv run python skills/podcast-youtuber-agent/scripts/narrate.py \
   --slides build/ep01/slides.json \
   --out build/ep01 \
   --voice-profile voices/me \
-  --engine chatterbox \
-  --device mps \
+  --engine qwen3 \
+  --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt \
   --exaggeration 0.5 \
   --cfg-weight 0.5 \
   --seed 43
@@ -566,8 +577,8 @@ uv run python skills/podcast-youtuber-agent/scripts/build.py \
   --slides build/ep01/slides.json \
   --out out/ep01/final.mp4 \
   --voice-profile voices/me \
-  --engine chatterbox \
-  --device mps
+  --engine qwen3 \
+  --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt
 ```
 
 `build.py` runs:
@@ -823,7 +834,7 @@ The agent can run the whole loop non-interactively after the editorial work:
 uv run python skills/podcast-youtuber-agent/scripts/slides.py draft \
   --script build/ep01/script.txt --out build/ep01/slides.json \
   --visuals assets/ep01 --title "The AI Story Nobody Is Pricing" \
-  --voice-profile voices/me --engine chatterbox
+  --voice-profile voices/me --engine qwen3
 
 # 3. The agent edits slides.json and youtube.json.
 # 4. Render a thumbnail, then validate, render and upload private (or schedule).
@@ -831,7 +842,7 @@ uv run python skills/podcast-youtuber-agent/scripts/thumbnail.py \
   --slides build/ep01/slides.json --out out/ep01/thumbnail.png --root .
 uv run python skills/podcast-youtuber-agent/scripts/build.py \
   --slides build/ep01/slides.json --out out/ep01/final.mp4 \
-  --voice-profile voices/me --engine chatterbox \
+  --voice-profile voices/me --engine qwen3 \
   --upload --metadata build/ep01/youtube.json \
   --thumbnail out/ep01/thumbnail.png --privacy private
 ```
@@ -948,7 +959,7 @@ Field notes:
 | narration is too fast/slow | Chatterbox pace is reference-driven | use the pace you want in the reference; edge-tts has `--rate` |
 | slide validation fails on visual | path relative to repo root | run from the repo root or pass `--root` |
 | no b-roll visuals | draft had no `--visuals` | add images/video and re-draft, or use generated cards |
-| runtime is short | one source is under ~40 minutes, or script under 1,800 words | combine another current unused episode around one thesis, or add substance; never pad; check the ledger |
+| runtime is short | one source is under ~40 minutes, or script under 1,600 words | combine another current unused episode around one thesis, or add substance; never pad; check the ledger |
 | caption overlaps a card | card text near the bottom safe area | keep card text above the lower third; shorten lines |
 | YouTube auth loops | wrong OAuth client type or test user | Desktop app client; add account as test user |
 | upload always private | unverified API project | complete verification or accept private review |

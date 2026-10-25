@@ -198,11 +198,12 @@ uv run python skills/tech-commentary-slideshow/scripts/build.py \
   --slides build/ep01/slides.json \
   --out out/ep01/final.mp4 \
   --voice-profile voices/me \
-  --engine chatterbox \
-  --device mps
+  --engine qwen3 \
+  --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt
 ```
 
-`build.py`:
+`build.py` defaults to Qwen3-TTS Base 0.6B on MLX. `--engine chatterbox`
+remains available when its voice matches better. `build.py`:
 
 1. runs `narrate.py` if `timing.json` is missing (shared content/voice layer);
 2. plans and renders only the selected LinkZag visuals;
@@ -220,6 +221,7 @@ uv run python skills/tech-commentary-slideshow/scripts/build.py \
   --slides build/ep01/slides.json \
   --out out/ep01/final.mp4 \
   --voice-profile voices/me \
+  --engine qwen3 \
   --upload --metadata build/ep01/youtube.json --privacy private
 ```
 
@@ -248,7 +250,9 @@ be built from word-count estimates while Chatterbox is still synthesising WAVs:
 # Terminal 1: start narration in the background
 nohup uv run python skills/podcast-youtuber-agent/scripts/narrate.py \
   --slides build/ep01/slides.json --out build/ep01 \
-  --voice-profile voices/me --engine chatterbox > build/ep01/narrate.log 2>&1 &
+  --voice-profile voices/me --engine qwen3 \
+  --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt \
+  > build/ep01/narrate.log 2>&1 &
 
 # Terminal 2: build visuals from estimated durations
 uv run python skills/tech-commentary-slideshow/scripts/plan_visuals.py \

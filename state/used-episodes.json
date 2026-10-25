@@ -49,6 +49,16 @@
       "url": "https://youtu.be/tQGSgedwlSE",
       "note": "15:09 macro technical slideshow; uploaded 2026-10-24 (currently public)",
       "used_at": "2026-10-24T22:51:15+00:00"
+    },
+    {
+      "source_ids": [
+        "6ab10a75b03cc7a00ec84e1a"
+      ],
+      "title": "How a Hollywood Director Uses AI to Make Movies - Ep. 12 with Dave Clark",
+      "video_id": "jq3VVsgh1q8",
+      "url": "https://youtu.be/jq3VVsgh1q8",
+      "note": "13:07 AI filmmaking technical slideshow; Qwen3-TTS; uploaded private 2026-10-25",
+      "used_at": "2026-10-25T01:20:37+00:00"
     }
   ]
 }

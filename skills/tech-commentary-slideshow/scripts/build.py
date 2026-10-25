@@ -51,9 +51,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--work")
     parser.add_argument("--timing", help="existing timing.json; otherwise narrate")
     parser.add_argument("--voice-profile", default="voices/me")
-    parser.add_argument("--engine", default="chatterbox", choices=["chatterbox", "edge"])
+    parser.add_argument("--engine", default="qwen3", choices=["qwen3", "chatterbox", "edge"])
     parser.add_argument("--device", default="mps", choices=["mps", "cpu"])
     parser.add_argument("--turbo", action="store_true")
+    parser.add_argument("--ref-text-file", default="skills/podcast-youtuber-agent/config/sample-passage.txt")
+    parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
+    parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=43)
@@ -93,6 +96,9 @@ def main(argv: list[str] | None = None) -> int:
                 "--voice-profile", args.voice_profile,
                 "--engine", args.engine,
                 "--device", args.device,
+                "--ref-text-file", args.ref_text_file,
+                "--qwen3-model", args.qwen3_model,
+                "--speed", str(args.speed),
                 *(["--turbo"] if args.turbo else []),
                 "--exaggeration", str(args.exaggeration),
                 "--cfg-weight", str(args.cfg_weight),

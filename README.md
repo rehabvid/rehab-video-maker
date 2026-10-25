@@ -61,15 +61,16 @@ The podcast-youtuber agent's optional uploader uses Google's client libraries:
 uv sync --extra trending --extra youtube
 ```
 
-Its personal-voice backend lives in a separate Python 3.11 environment because
-Chatterbox pulls in PyTorch and torchaudio:
+Its personal-voice backends live in a separate Python 3.11 environment because
+they pull in PyTorch/torchaudio and MLX:
 
 ```bash
 uv venv --python 3.11 .venv-voice
 uv pip install --python .venv-voice/bin/python --upgrade pip
 uv pip install --python .venv-voice/bin/python chatterbox-tts 'setuptools<81'
+uv pip install --python .venv-voice/bin/python mlx-audio
 .venv-voice/bin/python \
-  skills/podcast-youtuber-agent/scripts/chatterbox_worker.py --check
+  skills/podcast-youtuber-agent/scripts/qwen3_worker.py --check
 ```
 
 The first synthesis downloads the model weights. `--engine edge` remains a
@@ -252,7 +253,7 @@ uv run python skills/podcast-content-agent/scripts/slides.py draft \
 #    then assemble narration, captions and final MP4.
 uv run python skills/tech-commentary-slideshow/scripts/build.py \
   --slides build/ep01/slides.json --out out/ep01/final.mp4 \
-  --voice-profile voices/me --engine chatterbox
+  --voice-profile voices/me --engine qwen3
 
 # 4. Upload privately after review.
 uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
@@ -311,7 +312,7 @@ The legacy `podcast-youtuber-agent` renderer and the optional avatar pipeline
 remain available. The uploader defaults to private, sets YouTube's
 synthetic-media flag, supports resumable uploads, thumbnails, captions,
 playlists and `--publish-at` scheduling. See the skill documents for voice
-recording, Chatterbox setup and Google Cloud OAuth.
+recording, Qwen3/Chatterbox setup and Google Cloud OAuth.
 
 ## Adding an exercise
 
@@ -381,8 +382,8 @@ uv run rehab-slideshow build --exercise wall-climb --frames-dir my-frames/
 - Network access for edge-tts (Microsoft neural voices, no key required)
 - Optional: CUDA GPU + ComfyUI for the generated-figure backend
 - Optional: Apple Silicon + ComfyUI for the avatar skill
-- Optional: Python 3.11 voice environment + Chatterbox for personal-voice
-  narration (Apple Silicon MPS or CPU)
+- Optional: Python 3.11 voice environment + Qwen3-TTS MLX (default) or
+  Chatterbox for personal-voice narration (Apple Silicon)
 - Optional: a Google Cloud project with YouTube Data API v3 enabled for uploads
 
 See [Install](#install) for the commands and verification steps.

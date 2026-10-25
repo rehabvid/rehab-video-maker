@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Synthesise b-roll-slide narration with a personal voice and measured timing.
 
-The default engine is Chatterbox (MIT, zero-shot cloning, Apple Silicon MPS).
-``--engine edge`` is a no-clone fallback for drafts and for testing the rest of
-the pipeline before the voice profile is ready.
+The default engine is Qwen3-TTS Base 0.6B on MLX (voice cloning, faster than
+realtime on Apple Silicon). ``--engine chatterbox`` remains available, and
+``--engine edge`` is a no-clone fallback for drafts.
 
 Outputs, under ``--out``::
 
@@ -63,6 +63,8 @@ EDGE_VOICES = {
 DEFAULT_EDGE_VOICE = "andrew"
 DEFAULT_RATE = "-6%"
 DEFAULT_VOICE_PROFILE = "voices/me"
+QWEN3_MODEL = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+DEFAULT_REF_TEXT = Path("skills/podcast-youtuber-agent/config/sample-passage.txt")
 
 
 def _sha(path: Path) -> str:
@@ -71,6 +73,10 @@ def _sha(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()[:16]
+
+
+def _sha_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 def _fingerprint(
@@ -208,6 +214,23 @@ async def _edge_synth(jobs: list[tuple[dict, Path, str, str]]) -> None:
     await asyncio.gather(*(one(shot, path, voice, rate) for shot, path, voice, rate in jobs))
 
 
+def _reference_text(args, profile: dict) -> str:
+    if getattr(args, "ref_text_file", None):
+        path = Path(args.ref_text_file)
+        if not path.exists():
+            raise ValueError(f"reference transcript not found: {path}")
+        return path.read_text().strip()
+    text = (profile.get("metadata") or {}).get("reference_text")
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+    if DEFAULT_REF_TEXT.exists():
+        return DEFAULT_REF_TEXT.read_text().strip()
+    raise ValueError(
+        "Qwen3 voice cloning needs the exact reference transcript; "
+        "pass --ref-text-file or add reference_text to voice.json"
+    )
+
+
 def _chatterbox_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict],
                      fingerprints: dict[str, str], force: bool) -> list[dict]:
     jobs = []
@@ -270,6 +293,61 @@ def _run_chatterbox(args, jobs: list[dict], profile: dict) -> None:
         )
 
 
+def _qwen3_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict],
+                fingerprints: dict[str, str], force: bool) -> list[dict]:
+    jobs = []
+    for shot in shots:
+        sid = str(shot["id"])
+        path = audio_dir / f"shot-{sid}.wav"
+        cached_entry = cached.get(sid)
+        reusable = (
+            not force
+            and path.exists()
+            and cached_entry
+            and cached_entry.get("fingerprint") == fingerprints[sid]
+            and cached_entry.get("file") == path.name
+        )
+        if not reusable:
+            jobs.append({"id": sid, "text": shot["narration"], "out": str(path)})
+    return jobs
+
+
+def _run_qwen3(args, jobs: list[dict], profile: dict, ref_text: str) -> None:
+    if not jobs:
+        return
+    voice_python = Path(args.voice_python)
+    if not voice_python.exists():
+        raise FileNotFoundError(
+            f"voice python not found: {voice_python}\n"
+            "create the voice environment with the commands in SKILL.md "
+            "(uv venv --python 3.11 .venv-voice ...)"
+        )
+    worker = Path(__file__).with_name("qwen3_worker.py")
+    out = Path(args.out)
+    job_path = out / "tts" / "qwen3-jobs.json"
+    ref_path = out / "tts" / "qwen3-ref.txt"
+    job_path.parent.mkdir(parents=True, exist_ok=True)
+    job_path.write_text(json.dumps(jobs, indent=2) + "\n")
+    ref_path.write_text(ref_text.strip() + "\n")
+    cmd = [
+        str(voice_python),
+        str(worker),
+        "--jobs", str(job_path),
+        "--reference", str(profile["reference"]),
+        "--ref-text-file", str(ref_path),
+        "--model", args.qwen3_model,
+        "--speed", str(args.speed),
+        "--temperature", str(args.qwen3_temperature),
+        "--seed", str(args.seed),
+    ]
+    print(f"synthesising {len(jobs)} cues with Qwen3-TTS on MLX")
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Qwen3-TTS synthesis failed; see the worker output above. "
+            "Run qwen3_worker.py --check in the voice environment."
+        )
+
 def build(args) -> int:
     slides_path = Path(args.slides)
     data = load_json(slides_path)
@@ -287,21 +365,27 @@ def build(args) -> int:
     audio_dir.mkdir(parents=True, exist_ok=True)
     tmp_dir.mkdir(parents=True, exist_ok=True)
     fps = int(data.get("fps") or FPS)
-    engine = args.engine or data.get("engine") or "chatterbox"
-    if engine not in ("chatterbox", "edge"):
+    engine = args.engine or data.get("engine") or "qwen3"
+    if engine not in ("qwen3", "chatterbox", "edge"):
         print(f"error: unknown engine '{engine}'", file=sys.stderr)
         return 1
 
     profile = None
     profile_hash = ""
-    if engine == "chatterbox":
+    ref_text = ""
+    if engine in ("qwen3", "chatterbox"):
         try:
             profile = _profile(args)
         except (FileNotFoundError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
-        profile_hash = profile["sha256"]
-        voice_name = f"chatterbox:{profile['name']}"
+        if engine == "qwen3":
+            ref_text = _reference_text(args, profile)
+            profile_hash = _sha_text(profile["sha256"] + "|" + ref_text)
+            voice_name = f"qwen3:{profile['name']}"
+        else:
+            profile_hash = profile["sha256"]
+            voice_name = f"chatterbox:{profile['name']}"
         voice_rate = "natural"
         edge_voice = ""
     else:
@@ -336,12 +420,23 @@ def build(args) -> int:
             voice_rate if engine == "edge" else "",
             args.exaggeration,
             args.cfg_weight,
-            args.turbo,
+            args.turbo if engine == "chatterbox" else False,
         )
         for shot in shots
     }
 
-    if engine == "chatterbox":
+    if engine == "qwen3":
+        jobs = _qwen3_jobs(shots, audio_dir, previous, fingerprints, args.force)
+        if args.dry_run:
+            print(json.dumps(jobs, indent=2))
+            return 0
+        try:
+            _run_qwen3(args, jobs, profile, ref_text)  # type: ignore[arg-type]
+        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        extension = ".wav"
+    elif engine == "chatterbox":
         jobs = _chatterbox_jobs(shots, audio_dir, previous, fingerprints, args.force)
         if args.dry_run:
             print(json.dumps(jobs, indent=2))
@@ -483,10 +578,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--slides", required=True)
     parser.add_argument("--out", required=True, help="build directory, e.g. build/ep01")
-    parser.add_argument("--engine", choices=["chatterbox", "edge"], help="override slide engine")
+    parser.add_argument("--engine", choices=["qwen3", "chatterbox", "edge"], default="qwen3", help="voice engine")
     parser.add_argument("--voice-profile", default=DEFAULT_VOICE_PROFILE)
     parser.add_argument("--voice-python", default=os.environ.get("VOICE_PYTHON", ".venv-voice/bin/python"))
     parser.add_argument("--device", default="mps", choices=["mps", "cpu"])
+    parser.add_argument("--qwen3-model", default=QWEN3_MODEL)
+    parser.add_argument("--qwen3-temperature", type=float, default=0.8)
+    parser.add_argument("--speed", type=float, default=1.0)
+    parser.add_argument("--ref-text-file", help="exact transcript of the reference recording")
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=43)
