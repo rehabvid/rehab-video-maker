@@ -78,11 +78,13 @@ def select_candidate() -> dict | None:
         if not topics.intersection({"ai", "technology", "tech", "market", "stock", "startup"}):
             continue
         title = str(item.get("title") or "").lower()
-        bonus = 12 if any(word in title for word in (
+        ai_bonus = 12 if any(word in title for word in (
             " ai ", "artificial intelligence", "system design", "agent", "model",
+        )) else 0
+        market_bonus = 4 if any(word in title for word in (
             "stock", "market", "trading",
         )) else 0
-        ranked.append((float(item.get("score") or 0) + bonus, item))
+        ranked.append((float(item.get("score") or 0) + ai_bonus + market_bonus, item))
     ranked.sort(key=lambda pair: pair[0], reverse=True)
     return ranked[0][1] if ranked else None
 
