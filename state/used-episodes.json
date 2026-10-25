@@ -69,6 +69,16 @@
       "url": "https://youtu.be/bk-WSQsBAGU",
       "note": "16:04 system-design commentary; re-uploaded private after channel verification 2026-10-25",
       "used_at": "2026-10-25T08:24:58+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.captivate.fm:c4b0487c-12d4-4d08-95c7-98f703e1f279"
+      ],
+      "title": "SI423: Why Trend Following Might Outlast the AI Arms Race ft. Mark Rzepczynski",
+      "video_id": "CpWpAoYsUZs",
+      "url": "https://youtu.be/CpWpAoYsUZs",
+      "note": "autopilot Qwen3 commentary; output /Users/zhaoli/git/haymant/rehab-video-maker/out/autopilot/si423-why-trend-following-might-outlast-the-ai-arms-/final.mp4",
+      "used_at": "2026-10-25T09:37:46+00:00"
     }
   ]
 }
