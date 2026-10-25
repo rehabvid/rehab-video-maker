@@ -233,6 +233,11 @@ and writes to `build/` and `out/`. Its private character packs live under
 `characters/<name>/`; photos, canonical renders and voice references are
 gitignored.
 
+Investment/macro shows such as Top Traders Unplugged and Macro Voices are
+discovered through RSS. Apple Podcasts has no public transcript API; resolve
+the show through iTunes Search, fetch the RSS audio, and transcribe locally
+with `skills/podcast-content-agent/scripts/investment_sources.py`.
+
 The content layer writes a private voice profile to `voices/<name>/` and reads
 OAuth credentials from `~/.config/podcast-youtuber-agent/` by default. Both are
 gitignored. The preferred split flow is:
