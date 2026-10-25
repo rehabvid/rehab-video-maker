@@ -130,7 +130,7 @@ after the files validate. Work efficiently; read the transcript in chunks.
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--episodes", type=int, default=2)
+    parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
     parser.add_argument("--dry-run", action="store_true")
