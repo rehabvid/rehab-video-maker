@@ -8,7 +8,12 @@ skills. Every upload is private by default.
 Run from the repository root::
 
     nohup .venv/bin/python skills/podcast-youtuber-agent/scripts/autopilot.py \
-      --episodes 2 > build/autopilot/autopilot.log 2>&1 &
+      --episodes 1 > build/autopilot/autopilot.log 2>&1 &
+
+Use ``--source investment`` to select a fresh episode from the curated RSS
+feeds (Top Traders Unplugged, Macro Voices, Invest Like the Best, The Compound,
+Odd Lots, Forward Guidance). RSS audio is downloaded and transcribed locally
+with MLX Whisper before the writer runs.
 
 Stop after the current episode by creating ``build/autopilot/STOP``.
 """
@@ -23,6 +28,8 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+from fetch_popular import load_used, used_source_ids
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -89,6 +96,77 @@ def select_candidate() -> dict | None:
     return ranked[0][1] if ranked else None
 
 
+def _duration_seconds(value: str) -> int:
+    value = str(value or "").strip()
+    if not value:
+        return 0
+    if value.isdigit():
+        return int(value)
+    parts = value.split(":")
+    try:
+        parts = [int(float(part)) for part in parts]
+    except ValueError:
+        return 0
+    seconds = 0
+    for part in parts:
+        seconds = seconds * 60 + part
+    return seconds
+
+
+def select_investment_candidate() -> dict | None:
+    out = AUTOPILOT / "investment.json"
+    code = run([
+        sys.executable, str(CONTENT_SCRIPTS / "investment_sources.py"),
+        "list", "--per-feed", "2", "--out", str(out),
+    ], quiet=True)
+    if code:
+        return None
+    items = _load(out)
+    used = used_source_ids(load_used(ROOT / "state" / "used-episodes.json"))
+    for item in items:
+        if set(str(x) for x in item.get("source_ids", [])) & used:
+            continue
+        if _duration_seconds(item.get("duration")) < 40 * 60:
+            continue
+        return item
+    return None
+
+
+def _rss_source_file(candidate: dict, work: Path, asr_model: str) -> Path | None:
+    transcript = work / "transcript.txt"
+    audio_cache = work / "audio.mp3"
+    code = run([
+        sys.executable, str(CONTENT_SCRIPTS / "investment_sources.py"),
+        "transcript", "--audio-url", candidate.get("audio_url", ""),
+        "--out", str(transcript), "--audio-cache", str(audio_cache),
+        "--model", asr_model, "--voice-python", str(ROOT / ".venv-voice" / "bin" / "python"),
+    ])
+    if code or not transcript.exists():
+        return None
+    text = transcript.read_text().strip()
+    source = {
+        "transcription": {
+            "id": candidate.get("source_ids", [""])[0],
+            "slug": slugify(candidate.get("title", "")),
+            "title": candidate.get("title", ""),
+            "description": "",
+            "audio_url": candidate.get("audio_url", ""),
+            "image": "",
+            "duration": _duration_seconds(candidate.get("duration")),
+            "language": "English",
+            "category": "investment",
+            "created_at": candidate.get("published_at", ""),
+            "summary": "",
+            "long_summary": "",
+            "faqs": [],
+            "transcript": text,
+        }
+    }
+    path = work / "source.json"
+    path.write_text(json.dumps(source, indent=2, ensure_ascii=False) + "\n")
+    return path
+
+
 def writer_prompt(candidate: dict, work: Path) -> str:
     title = candidate.get("title") or "Podcast commentary"
     source_url = candidate.get("url") or ""
@@ -131,6 +209,8 @@ after the files validate. Work efficiently; read the transcript in chunks.
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--episodes", type=int, default=1)
+    parser.add_argument("--source", choices=["pt", "investment"], default="pt")
+    parser.add_argument("--asr-model", default="mlx-community/whisper-large-v3-turbo-asr-fp16")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
     parser.add_argument("--dry-run", action="store_true")
@@ -145,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
         if STOP.exists():
             log("stop file detected; exiting")
             break
-        candidate = select_candidate()
+        candidate = select_investment_candidate() if args.source == "investment" else select_candidate()
         if candidate is None:
             log("no fresh transcript-backed candidate at >=40 minutes; stopping")
             break
@@ -159,21 +239,26 @@ def main(argv: list[str] | None = None) -> int:
         work = AUTOPILOT / slug
         work.mkdir(parents=True, exist_ok=True)
         log(f"selected {source_id}: {title} ({work})")
-        source_file = work / "source.json"
-        with source_file.open("w") as handle:
-            subprocess.run(
-                [sys.executable, str(CONTENT_SCRIPTS / "fetch_popular.py"), "get", source_id],
-                cwd=ROOT, stdout=handle, stderr=subprocess.PIPE, text=True, check=False,
-            )
-        if not source_file.exists() or source_file.stat().st_size < 100:
-            log("empty source file; stopping")
-            break
-
         prompt = writer_prompt(candidate, work)
         (work / "writer-prompt.txt").write_text(prompt + "\n")
         if args.dry_run:
-            log("dry-run: writer prompt written; not invoking OpenCode")
+            log("dry-run: writer prompt written; not invoking OpenCode or ASR")
             return 0
+        source_file = work / "source.json"
+        if candidate.get("source") == "rss":
+            if _rss_source_file(candidate, work, args.asr_model) is None:
+                log(f"ASR/transcript failed for {slug}; stopping")
+                break
+        else:
+            with source_file.open("w") as handle:
+                subprocess.run(
+                    [sys.executable, str(CONTENT_SCRIPTS / "fetch_popular.py"), "get", source_id],
+                    cwd=ROOT, stdout=handle, stderr=subprocess.PIPE, text=True, check=False,
+                )
+            if not source_file.exists() or source_file.stat().st_size < 100:
+                log("empty source file; stopping")
+                break
+
         write_code = 1
         writer_log = work / "writer.log"
         for attempt in range(1, 5):
@@ -206,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
             break
         validate = run([
             sys.executable, str(CONTENT_SCRIPTS / "slides.py"),
-            "validate", str(work / "slides.json"), "--root", ".", "--wpm", "160",
+            "validate", str(work / "slides.json"), "--root", ".", "--wpm", "150",
         ], quiet=True)
         if validate:
             log(f"slides failed validation for {slug}; stopping")

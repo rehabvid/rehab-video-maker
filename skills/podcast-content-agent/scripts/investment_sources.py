@@ -101,15 +101,35 @@ def list_episodes(args) -> int:
     return 0
 
 
+def _download(url: str, dest: Path) -> Path:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists() and dest.stat().st_size > 0:
+        return dest
+    print(f"downloading {url}", file=sys.stderr)
+    req = urllib.request.Request(url, headers={"User-Agent": "podcast-youtuber-agent/1.0"})
+    with urllib.request.urlopen(req, timeout=120) as response, dest.open("wb") as handle:
+        while True:
+            chunk = response.read(1 << 20)
+            if not chunk:
+                break
+            handle.write(chunk)
+    return dest
+
+
 def transcribe(args) -> int:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    audio = Path(args.audio_cache) if args.audio_cache else out.with_suffix(".mp3")
+    if args.audio_url.startswith(("http://", "https://")):
+        audio = _download(args.audio_url, audio)
+    else:
+        audio = Path(args.audio_url)
     model = args.model or DEFAULT_ASR_MODEL
     cmd = [
         args.voice_python,
         "-m", "mlx_audio.stt.generate",
         "--model", model,
-        "--audio", args.audio_url,
+        "--audio", str(audio),
         "--output-path", str(out.with_suffix("")),
         "--format", "txt",
         "--language", args.language,
@@ -141,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
     p_tr.add_argument("--model", default=DEFAULT_ASR_MODEL)
     p_tr.add_argument("--language", default="en")
     p_tr.add_argument("--voice-python", default=".venv-voice/bin/python")
+    p_tr.add_argument("--audio-cache", help="download the enclosure here instead of next to the transcript")
 
     args = parser.parse_args(argv)
     if args.command == "list":

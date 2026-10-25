@@ -833,9 +833,22 @@ builds with Qwen3 and uploads privately.
 
 ```bash
 nohup caffeinate -dimsu .venv/bin/python \
-  skills/podcast-youtuber-agent/scripts/autopilot.py --episodes 2 \
+  skills/podcast-youtuber-agent/scripts/autopilot.py --episodes 1 \
   >> build/autopilot/autopilot.log 2>&1 &
 ```
+
+For the curated investment/macro feeds, select the RSS source explicitly:
+
+```bash
+nohup caffeinate -dimsu .venv/bin/python \
+  skills/podcast-youtuber-agent/scripts/autopilot.py \
+  --episodes 1 --source investment \
+  >> build/autopilot/investment-run.log 2>&1 &
+```
+
+It downloads the episode audio and runs local MLX Whisper ASR before writing,
+so the first run also downloads the ASR model. Use `--asr-model` to choose a
+smaller/faster model.
 
 Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
 private by default. Review each private video before publishing. The queue
