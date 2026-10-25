@@ -78,7 +78,7 @@ def select_candidate() -> dict | None:
         if not topics.intersection({"ai", "technology", "tech", "market", "stock", "startup"}):
             continue
         title = str(item.get("title") or "").lower()
-        bonus = 8 if any(word in title for word in (
+        bonus = 12 if any(word in title for word in (
             " ai ", "artificial intelligence", "system design", "agent", "model",
             "stock", "market", "trading",
         )) else 0
