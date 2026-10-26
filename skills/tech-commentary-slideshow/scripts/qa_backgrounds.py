@@ -9,6 +9,7 @@ thumbnail is used as a slide background.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import urllib.parse
@@ -32,16 +33,21 @@ def _theme(path: Path) -> str:
     return "light" if average > 145 else "dark"
 
 
-def _asset_exists(url: str) -> bool:
+def _asset_path(url: str) -> Path | None:
     if not url.startswith("image:"):
-        return False
+        return None
     raw = url[len("image:"):]
     parsed = urllib.parse.urlparse(raw)
     query = urllib.parse.parse_qs(parsed.query)
     relative = (query.get("path") or [""])[0]
     if not relative:
-        return False
-    return (ROOT / "modules" / "linkZagShow" / urllib.parse.unquote(relative)).exists()
+        return None
+    path = ROOT / "modules" / "linkZagShow" / urllib.parse.unquote(relative)
+    return path if path.exists() else None
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -57,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: cover not found: {cover}", file=sys.stderr)
         return 1
     expected = _theme(cover)
+    plate = cover.with_name(cover.stem + ".plate.png")
+    expected_hash = _sha(plate) if plate.exists() else None
     timing = _load(Path(args.timing))
     scenes = _load(Path(args.scenes)) if args.scenes and Path(args.scenes).exists() else {"scenes": []}
     by_id = {str(scene.get("id")): scene for scene in scenes.get("scenes", [])}
@@ -69,10 +77,13 @@ def main(argv: list[str] | None = None) -> int:
         if scene:
             background = str(scene.get("background") or "")
             theme = str(scene.get("theme") or "")
-            if not background.startswith("image:") or not _asset_exists(background):
+            asset = _asset_path(background)
+            if not background.startswith("image:") or asset is None:
                 problems.append({"id": sid, "issue": "custom visual has no image backdrop"})
             elif theme != expected:
                 problems.append({"id": sid, "issue": f"theme {theme} != cover {expected}"})
+            elif expected_hash and _sha(asset) != expected_hash:
+                problems.append({"id": sid, "issue": "backdrop is not the approved cover plate"})
             else:
                 styled += 1
             continue

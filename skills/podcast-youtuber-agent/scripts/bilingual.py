@@ -306,8 +306,11 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         if args.thumbnail_zh
         else out_zh.parent / "cover.zh.png"
     )
+    cover_plate = cover_path.with_name(cover_path.stem + ".plate.png")
+    if not cover_plate.exists():
+        cover_plate = cover_path
     if args.builder == "tech":
-        if _render_zh_visuals(args, work_zh, zh_timing, cover_path):
+        if _render_zh_visuals(args, work_zh, zh_timing, cover_plate):
             return 1
     else:
         # The legacy podcast builder has no LinkZag scene pass; retain its old

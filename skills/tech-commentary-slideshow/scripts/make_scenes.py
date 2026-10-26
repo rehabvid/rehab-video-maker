@@ -486,6 +486,10 @@ def main(argv: list[str] | None = None) -> int:
     background_theme = args.background_theme
     if args.background:
         source = Path(args.background).expanduser()
+        if not source.stem.endswith(".plate"):
+            plate = source.with_name(source.stem + ".plate.png")
+            if plate.exists():
+                source = plate
         if source.exists():
             generated_asset_dir.mkdir(parents=True, exist_ok=True)
             dest = generated_asset_dir / "background.png"
