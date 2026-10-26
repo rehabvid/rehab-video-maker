@@ -23,6 +23,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "skills" / "podcast-youtuber-agent" / "scripts"
 TECH_SCRIPTS = ROOT / "skills" / "tech-commentary-slideshow" / "scripts"
+COVER_SCRIPTS = ROOT / "skills" / "podcast-cover-agent" / "scripts"
 SHARED = ROOT / "skills" / "podcast-avatar-commentary" / "scripts"
 sys.path.insert(0, str(SHARED))
 sys.path.insert(0, str(SCRIPTS))
@@ -43,6 +44,13 @@ def _load_tech(name: str):
     spec.loader.exec_module(module)
     return module
 
+def _load_cover(name: str):
+    spec = importlib.util.spec_from_file_location(f"cover_{name}", COVER_SCRIPTS / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
 
 slides = _load("slides")
 voice_sample = _load("voice_sample")
@@ -55,6 +63,7 @@ narrate = _load("narrate")
 autopilot = _load("autopilot")
 playlists = _load("playlists")
 plan_visuals = _load_tech("plan_visuals")
+cover_agent = _load_cover("cover")
 make_scenes = _load_tech("make_scenes")
 
 
@@ -294,6 +303,37 @@ class PlaylistClassificationTests(unittest.TestCase):
             "Energy & Commodities",
             "Europe & Fiscal Policy",
         ])
+
+
+class CoverAgentTests(unittest.TestCase):
+    def setUp(self):
+        self.config = cover_agent._load(
+            ROOT / "skills" / "podcast-cover-agent" / "config" / "cover-styles.json"
+        )
+
+    def test_topic_and_angle_are_content_driven(self):
+        topic_id, topic = cover_agent._topic(
+            {"title": "AI agents and the price of goods", "tags": ["ai", "agent"]},
+            self.config,
+            None,
+        )
+        self.assertEqual(topic_id, "ai_advances")
+        self.assertIn("server rack", topic["foreground"])
+        angle = cover_agent._angle({"title": "AI agents"}, self.config, None)
+        self.assertIn(angle["id"], [a["id"] for a in self.config["angles"]])
+
+    def test_prompt_keeps_marina_bay_and_content_anchor(self):
+        topic = self.config["topics"]["energy"]
+        angle = self.config["angles"][0]
+        prompt = cover_agent._prompt(topic, angle, self.config["render_styles"]["sketch"])
+        self.assertIn("Singapore Marina Bay", prompt)
+        self.assertIn("oil tanker", prompt)
+
+    def test_stat_prefers_a_range(self):
+        self.assertEqual(
+            cover_agent._stat({"description": "the gap is 25–35% of pre-war flow"}, {}, None),
+            "25–35%",
+        )
 
 
 class LanguageDefaultTests(unittest.TestCase):
