@@ -125,8 +125,8 @@ def _stat(metadata: dict, cover: dict, override: str | None) -> str:
     return match.group(0).replace(" ", "") if match else ""
 
 
-def _prompt(topic: dict, angle: dict, render_style: dict) -> str:
-    foreground = str(topic.get("foreground") or "").strip()
+def _prompt(topic: dict, angle: dict, render_style: dict, subject: str | None = None) -> str:
+    foreground = str(subject or topic.get("foreground") or "").strip()
     parts = [
         render_style["prefix"],
         angle["prompt"],
@@ -163,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--title", help="override title")
     parser.add_argument("--stat", help="override the big number")
+    parser.add_argument("--subject", help="content-specific foreground object")
     parser.add_argument("--subtitle")
     parser.add_argument("--kicker")
     parser.add_argument("--topic", help="topic id from cover-styles.json")
@@ -207,7 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     kicker = args.kicker or cover.get("kicker") or topic.get(f"kicker_{'zh' if language.startswith('zh') else 'en'}") or topic["label"]
     subtitle = args.subtitle or cover.get("subtitle") or ("独立评论" if language.startswith("zh") else "Independent commentary")
     stat = _stat(metadata, cover, args.stat)
-    prompt = _prompt(topic, angle, render_style)
+    subject = args.subject or cover.get("subject")
+    prompt = _prompt(topic, angle, render_style, subject)
     defaults = config["defaults"]
     candidates = max(1, int(args.candidates or cover.get("candidates") or defaults["candidates"]))
     seed = int(args.seed if args.seed is not None else cover.get("seed") or defaults["seed_base"])
@@ -222,6 +224,7 @@ def main(argv: list[str] | None = None) -> int:
         "render_style": render_id,
         "angle": angle["id"],
         "title": title,
+        "subject": subject,
         "stat": stat,
         "subtitle": subtitle,
         "kicker": kicker,
@@ -273,6 +276,7 @@ def main(argv: list[str] | None = None) -> int:
         "render_style": render_id,
         "angle": angle["id"],
         "title": title,
+        "subject": subject,
         "stat": stat,
         "subtitle": subtitle,
         "kicker": kicker,
