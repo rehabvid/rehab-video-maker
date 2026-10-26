@@ -295,25 +295,56 @@ def _load_metadata(args) -> dict:
 
 
 CHAPTER_LINE = re.compile(r"(?m)^\s*\d{1,2}:\d{2}(?::\d{2})?\s+\S")
+CHAPTERS_HEADER = re.compile(r"(?im)^\s*Chapters\s*$")
 
 
 def _with_chapters(description: str, chapters: object) -> str:
-    """Append metadata chapters when the description has no timestamp lines."""
+    """Replace the description's chapter block with metadata chapters.
+
+    Retiming a dub changes chapter starts after upload.  Treat metadata as the
+    source of truth so a rebuilt description cannot silently keep stale
+    timestamps.  If no chapter block exists, append one.
+    """
     if not isinstance(chapters, list) or not chapters:
         return description
-    if CHAPTER_LINE.search(description):
-        return description
-    lines = ["", "Chapters"]
+    block = ["Chapters"]
     for chapter in chapters:
         if not isinstance(chapter, dict):
             continue
         start = str(chapter.get("start") or "").strip()
         title = str(chapter.get("title") or "").strip()
         if start and title:
-            lines.append(f"{start} {title}")
-    if len(lines) <= 2:
+            block.append(f"{start} {title}")
+    if len(block) <= 1:
         return description
-    return description.rstrip() + "\n" + "\n".join(lines) + "\n"
+
+    text = description.rstrip()
+    lines = text.splitlines()
+    header = next(
+        (index for index, line in enumerate(lines) if CHAPTERS_HEADER.match(line)),
+        None,
+    )
+    if header is not None:
+        end = header + 1
+        saw_timestamp = False
+        while end < len(lines):
+            line = lines[end]
+            if not line.strip():
+                end += 1
+            elif CHAPTER_LINE.match(line):
+                saw_timestamp = True
+                end += 1
+            else:
+                break
+        if saw_timestamp or end == len(lines):
+            before = "\n".join(lines[:header]).rstrip()
+            after = "\n".join(lines[end:]).strip()
+            parts = [part for part in (before, "\n".join(block), after) if part]
+            return "\n\n".join(parts) + "\n"
+
+    if CHAPTER_LINE.search(text):
+        return text + "\n"
+    return text + "\n\n" + "\n".join(block) + "\n"
 
 
 def _parse_publish_at(value: str) -> str:

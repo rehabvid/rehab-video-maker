@@ -170,6 +170,30 @@ class YouTubeMetadataTests(unittest.TestCase):
         self.assertIn("0:00 Intro", data["description"])
         self.assertIn("1:00 Main idea", data["description"])
 
+    def test_metadata_chapters_replace_existing_description_chapters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            metadata = Path(tmp) / "youtube.json"
+            metadata.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "Intro"},
+                    {"start": "2:00", "title": "Main idea"},
+                ]
+            }))
+            data = youtube_upload._load_metadata(
+                self._args(
+                    metadata=str(metadata),
+                    description=(
+                        "A description.\n\nChapters\n"
+                        "0:00 Old intro\n1:00 Old middle\n\n#tag"
+                    ),
+                )
+            )
+        self.assertIn("0:00 Intro", data["description"])
+        self.assertIn("2:00 Main idea", data["description"])
+        self.assertNotIn("0:00 Old intro", data["description"])
+        self.assertNotIn("1:00 Old middle", data["description"])
+        self.assertTrue(data["description"].endswith("#tag\n"))
+
 
 class TrendingHelpersTests(unittest.TestCase):
     def test_parse_iso_duration(self):
