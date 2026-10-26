@@ -49,6 +49,10 @@ if str(SHARED) not in sys.path:
 
 from lib import ffprobe_duration, load_json, save_json, write_srt  # noqa: E402
 
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import youtube_upload  # noqa: E402
+
 NARRATE = HERE / "narrate.py"
 THUMBNAIL = HERE / "thumbnail.py"
 UPLOAD = HERE / "youtube_upload.py"
@@ -323,12 +327,34 @@ def _thumbnail(slides: Path, out: Path) -> int:
     ])
 
 
-def _localizations(metadata: Path, language: str) -> dict:
+def _align_chapter_starts(entries: object, starts: object) -> object:
+    """Keep localized chapter titles but move them to the target video clock."""
+    if not isinstance(entries, list) or not isinstance(starts, list):
+        return entries
+    if len(entries) != len(starts):
+        return entries
+    aligned = []
+    for entry, source in zip(entries, starts):
+        item = dict(entry) if isinstance(entry, dict) else entry
+        if isinstance(item, dict) and isinstance(source, dict) and source.get("start"):
+            item["start"] = str(source["start"])
+        aligned.append(item)
+    return aligned
+
+
+def _localizations(
+    metadata: Path,
+    language: str,
+    chapters: object = None,
+) -> dict:
     data = load_json(metadata)
+    description = str(data.get("description") or "")
+    if chapters:
+        description = youtube_upload._with_chapters(description, chapters)
     return {
         language: {
             "title": data.get("title", ""),
-            "description": data.get("description", ""),
+            "description": description,
         }
     }
 
@@ -345,17 +371,27 @@ def _upload(args, video: Path, metadata: Path, thumbnail: Path, captions: list[t
     for language, path, name in captions:
         cmd += ["--caption-track", f"{language}={path}|{name}"]
     # Give each upload a localized title/description in the other language.
+    # Chapter titles come from the translated metadata, but their starts must
+    # follow the video being uploaded, not the other language master.
     if args.metadata and args.metadata_zh:
+        en_chapters = load_json(args.metadata).get("chapters") or []
+        zh_chapters = load_json(args.metadata_zh).get("chapters") or []
         if video == args.out_en:
             source, language = args.metadata_zh, "zh-Hans"
+            localized_chapters = _align_chapter_starts(zh_chapters, en_chapters)
         elif video == args.out_zh:
             source, language = args.metadata, "en"
+            localized_chapters = _align_chapter_starts(en_chapters, zh_chapters)
         else:
-            source, language = None, ""
+            source, language, localized_chapters = None, "", None
         if source:
             temp = args.out_dir / f"localizations.{language}.json"
             temp.write_text(
-                json.dumps(_localizations(source, language), ensure_ascii=False, indent=2) + "\n"
+                json.dumps(
+                    _localizations(source, language, localized_chapters),
+                    ensure_ascii=False,
+                    indent=2,
+                ) + "\n"
             )
             cmd += ["--localizations", str(temp)]
     return run(cmd)

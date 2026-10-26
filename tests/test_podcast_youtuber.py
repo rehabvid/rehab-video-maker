@@ -399,6 +399,63 @@ class BilingualChapterTests(unittest.TestCase):
             chapters = json.loads(zh_meta.read_text())["chapters"]
             self.assertEqual([c["start"] for c in chapters], ["0:00", "1:30"])
 
+    def test_english_localization_uses_mandarin_chapter_clock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            en_meta = root / "youtube.json"
+            zh_meta = root / "youtube.zh.json"
+            en_meta.write_text(json.dumps({
+                "title": "English title",
+                "description": "English description.\n\nChapters\n0:00 Intro\n2:00 Main",
+                "chapters": [
+                    {"start": "0:00", "title": "Intro"},
+                    {"start": "2:00", "title": "Main"},
+                ],
+            }))
+            zh_meta.write_text(json.dumps({
+                "title": "中文标题",
+                "description": "中文说明。\n\n章节：\n0:00 介绍\n2:00 主体",
+                "chapters": [
+                    {"start": "0:00", "title": "介绍"},
+                    {"start": "1:30", "title": "主体"},
+                ],
+            }, ensure_ascii=False))
+            en_chapters = json.loads(en_meta.read_text())["chapters"]
+            zh_chapters = json.loads(zh_meta.read_text())["chapters"]
+            aligned = bilingual._align_chapter_starts(en_chapters, zh_chapters)
+            data = bilingual._localizations(en_meta, "en", aligned)
+        description = data["en"]["description"]
+        self.assertIn("0:00 Intro", description)
+        self.assertIn("1:30 Main", description)
+        self.assertNotIn("2:00 Main", description)
+
+    def test_mandarin_localization_uses_english_chapter_clock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            en_meta = root / "youtube.json"
+            zh_meta = root / "youtube.zh.json"
+            en_meta.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "Intro"},
+                    {"start": "2:00", "title": "Main"},
+                ],
+            }))
+            zh_meta.write_text(json.dumps({
+                "title": "中文标题",
+                "description": "中文说明。\n\n章节：\n0:00 介绍\n1:30 主体",
+                "chapters": [
+                    {"start": "0:00", "title": "介绍"},
+                    {"start": "1:30", "title": "主体"},
+                ],
+            }, ensure_ascii=False))
+            en_chapters = json.loads(en_meta.read_text())["chapters"]
+            zh_chapters = json.loads(zh_meta.read_text())["chapters"]
+            aligned = bilingual._align_chapter_starts(zh_chapters, en_chapters)
+            data = bilingual._localizations(zh_meta, "zh-Hans", aligned)
+        description = data["zh-Hans"]["description"]
+        self.assertIn("章节：\n0:00 介绍\n2:00 主体", description)
+        self.assertNotIn("1:30 主体", description)
+
 
 class UsedEpisodeLedgerTests(unittest.TestCase):
     def test_ledger_round_trip_and_source_ids(self):
