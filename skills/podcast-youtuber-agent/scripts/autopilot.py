@@ -173,33 +173,57 @@ def writer_prompt(candidate: dict, work: Path) -> str:
     return f"""You are the podcast-content-agent for this repository. Work only inside:
 {work}
 
+You are writing for an **independent commentator reviewing the podcast**. The
+creator is not the podcast host, interviewer, or guest. The original host and
+guest are third-person subjects of the video. Never write in their voices or
+imply the creator was present, asked the questions, supplied the answers, or
+was part of the original recording.
+
 Source metadata is in {work / 'source.json'}. The full transcript is in the
 `transcription.transcript` field. Read enough of it to verify names, numbers,
 dates, and claims. You may use web research for the host/guest.
 
+Role rules for all spoken and written output:
+- Refer to the original host and guest by name or as "the host" and "the
+  guest." Use first person only for the creator's commentary and analysis.
+- Never use "my guest," "joining me," "I sat down with," "I interviewed,"
+  "welcome back to the show," or "thank you for joining me."
+- Attribute the source conversation explicitly: "As [guest] tells [host]...",
+  "The episode argues...", or "In the interview...."
+- The opening must identify the original host and guest and make clear this is
+  independent commentary, not a host intro.
+- Titles and descriptions must read as commentary, analysis or critique, not as
+  an episode of the original podcast. Never title it "Interview with..." unless
+  the creator actually conducted the interview.
+
 Produce:
 1. `script.txt` - 1,850-2,000 words of continuous spoken commentary. At the
    measured Qwen3 slide-by-slide pace of roughly 145-150 wpm this is roughly
-   12.5-14 minutes. Do not exceed 2,000 words. Start with a 15-25 second who-is-who
-   introduction (host and guest, current roles, one credibility fact each), then
-   a specific hook, 3-5 ideas with your own analysis, and a low-key close. No
-   headings, bullets, stage directions, or invented facts. Cite claims in the
-   metadata; do not put citations in the spoken text.
-2. `people.json` - host/guest names, roles, 2-4 sentence verified notes, source
-   URLs. If the host is unnamed, say so and use `the host`.
+   12.5-14 minutes. Do not exceed 2,000 words. Start with a 15-25 second setup
+   that names the original host and guest, gives their current roles and one
+   credibility fact each, and frames the video as independent commentary. Then
+   a specific hook, 3-5 ideas with the creator's own analysis, and a low-key
+   close. No headings, bullets, stage directions, or invented facts. Cite
+   claims in the metadata; do not put citations in the spoken text.
+2. `people.json` - original host/guest names, roles, 2-4 sentence verified
+   notes, source URLs. These are third-person subjects, not the creator's
+   roles. If the host is unnamed, say so and use `the host`.
 3. `slides.json` - run:
    `uv run python skills/podcast-content-agent/scripts/slides.py draft --script {work / 'script.txt'} --out {work / 'slides.json'} --title "{title}" --voice-profile voices/me --engine qwen3 --fps 30 --wpm 150`
    Then edit it: 35-55 slides, clear headings, first title and last end card.
-   Keep `"format": "broll-slides"` and `"engine": "qwen3"`. Add explicit
-   `visual` hints to 6-10 technical slides. Use only real data in chart data;
-   DAG/diagram/PetriNet hints are allowed for workflows, architectures and
-   causal chains.
-4. `youtube.json` - private upload metadata: title, 2-3 paragraph description,
-   source URL ({source_url}), chapters, AI-voice disclosure, tags,
-   `"containsSyntheticMedia": true`, `"privacyStatus": "private"`.
-   Chapters may be approximate at this stage.
+   Replace the deck title and first title card with a commentary-framed title;
+   do not simply reuse the source episode title. Keep `"format": "broll-slides"`
+   and `"engine": "qwen3"`. Add explicit `visual` hints to 6-10 technical
+   slides. Use only real data in chart data; DAG/diagram/PetriNet hints are
+   allowed for workflows, architectures and causal chains.
+4. `youtube.json` - private upload metadata: commentary-framed title, 2-3
+   paragraph description, source URL ({source_url}), chapters, AI-voice
+   disclosure, tags, `"containsSyntheticMedia": true`,
+   `"privacyStatus": "private"`. The description must state that this is
+   independent commentary, not an episode of the source podcast, and that the
+   creator was not a participant. Chapters may be approximate at this stage.
 5. Run `uv run python skills/podcast-content-agent/scripts/slides.py validate
-   {work / 'slides.json'} --root . --wpm 150` and fix all errors.
+   {work / 'slides.json'} --root . --wpm 150` and fix all errors and warnings.
 
 Do not run narrate.py, build.py, render_scenes.py, or upload anything. Stop
 after the files validate. Work efficiently; read the transcript in chunks.

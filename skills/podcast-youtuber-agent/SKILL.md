@@ -1,6 +1,6 @@
 ---
 name: podcast-youtuber-agent
-description: Turn current popular Business and Technology podcasts into 10–15 minute YouTube commentary videos with a personal cloned voice, b-roll slides (no avatar), measured captions, and an optional autonomous YouTube upload. Each run fetches fresh trending sources and filters a cross-run used-episode ledger so an episode is never repeated; short sources are combined around one thesis. Covers voice-sample preparation, a local Chatterbox voice-cloning workflow on Apple Silicon, slide-list drafting/validation, the 1080p renderer, and YouTube OAuth 2.0 best practices.
+description: Turn current popular Business and Technology podcasts into independent 10–15 minute YouTube commentary videos with a personal cloned voice, b-roll slides (no avatar), measured captions, and an optional autonomous YouTube upload. The creator comments on the podcast and never impersonates its host, interviewer or guest. Each run fetches fresh trending sources and filters a cross-run used-episode ledger so an episode is never repeated; short sources are combined around one thesis. Covers voice-sample preparation, a local Chatterbox voice-cloning workflow on Apple Silicon, slide-list drafting/validation, the 1080p renderer, and YouTube OAuth 2.0 best practices.
 ---
 
 # Podcast YouTuber Agent (legacy all-in-one)
@@ -17,6 +17,29 @@ Turn one or more current popular podcast episodes into a **10–15 minute,
 b-roll-only YouTube commentary video** narrated in your own cloned voice. There is no talking
 avatar in this skill. The visual track is a paced sequence of title, chart,
 quote, image and video slides with burned-in captions.
+
+## Editorial role and point of view
+
+The creator is an **independent commentator reviewing the podcast**, not the
+podcast's host, interviewer or guest. The original host/interviewer and
+guest/interviewee are **subjects of the video**, not the creator's roles. Never
+write or perform as if the creator was part of the original recording.
+
+- Refer to the original host and guest in the third person, by name or as
+  “the host” and “the guest.” Keep first person for the creator's analysis and
+  opinions.
+- Do not use host or participant language such as “my guest,” “joining me,”
+  “I sat down with,” “I interviewed,” “welcome back to the show,” or “thank you
+  for joining me.”
+- Attribute the source conversation explicitly: “As [guest] tells [host]…,”
+  “The episode argues…,” or “In the interview….” Do not write as if the creator
+  asked the question or supplied the answer.
+- Open with a clear independent-commentary frame, not an imitation of the
+  podcast's own intro. Do not imply that the original show or its guests
+  endorse the commentary.
+- Titles and descriptions must read as commentary, analysis or critique, never
+  as an episode of the original podcast. Never use “Interview with…” unless the
+  creator actually conducted that interview.
 
 The skill still owns the editorial loop: fetch candidates, score them, research
 the guest, and write a continuous spoken script. This document adds the
@@ -399,8 +422,10 @@ uv run python skills/podcast-youtuber-agent/scripts/trending.py transcript \
   --source youtube --id <video-id> --out build/ep01/source-youtube.json
 ```
 
-Research the interviewer and interviewee from public sources, not just the
-episode. `people.py` gives cited Wikipedia starting points:
+Research the original interviewer and interviewee from public sources, not
+just the episode. They are the people being discussed, not the creator's
+roles; keep both in the third person. `people.py` gives cited Wikipedia
+starting points:
 
 ```bash
 uv run python skills/podcast-youtuber-agent/scripts/people.py \
@@ -413,9 +438,11 @@ matters now. If Wikipedia is missing or stale, use the person's company page,
 show bio, or a reputable interview. Record the source URL next to every fact.
 Do not infer a title from the episode description alone.
 
-Write a **15–25 second who-is-who intro at the very beginning**: name the
+Write a **15–25 second setup at the very beginning**: name the original
 interviewer and interviewee, their current roles, and one credibility fact or
-stake for each. Then move into the hook. Keep the intro factual and short; the
+stake for each. State plainly that this is independent commentary on their
+conversation, then move into the hook. Do not use a host-style welcome or imply
+that you were part of the episode. Keep the setup factual and short; the
 commentary, not the biography, is the reason the video exists.
 
 ### 2.3 Write the spoken script
@@ -432,17 +459,19 @@ count.
 
 Flow:
 
-1. A 15–25 second who-is-who intro: interviewer, interviewee, current roles and
-   one credibility fact each, sourced from web research.
+1. A 15–25 second setup: identify the original interviewer and interviewee,
+   their current roles and one credibility fact each, sourced from web research,
+   and frame the video as independent commentary. This is not a host intro.
 2. A quiet, specific hook: a surprising number, contradiction or personal
    stake. No “hey guys,” no “in today's video.”
-3. Three or four core ideas, each followed by your research-backed insight,
-   historical parallel, risk or practical implication.
+3. Three or four core ideas, each followed by the creator's research-backed
+   insight, historical parallel, risk or practical implication.
 4. A genuine question that survives after the video stops.
 5. A low-key close: comments, what they are testing, what to watch next.
 
 The script is the narration. The slide list is the visual layer; do not put
-headings or stage directions into the script.
+headings or stage directions into the script. The creator is the commentator,
+never the podcast host or guest.
 
 ---
 
@@ -725,19 +754,26 @@ Include:
 
 - a 2–3 sentence summary;
 - the original episode title, guest and link;
+- a line saying this is independent commentary, not an episode of the original
+  podcast;
 - sources;
 - chapters;
 - the AI-voice disclosure;
 - sponsor/affiliate disclosures;
 - “not financial advice” when relevant.
 
+Frame the title as analysis, commentary or critique. Do not title it as an
+interview or as an episode of the source show.
+
 Description example:
 
 ```text
 Disclosure: This video uses an AI-generated voice clone of the creator. The
-script, research and opinions are the creator's own. The original podcast is
-credited and linked above; excerpts are used for commentary and criticism.
-This is opinion, not financial advice.
+script, research and opinions are the creator's own. This is independent
+commentary on the original podcast, not an episode of that show; the creator
+was not a participant in the interview. The original podcast is credited and
+linked above; excerpts are used for commentary and criticism. This is opinion,
+not financial advice.
 ```
 
 The uploader sets `status.containsSyntheticMedia=true` by default. That is the
@@ -1006,7 +1042,7 @@ editorial fact-check or the final watch-through.
       "kind": "title",
       "narration": "The number everyone quoted this week was not the one that mattered.",
       "on_screen": "The number everyone missed",
-      "subtitle": "A podcast commentary",
+      "subtitle": "Independent commentary on the podcast",
       "kicker": "PODCAST COMMENTARY",
       "transition": "cut"
     },

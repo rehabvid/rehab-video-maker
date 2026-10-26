@@ -10,7 +10,9 @@ reusable AI presenter built from your own photos.
 
 The output is not "an AI reads a summary." It is a produced commentary segment:
 a short, specific argument, your own insight, a paced edit, and a presenter who
-looks and sounds consistent from episode to episode.
+looks and sounds consistent from episode to episode. The presenter is an
+independent commentator reviewing the podcast, never a stand-in for the
+original host, interviewer or guest.
 
 ## Target output
 

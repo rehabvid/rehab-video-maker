@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     subtitle = (
         args.subtitle
         or title_shot.get("subtitle")
-        or "A podcast commentary"
+        or "Independent commentary on the podcast"
     )
     kicker = args.kicker or title_shot.get("kicker") or "PODCAST COMMENTARY"
     background = Path(args.background).expanduser() if args.background else _first_image(

@@ -88,6 +88,15 @@ class SlideValidationTests(unittest.TestCase):
         errors, _, _ = slides.validate(deck, ROOT)
         self.assertTrue(any("max is 340" in error for error in errors))
 
+    def test_host_role_confusion_warns(self):
+        deck = self._deck("chart")
+        deck["shots"][0]["narration"] = "My guest explains why the trade is crowded."
+        errors, warnings, _ = slides.validate(deck, ROOT)
+        self.assertEqual(errors, [])
+        self.assertTrue(
+            any("independent commentator" in warning for warning in warnings)
+        )
+
 
 class VoiceSampleTests(unittest.TestCase):
     def test_trim_bounds_removes_edges_only(self):

@@ -1,6 +1,6 @@
 ---
 name: podcast-content-agent
-description: Select a fresh trending podcast episode, research the interviewer and guest, and produce a slide-by-slide commentary transcript with sources. Content-only: no voice cloning, video rendering or upload. The output is consumed by tech-commentary-slideshow or an optional AI-video skill.
+description: Select a fresh trending podcast episode, research the interviewer and guest as third-person subjects, and produce an independent slide-by-slide commentary transcript with sources. The creator comments on the podcast and never impersonates its host or guest. Content-only: no voice cloning, video rendering or upload. The output is consumed by tech-commentary-slideshow or an optional AI-video skill.
 ---
 
 # Podcast Content Agent
@@ -22,6 +22,30 @@ people research. The preferred consumer is
 
 The content scripts are self-contained in `scripts/`. The legacy end-to-end
 skill keeps a copy for its old pipeline; change the content skill first.
+
+## Editorial role and point of view
+
+The video creator is an **independent commentator reviewing the podcast**. The
+original host/interviewer and guest/interviewee are **subjects of the video**,
+not the creator's roles. The narration must never imply that the creator hosted
+the original show, conducted the interview, was a guest, or was present during
+the recording.
+
+- Refer to the original host and guest in the third person, by name or as
+  “the host” and “the guest.” Keep first person for the creator's analysis,
+  opinions and questions.
+- Do not use host or participant language such as “my guest,” “joining me,”
+  “I sat down with,” “I interviewed,” “welcome back to the show,” or “thank you
+  for joining me.”
+- Attribute what happened on the podcast explicitly: “As [guest] tells
+  [host]…,” “The episode argues…,” or “In the interview….” Do not write as if
+  the creator asked the question or supplied the answer.
+- Open with a short independent-commentary frame: identify the original host
+  and guest, then make clear that this video is your analysis of their
+  conversation. Do not imitate the podcast's own intro or outro.
+- Titles and descriptions should read as commentary, analysis or critique, not
+  as an episode of the original show. Never use “Interview with…” unless the
+  creator actually conducted that interview.
 
 ## Length policy
 
@@ -104,8 +128,9 @@ the Apple Podcasts app's transcript as an API.
 
 ## Research the people
 
-At the beginning of the eventual video, name the interviewer and interviewee
-and give one credibility fact for each.
+At the beginning of the eventual video, name the original interviewer and
+interviewee and give one credibility fact for each. They are the people being
+discussed, not the creator's roles; keep both in the third person.
 
 ```bash
 uv run python skills/podcast-content-agent/scripts/people.py \
@@ -148,8 +173,9 @@ uv run python skills/podcast-content-agent/scripts/slides.py draft \
   --fps 30 --wpm 150
 ```
 
-Then edit the deck by hand. Each `narration` is what the narrator says; each
-slide should be one idea.
+Then edit the deck by hand. Each `narration` is what the independent
+commentator says; each slide should be one idea. The original host and guest
+remain third-person subjects and never become the creator's role.
 
 For a technical visual, add an explicit hint and real data:
 
@@ -186,17 +212,18 @@ uv run python skills/podcast-content-agent/scripts/slides.py \
 
 ## Script shape
 
-1. 15–25 second who-is-who intro: interviewer, interviewee, current roles and
-   one credibility fact each.
+1. 15–25 second setup, not a host intro: identify the original
+   host/interviewer and guest, give their current roles and one credibility fact
+   each, and state that this is independent commentary on their conversation.
 2. A specific hook: number, contradiction or stake.
-3. Three or four core ideas, each followed by your own analysis, risk or
+3. Three or four core ideas, each followed by the creator's analysis, risk or
    practical implication.
 4. A real question that survives the video.
 5. A low-key close.
 
 No headings, no bullet reading, no “hey guys,” no invented quotes or numbers.
 The slide deck is the visual layer; do not put stage directions in the
-narration.
+narration. The creator is the commentator, never the podcast host or guest.
 
 ## Handoff
 

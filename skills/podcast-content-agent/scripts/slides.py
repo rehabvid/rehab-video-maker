@@ -51,6 +51,22 @@ MAX_NARRATION_CHARS = 340
 TARGET_MIN_MINUTES = 10.0
 TARGET_MAX_MINUTES = 15.0
 TARGET_WPM = 150
+ROLE_CONFUSION = (
+    re.compile(r"\b(?:I['’]m|I am) your host\b", re.I),
+    re.compile(r"\b(?:I['’]m|I am) (?:joined|here) (?:by|with)\b", re.I),
+    re.compile(r"\bmy guest\b", re.I),
+    re.compile(r"\bour guest\b", re.I),
+    re.compile(r"\btoday['’]s guest\b", re.I),
+    re.compile(r"\bjoins? me\b", re.I),
+    re.compile(r"\bjoining me(?: today| in this episode)?\b", re.I),
+    re.compile(r"\bI (?:sat down|spoke) with\b", re.I),
+    re.compile(r"\bsitting down with\b", re.I),
+    re.compile(r"\bI interviewed\b", re.I),
+    re.compile(r"\bmy (?:conversation|interview) with\b", re.I),
+    re.compile(r"\bour (?:conversation|interview)\b", re.I),
+    re.compile(r"\bwelcome (?:back )?to (?:the |my )?(?:podcast|show)\b", re.I),
+    re.compile(r"\bthank you for joining me\b", re.I),
+)
 
 
 def _clean_script(text: str) -> str:
@@ -193,7 +209,7 @@ def draft(args) -> int:
                 "kind": kind,
                 "narration": beat,
                 "on_screen": title,
-                "subtitle": args.subtitle or "A podcast commentary",
+                "subtitle": args.subtitle or "Independent commentary on the podcast",
                 "kicker": args.kicker,
             }
         elif last:
@@ -312,6 +328,11 @@ def validate(
                 f"{where}: narration is {len(narration)} chars; "
                 f"max is {MAX_NARRATION_CHARS}"
             )
+        if narration and any(pattern.search(narration) for pattern in ROLE_CONFUSION):
+            warnings.append(
+                f"{where}: narration uses host/guest language; the creator is an "
+                "independent commentator, not the podcast's host or guest"
+            )
         total += estimate_seconds(narration, wpm) if narration else 0.0
 
         if kind == "broll":
@@ -420,6 +441,7 @@ def plan(data: dict, summary: dict, wpm: float = TARGET_WPM) -> str:
         "- Add a podcast cover, guest image, chart and one screen recording if possible.",
         "- Verify every quote, number and name against the transcript or a cited source.",
         "- Keep each narration beat under 340 characters; split long beats.",
+        "- Confirm the creator speaks as an independent commentator; the original host and guest are third-person subjects, never the creator's role.",
         "- Confirm the voice profile and consent in `voices/<name>/voice.json`.",
         "",
         "## Build",
