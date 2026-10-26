@@ -34,6 +34,35 @@ def _pending() -> list[Path]:
     )
 
 
+def _ensure_cover(manifest: dict, manifest_path: Path) -> Path | None:
+    """Return a real Marina Bay cover; never fall back to the source podcast art."""
+    thumbnail = Path(manifest.get("thumbnail") or "") if manifest.get("thumbnail") else None
+    if thumbnail and thumbnail.exists() and thumbnail.name != "thumbnail.zh.png":
+        return thumbnail
+    metadata = Path(manifest.get("metadata") or "")
+    if not metadata.exists():
+        return None
+    cover = manifest_path.parent / "cover.zh.png"
+    if not cover.exists():
+        cmd = [
+            sys.executable,
+            str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
+            "--metadata", str(metadata),
+            "--out", str(cover),
+            "--candidates", "1",
+            "--timeout", "1200",
+        ]
+        print("+ " + " ".join(cmd), flush=True)
+        if subprocess.run(cmd, cwd=ROOT).returncode:
+            print(f"cover generation failed for {manifest_path}", file=sys.stderr)
+            return None
+    if not cover.exists():
+        return None
+    manifest["thumbnail"] = str(cover)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    return cover
+
+
 def _mark_uploaded(source_id: str, title: str, video_id: str, note: str) -> None:
     ledger = _load(LEDGER) if LEDGER.exists() else {"used": []}
     entries = ledger.setdefault("used", [])
@@ -78,6 +107,10 @@ def main(argv: list[str] | None = None) -> int:
         if not video.exists() or not metadata.exists():
             print(f"missing video/metadata for {manifest_path}", file=sys.stderr)
             continue
+        cover = _ensure_cover(manifest, manifest_path)
+        if cover is None:
+            print(f"no approved cover for {manifest_path}; leaving pending", file=sys.stderr)
+            continue
         receipt = manifest_path.parent / "youtube-zh.json"
         cmd = [
             sys.executable, str(UPLOAD),
@@ -90,9 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         for language, path, name in manifest.get("captions") or []:
             if Path(path).exists():
                 cmd += ["--caption-track", f"{language}={path}|{name}"]
-        thumbnail = manifest.get("thumbnail")
-        if thumbnail and Path(thumbnail).exists():
-            cmd += ["--thumbnail", str(thumbnail)]
+        cmd += ["--thumbnail", str(cover)]
         localizations = manifest.get("localizations")
         if localizations and Path(localizations).exists():
             cmd += ["--localizations", str(localizations)]
