@@ -1172,6 +1172,21 @@ Mandarin videos; then `--primary-language` chooses the ledger entry. The
 translated deck is always validated, and the pronunciation lexicon is applied
 before narration.
 
+For a detached multi-episode run:
+
+```bash
+nohup caffeinate -dimsu bash \
+  skills/podcast-youtuber-agent/scripts/continuous_worker.sh \
+  >> build/autopilot/continuous-runner.log 2>&1 &
+```
+
+It discovers fresh investment/AI episodes, writes and renders each one with the
+default cover art, story-card backgrounds, localized visuals and playlists,
+uploads privately, then runs `enforce_private.py` to defeat YouTube's
+processing-time visibility race. It stops after five episodes, on quota
+exhaustion, or when `build/autopilot/STOP` exists. YouTube quota is the real
+cap: roughly five or six uploads per day, not an infinite stream.
+
 Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
 private by default. Review each private video before publishing. The queue
 requires the Qwen3 voice environment, the OpenCode CLI, and enough YouTube
