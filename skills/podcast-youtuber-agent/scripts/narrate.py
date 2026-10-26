@@ -202,6 +202,62 @@ def _read_wav(path: Path) -> np.ndarray:
     return data.reshape(-1, CHANNELS)
 
 
+def _trim_tail_artifact(
+    path: Path,
+    *,
+    window_seconds: float = 0.10,
+    threshold_db: float = 12.0,
+    min_tail_seconds: float = 1.0,
+    keep_seconds: float = 0.25,
+) -> float:
+    """Trim a long low-level hallucinated tail from a generated WAV.
+
+    Qwen3-TTS can finish the words and then keep emitting quiet, speech-like
+    noise for several seconds.  Ordinary silence trimming is not enough because
+    the artifact is above the silence floor.  Compare short-frame RMS with the
+    speech level: if more than ``min_tail_seconds`` remains below
+    ``threshold_db`` relative to the 95th percentile, keep only a short natural
+    pause and discard the rest.  Returns the number of seconds removed.
+    """
+    with wave.open(str(path), "rb") as handle:
+        sample_rate = handle.getframerate()
+        channels = handle.getnchannels()
+        width = handle.getsampwidth()
+        if width != 2:
+            return 0.0
+        raw = handle.readframes(handle.getnframes())
+    data = np.frombuffer(raw, dtype="<i2")
+    if channels > 1:
+        mono = data.reshape(-1, channels).astype(np.float32).mean(axis=1)
+    else:
+        mono = data.astype(np.float32)
+    mono /= 32768.0
+    window = max(1, int(window_seconds * sample_rate))
+    frames = len(mono) // window
+    if frames < 10:
+        return 0.0
+    blocks = mono[: frames * window].reshape(frames, window)
+    rms = 20.0 * np.log10(
+        np.maximum(1e-9, np.sqrt(np.mean(blocks * blocks, axis=1)))
+    )
+    threshold = float(np.percentile(rms, 95)) - threshold_db
+    active = np.flatnonzero(rms > threshold)
+    if not len(active):
+        return 0.0
+    speech_end = (int(active[-1]) + 1) * window / sample_rate
+    tail = len(mono) / sample_rate - speech_end
+    if tail < min_tail_seconds:
+        return 0.0
+    keep = min(len(mono), int((speech_end + keep_seconds) * sample_rate))
+    trimmed = data.reshape(-1, channels)[:keep] if channels > 1 else data[:keep]
+    with wave.open(str(path), "wb") as handle:
+        handle.setnchannels(channels)
+        handle.setsampwidth(2)
+        handle.setframerate(sample_rate)
+        handle.writeframes(trimmed.astype("<i2").tobytes())
+    return round(tail, 3)
+
+
 def _build_master(timeline: list[dict], out_wav: Path, out_dir: Path,
                   work_dir: Path, total: float) -> dict:
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -524,6 +580,17 @@ def build(args) -> int:
                 )
                 return 1
         extension = ".mp3"
+
+    if engine == "qwen3":
+        for shot in shots:
+            path = audio_dir / f"shot-{shot['id']}.wav"
+            if path.exists():
+                removed = _trim_tail_artifact(path)
+                if removed:
+                    print(
+                        f"trimmed {removed:.1f}s of tail artifact from {path.name}",
+                        flush=True,
+                    )
 
     timeline: list[dict] = []
     cursor = 0.0

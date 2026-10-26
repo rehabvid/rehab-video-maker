@@ -11,6 +11,7 @@ import json
 import sys
 import tempfile
 import unittest
+import wave
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -179,6 +180,43 @@ class PronunciationTests(unittest.TestCase):
         self.assertEqual(len(matches), len(set(matches)))
         for required in ("重定价", "重定", "行业", "利差", "杠杆率", "调用", "应用"):
             self.assertIn(required, matches)
+
+
+class NarrationTailTests(unittest.TestCase):
+    def _write(self, path: Path, samples: np.ndarray, sample_rate: int = 24000) -> None:
+        with wave.open(str(path), "wb") as handle:
+            handle.setnchannels(1)
+            handle.setsampwidth(2)
+            handle.setframerate(sample_rate)
+            handle.writeframes(
+                np.clip(samples * 32767.0, -32768, 32767).astype("<i2").tobytes()
+            )
+
+    def _duration(self, path: Path) -> float:
+        with wave.open(str(path), "rb") as handle:
+            return handle.getnframes() / handle.getframerate()
+
+    def test_trim_long_low_level_tail(self):
+        sample_rate = 24000
+        speech = 0.30 * np.sin(2 * np.pi * 220 * np.arange(sample_rate) / sample_rate)
+        silence = np.zeros(int(0.20 * sample_rate))
+        noise = 0.004 * np.random.default_rng(7).standard_normal(int(3.0 * sample_rate))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "tail.wav"
+            self._write(path, np.concatenate([speech, silence, noise]))
+            removed = narrate._trim_tail_artifact(path)
+            self.assertGreater(removed, 2.5)
+            self.assertLess(self._duration(path), 1.5)
+
+    def test_keep_normal_short_tail(self):
+        sample_rate = 24000
+        speech = 0.30 * np.sin(2 * np.pi * 220 * np.arange(sample_rate) / sample_rate)
+        silence = np.zeros(int(0.40 * sample_rate))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "normal.wav"
+            self._write(path, np.concatenate([speech, silence]))
+            self.assertEqual(narrate._trim_tail_artifact(path), 0.0)
+            self.assertAlmostEqual(self._duration(path), 1.4, places=2)
 
 
 class LanguageDefaultTests(unittest.TestCase):
