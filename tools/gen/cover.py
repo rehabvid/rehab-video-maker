@@ -47,6 +47,7 @@ from lib import (  # noqa: E402
     contains_cjk,
     draw_paragraph,
     find_font,
+    wrap_by_width,
 )
 
 W, H = 1280, 720
@@ -141,6 +142,31 @@ def _left_gradient(image: Image.Image, theme: str = "dark") -> Image.Image:
     return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
 
 
+def _balanced_title(text: str, font, max_width: int) -> list[str]:
+    lines = wrap_by_width(text, font, max_width)
+    if len(lines) <= 1:
+        return lines
+    last = lines[-1].strip()
+    if len(last) > 2 and not all(ch in "？?！!。,.，、" for ch in last):
+        return lines
+    flat = " ".join(text.split())
+    if len(flat) < 4:
+        return lines
+    cut = len(flat) // 2
+    spaces = [i for i, ch in enumerate(flat) if ch == " "]
+    if spaces:
+        cut = min(spaces, key=lambda i: abs(i - cut))
+    first, second = flat[:cut].strip(), flat[cut:].strip()
+    if not first or not second:
+        return lines
+    if (
+        len(wrap_by_width(first, font, max_width)) == 1
+        and len(wrap_by_width(second, font, max_width)) == 1
+    ):
+        return [first, second]
+    return lines
+
+
 def _cover_text(
     image: Image.Image,
     *,
@@ -167,9 +193,10 @@ def _cover_text(
 
     draw.rectangle([margin, 78, margin + 9, 300], fill=accent)
     draw.text((margin + 26, 72), kicker.upper(), font=kicker_font, fill=accent)
-    draw_paragraph(
-        draw, title, title_font, (margin + 26, 126), 820, text_color, 10, 3
-    )
+    title_y = 126
+    for line in _balanced_title(title, title_font, 820)[:3]:
+        draw.text((margin + 26, title_y), line, font=title_font, fill=text_color)
+        title_y += int(title_size * 1.22) + 10
     if stat:
         draw.text((margin + 26, 478), stat, font=stat_font, fill=accent2)
     if subtitle:

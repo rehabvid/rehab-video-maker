@@ -177,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-generate", action="store_true", help="require --background")
     parser.add_argument("--reference", help="optional IPAdapter style reference")
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188")
+    parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--contact-sheet", action="store_true", default=True)
     args = parser.parse_args(argv)
@@ -260,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
             "--cfg", str(cfg),
             "--seed", str(candidate_seed),
             "--comfy-url", args.comfy_url,
+            "--timeout", str(args.timeout),
         ]
         if args.background:
             cmd += ["--background", str(Path(args.background).expanduser())]
