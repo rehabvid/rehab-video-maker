@@ -97,6 +97,11 @@ Generate a cinematic photo variant instead of the default sketch:
   --out out/ep01/cover-photo.zh.png
 ```
 
+The raw `.plate.png` is the **video story background** (no baked-in text).
+The finished `.png` is the YouTube thumbnail. Do not use the finished cover
+behind a card: its title and stat would ghost through the translucent panel.
+The video pipeline uses the plate automatically when given the finished cover.
+
 Use the cover on the upload:
 
 ```bash

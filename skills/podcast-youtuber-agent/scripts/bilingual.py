@@ -317,10 +317,35 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         for shot in zh_shots:
             shot["captions"] = False
     save_json(work_zh / "timing-visuals.json", zh_timing)
-
+    timing_path = work_zh / "timing-visuals.json"
+    if args.builder == "tech" and not args.no_scene_backgrounds:
+        cover = (
+            Path(args.thumbnail_zh).expanduser()
+            if args.thumbnail_zh
+            else out_zh.parent / "cover.zh.png"
+        )
+        if cover.exists():
+            story_timing = work_zh / "timing-story.json"
+            story_code = run([
+                sys.executable, str(TECH_SCRIPTS / "story_backgrounds.py"),
+                "--slides", str(args.slides_zh),
+                "--scene-slides", str(args.slides),
+                "--timing", str(timing_path),
+                "--cover", str(cover),
+                "--out", str(story_timing),
+                "--language", "zh-Hans",
+                "--render-style", "sketch",
+                "--max-scenes", "6",
+            ])
+            if story_code == 0:
+                timing_path = story_timing
+            else:
+                log("story backgrounds failed; keeping dark cards")
+        else:
+            log(f"no cover art at {cover}; keeping dark cards")
     if run([
         sys.executable, str(ASSEMBLE),
-        "--timing", str(work_zh / "timing-visuals.json"),
+        "--timing", str(timing_path),
         "--out", str(out_zh),
         "--root", str(ROOT),
         "--preset", args.preset,

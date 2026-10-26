@@ -714,6 +714,14 @@ The assembler:
   over 0.6 s, if the export is not 1080p H.264/AAC, or if an avatar shot slips
   into a b-roll deck.
 
+Card slides use a **semi-transparent story background** by default: the cover
+plate (without baked-in text) for abstract pages, and one generated sketch
+scene for concrete pages.  Pass the cover with `--thumbnail-zh` (and any
+`--cover` to the technical builder); disable the whole pass with
+`--no-scene-backgrounds`.  Use the raw `.plate.png` for the video background and
+the finished cover only for the YouTube thumbnail.  `autopilot.py` generates a
+cover first when ComfyUI is available and passes it through automatically.
+
 Render a 1280×720 thumbnail from the title slide's title, subtitle and the
 first available still:
 

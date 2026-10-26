@@ -41,6 +41,33 @@ deterministic pixels locally; FFmpeg assembles the final video.
   `../podcast-youtuber-agent/scripts/pronunciation.py --slides <slides.zh.json>`.
   Use a per-slide `tts_text` override for names or terms not in the lexicon.
 
+## Story backgrounds (default)
+
+Card slides no longer default to a dark studio card.  When a cover plate is
+available, the renderer gives each card a **semi-transparent story background**
+in the same visual language as the cover:
+
+- abstract pages use the approved **cover plate** (the image without baked-in
+  title/stat text) as a softly visible backdrop;
+- concrete pages (price tags, refineries, data centres, bonds, France, AI
+  agents, etc.) get one generated sketch illustration for that page;
+- the text sits on a translucent panel so it stays legible;
+- the same typography, cream paper or dark panel, amber/teal accents and
+  LINKZAG.SHOW mark are used across the series.
+
+The default is **on** when a cover exists.  Disable it with
+`--no-scene-backgrounds` on `build.py`, `bilingual.py` or `autopilot.py`.
+Scene generation is capped at six per video and falls back to the cover plate
+when ComfyUI is unavailable, so a render never blocks on art generation.
+
+Use the cover plate, not the finished cover: the finished image has the title
+and stat baked in, which would ghost through the panel.  `story_backgrounds.py`
+automatically prefers `cover.zh.plate.png` when given `cover.zh.png`.
+
+The scene heuristic is deliberately conservative: it illustrates concrete
+nouns and processes, and leaves abstract argument pages on the cover backdrop.
+Do not generate fake faces, logos or text inside the art.
+
 ## Skill boundaries
 
 1. **Content layer** — `podcast-content-agent` (or the shared content scripts in

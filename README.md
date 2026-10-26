@@ -372,6 +372,14 @@ candidates for review in minutes and writes a 1280×720 YouTube-ready PNG:
 Pass the chosen file to `bilingual.py --thumbnail-zh` or
 `youtube_upload.py --thumbnail`.
 
+Card slides now default to a **semi-transparent story background**: the raw
+cover plate for abstract pages, and a generated sketch scene for concrete
+pages. This uses the same visual language as the cover and can be disabled
+with `--no-scene-backgrounds` on `tech-commentary-slideshow/build.py`,
+`podcast-youtuber-agent/bilingual.py` or `autopilot.py`. The raw
+`.plate.png` is used behind the text; the finished cover remains the YouTube
+thumbnail.
+
 ## Adding an exercise
 
 1. Copy an existing file in `exercises/`, change the values, and cite the

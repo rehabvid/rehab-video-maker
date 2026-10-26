@@ -32,6 +32,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -311,6 +312,10 @@ def main(argv: list[str] | None = None) -> int:
         "--no-playlists", action="store_true",
         help="skip automatic series-playlist assignment after upload",
     )
+    parser.add_argument(
+        "--no-scene-backgrounds", action="store_true",
+        help="keep the old dark cards; default uses cover art and story cards",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     _resolve_language(parser, args)
@@ -417,7 +422,23 @@ def main(argv: list[str] | None = None) -> int:
             if zh_validate:
                 log(f"Mandarin slides failed validation for {slug}; stopping")
                 break
-            build_code = run([
+            cover_path = out_dir / "cover.zh.png"
+            if not cover_path.exists():
+                try:
+                    urllib.request.urlopen(
+                        "http://127.0.0.1:8188/system_stats", timeout=2
+                    )
+                    cover_code = run([
+                        sys.executable, str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
+                        "--metadata", str(work / "youtube.zh.json"),
+                        "--out", str(cover_path),
+                        "--candidates", "1",
+                    ])
+                    if cover_code:
+                        log("cover generation failed; continuing without cover art")
+                except OSError:
+                    log("ComfyUI not running; skipping cover art")
+            bilingual_cmd = [
                 sys.executable, str(HERE / "bilingual.py"), "build",
                 "--slides", str(work / "slides.json"),
                 "--slides-zh", str(work / "slides.zh.json"),
@@ -434,7 +455,12 @@ def main(argv: list[str] | None = None) -> int:
                 "--preset", "veryfast",
                 "--upload",
                 "--upload-languages", "both" if args.language == "both" else "zh",
-            ])
+            ]
+            if cover_path.exists():
+                bilingual_cmd += ["--thumbnail-zh", str(cover_path)]
+            if args.no_scene_backgrounds:
+                bilingual_cmd += ["--no-scene-backgrounds"]
+            build_code = run(bilingual_cmd)
             if args.language == "both":
                 out_note = (
                     f"English {out_dir / 'final.en.mp4'}; "

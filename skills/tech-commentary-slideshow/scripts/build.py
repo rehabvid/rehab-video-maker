@@ -69,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--crf", type=int, default=20)
     parser.add_argument("--keep-scenes", action="store_true")
     parser.add_argument("--skip-visuals", action="store_true")
+    parser.add_argument("--cover", help="cover plate/finished cover for story-card backgrounds")
+    parser.add_argument("--no-scene-backgrounds", action="store_true")
     parser.add_argument("--prebuilt-manifest", help="use an existing visuals manifest instead of planning/rendering")
     parser.add_argument("--prebuilt-visuals", help="directory containing shot-XX.png/mp4 for the prebuilt manifest")
     parser.add_argument("--force-narrate", action="store_true")
@@ -188,6 +190,23 @@ def main(argv: list[str] | None = None) -> int:
             shot["visual_type"] = scene.get("type")
         timing_path = work / "timing-visuals.json"
         timing_path.write_text(json.dumps(timing, indent=2) + "\n")
+
+    if args.cover and not args.no_scene_backgrounds:
+        story_path = work / "timing-story.json"
+        story_code = _run([
+            sys.executable, str(HERE / "story_backgrounds.py"),
+            "--slides", str(slides_path),
+            "--timing", str(timing_path),
+            "--cover", str(Path(args.cover).expanduser()),
+            "--out", str(story_path),
+            "--language", str(_load(slides_path).get("language") or "en"),
+            "--render-style", "sketch",
+            "--max-scenes", "6",
+        ])
+        if story_code == 0:
+            timing_path = story_path
+        else:
+            print("warning: story backgrounds failed; keeping dark cards", file=sys.stderr)
 
     if _run([
         sys.executable,

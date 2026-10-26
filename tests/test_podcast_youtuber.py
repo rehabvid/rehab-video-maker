@@ -65,6 +65,7 @@ playlists = _load("playlists")
 plan_visuals = _load_tech("plan_visuals")
 cover_agent = _load_cover("cover")
 make_scenes = _load_tech("make_scenes")
+story_backgrounds = _load_tech("story_backgrounds")
 
 
 class SlideValidationTests(unittest.TestCase):
@@ -334,6 +335,39 @@ class CoverAgentTests(unittest.TestCase):
             cover_agent._stat({"description": "the gap is 25–35% of pre-war flow"}, {}, None),
             "25–35%",
         )
+
+
+class StoryBackgroundTests(unittest.TestCase):
+    def test_compose_card_on_cover_plate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cover = root / "cover.png"
+            Image.new("RGB", (1280, 720), (240, 234, 220)).save(cover)
+            slides = root / "slides.json"
+            slides.write_text(json.dumps({
+                "title": "Test",
+                "shots": [{
+                    "id": "01", "kind": "chart", "heading": "Price tag as a public good",
+                    "bullets": ["One", "Two"], "narration": "A price tag story.",
+                }],
+            }))
+            timing = root / "timing.json"
+            timing.write_text(json.dumps({"shots": [{
+                "id": "01", "kind": "chart", "start": 0, "duration": 5,
+                "narration": "A price tag story.", "heading": "Price tag as a public good",
+                "bullets": ["One", "Two"],
+            }]}))
+            out = root / "timing-story.json"
+            code = story_backgrounds.main([
+                "--slides", str(slides), "--timing", str(timing),
+                "--cover", str(cover), "--out", str(out),
+                "--language", "en", "--no-generate",
+            ])
+            self.assertEqual(code, 0)
+            result = json.loads(out.read_text())["shots"][0]
+            self.assertEqual(result["kind"], "broll")
+            self.assertEqual(result["visual_type"], "story_card")
+            self.assertTrue((ROOT / result["visual"]).exists())
 
 
 class LanguageDefaultTests(unittest.TestCase):
