@@ -115,6 +115,23 @@ Or set/refresh it on an existing private video with the uploader's thumbnail
 path; YouTube's Data API `thumbnails.set` is part of that flow. A successful
 set is confirmed by `contentDetails.hasCustomThumbnail: true`.
 
+## Playlist covers
+
+Playlists use **1:1 square** artwork, not the 16:9 video thumbnail. Generate one
+unique Marina Bay sketch per series (different angle/seed) and upload it with
+the Data API `playlistImages.insert` method (`type: "hero"`, 1024×1024,
+under 50 MB):
+
+```bash
+.venv/bin/python skills/podcast-cover-agent/scripts/playlist_covers.py
+```
+
+The six covers are AI Advances, AI Capex & Power, Macro & Markets, Energy &
+Commodities, Europe & Fiscal Policy, and Investor Conversations. Keep the same
+cream panel and typography as the video covers, but do not reuse a 16:9 or
+playlist background. The playlist cover should still carry one topic-specific
+foreground object; a generic skyline is not enough.
+
 ## Style pack
 
 | Topic | Kicker | Content-specific foreground |
