@@ -116,14 +116,17 @@ class SceneFactoryTests(unittest.TestCase):
         self.assertEqual(option["series"][0]["type"], "line")
         self.assertEqual(option["series"][0]["data"], [3, 7])
         self.assertEqual(option["yAxis"]["min"], 0)
-        self.assertEqual(option["yAxis"]["max"], 7)
+        self.assertGreater(option["yAxis"]["max"], 7)
+        self.assertTrue(option["series"][0]["label"]["show"])
+        self.assertEqual(option["series"][0]["label"]["formatter"], "{c}")
 
     def test_petrinet_alternates_places_and_transitions(self):
         nodes, edges = scenes._nodes_edges(
             {"points": ["ready", "process", "done"]}, "petrinet"
         )
         self.assertTrue(any(node["label"].startswith("●") for node in nodes))
-        self.assertTrue(any(node["label"].startswith("▢") for node in nodes))
+        self.assertTrue(any(node["label"] == "▢" for node in nodes))
+        self.assertFalse(any(node["label"].startswith("▢ ready") for node in nodes))
         self.assertEqual(len(edges), 4)
 
     def test_make_scene_writes_yaml_and_asset(self):
@@ -166,7 +169,11 @@ class SceneFactoryTests(unittest.TestCase):
             scene_path = module / manifest["scenes"][0]["scene"]
             scene = yaml.safe_load(scene_path.read_text())
             self.assertEqual(scene["width"], 1920)
+            self.assertEqual(scene["eyebrow"], "COMMENTARY · 01")
             self.assertTrue(any(item["type"] == "echarts" for item in scene["items"]))
+            self.assertFalse(any(item["type"] == "markdown" for item in scene["items"]))
+            chart = next(item for item in scene["items"] if item["type"] == "echarts")
+            self.assertEqual(chart["width"], 1728)
             asset = module / "content" / "assets" / "generated" / "unit-test" / "01-chart.json"
             self.assertTrue(asset.exists())
 

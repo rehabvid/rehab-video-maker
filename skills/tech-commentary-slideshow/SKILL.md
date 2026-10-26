@@ -129,6 +129,27 @@ Supported `visual.type` values:
 If a `kind: "chart"` slide has no `visual.data`, the planner deliberately
 falls back to a text card. Do not fabricate numbers to satisfy the renderer.
 
+### Chart and DAG layout rules
+
+The generated visuals favor one focal point over dashboard clutter:
+
+- Charts are full-width (1728px) and show direct value labels. The old
+  right-hand “Why it matters” bullet panel is not generated.
+- Percent units are inferred from series labels such as `Year to date (%)` and
+  applied to the data labels; set `visual.unit` when the unit is not obvious.
+- Value-axis bounds are rounded to readable tick intervals instead of exposing
+  floating-point noise.
+- Comparisons with two categories hide the redundant value axis and rely on
+  direct labels.
+- DAG and Petri-net nodes get label-aware width/height, larger type and a
+  lower `fitView` padding, so causal chains stay readable at 1080p.
+- Charts reveal the finished chart left-to-right instead of animating values;
+  value animation briefly prints long interpolated numbers on the labels.
+- Generated Petri nets use silent transition markers. Do not repeat the place
+  text on the transition; that made every idea appear twice.
+- Use `visual.source` for a real source line; otherwise the scene footer names
+  the episode and says the source is the episode audio.
+
 ## Workflow
 
 ### 1. Plan which slides deserve a visual
