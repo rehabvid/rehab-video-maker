@@ -1,0 +1,251 @@
+{
+  "brand": {
+    "name": "Link Zag",
+    "backdrop": "Singapore Marina Bay",
+    "accent": "#F2B84B",
+    "accent2": "#4FD1C5",
+    "paper": "#F4F1EA",
+    "muted": "#A6ADB8",
+    "ink": "#0E1116",
+    "note": "Marina Bay is the consistent brand backdrop. Rotate the angle; keep the left third as the text safe zone; put one content-specific object in the foreground."
+  },
+  "priority": [
+    "ai_power",
+    "energy",
+    "europe",
+    "ai_advances",
+    "macro",
+    "investor",
+    "default"
+  ],
+  "angles": [
+    {
+      "id": "waterfront",
+      "prompt": "from the waterfront promenade facing Marina Bay Sands and the CBD"
+    },
+    {
+      "id": "helix",
+      "prompt": "from the Helix Bridge looking toward Marina Bay Sands"
+    },
+    {
+      "id": "gardens",
+      "prompt": "from Gardens by the Bay with Supertree Grove in the foreground"
+    },
+    {
+      "id": "esplanade",
+      "prompt": "from the Esplanade waterfront with the ArtScience Museum"
+    },
+    {
+      "id": "aerial",
+      "prompt": "a high aerial drone view of Marina Bay and the CBD"
+    },
+    {
+      "id": "merlion",
+      "prompt": "from Merlion Park looking across the bay at Marina Bay Sands"
+    }
+  ],
+  "render_styles": {
+    "sketch": {
+      "label": "Ink and watercolour sketch",
+      "theme": "light",
+      "prefix": "architectural ink and watercolour sketch of Singapore Marina Bay skyline, fine linework, cross-hatching, muted teal and amber watercolour washes, cream paper, editorial magazine cover, one focal point, no people, no text, no logos, 16:9",
+      "negative_extra": "photograph, photorealistic, 3d render, neon, oversaturated, glossy"
+    },
+    "photo": {
+      "label": "Cinematic editorial photograph",
+      "theme": "dark",
+      "prefix": "cinematic editorial photograph of Singapore Marina Bay skyline at blue hour, dramatic side light, shallow depth of field, muted teal and amber palette, photorealistic, 35mm editorial photography, premium financial magazine cover, one focal point, no people, no text, no logos, 16:9",
+      "negative_extra": "illustration, cartoon, anime, painting, sketch, 3d render"
+    }
+  },
+  "topics": {
+    "energy": {
+      "label": "Energy & Commodities",
+      "kicker_zh": "能源与大宗商品",
+      "kicker_en": "ENERGY & COMMODITIES",
+      "keywords": [
+        "oil",
+        "crude",
+        "diesel",
+        "refin",
+        "opec",
+        "hormuz",
+        "pipeline",
+        "tanker",
+        "gas",
+        "lng",
+        "commodity",
+        "copper",
+        "gold",
+        "uranium",
+        "石油",
+        "原油",
+        "柴油",
+        "炼油",
+        "欧佩克",
+        "霍尔木兹",
+        "管道",
+        "油轮",
+        "天然气",
+        "大宗商品",
+        "铜",
+        "黄金",
+        "铀"
+      ],
+      "foreground": "a lone oil tanker and refinery storage tanks in the foreground, reflecting in the bay"
+    },
+    "europe": {
+      "label": "Europe & Fiscal Policy",
+      "kicker_zh": "欧洲与财政政策",
+      "kicker_en": "EUROPE & FISCAL POLICY",
+      "keywords": [
+        "france",
+        "french",
+        "euro",
+        "ecb",
+        "germany",
+        "europe",
+        "fiscal",
+        "debt",
+        "oat",
+        "budget",
+        "election",
+        "法国",
+        "欧元",
+        "欧洲央行",
+        "德国",
+        "欧洲",
+        "财政",
+        "债务",
+        "国债",
+        "预算",
+        "选举"
+      ],
+      "foreground": "euro banknotes and government bond certificates on a foreground ledge"
+    },
+    "ai_advances": {
+      "label": "AI Advances",
+      "kicker_zh": "人工智能前沿",
+      "kicker_en": "AI ADVANCES",
+      "keywords": [
+        "ai",
+        "artificial intelligence",
+        "model",
+        "agent",
+        "llm",
+        "startup",
+        "robotics",
+        "chip",
+        "compute",
+        "software",
+        "人工智能",
+        "模型",
+        "智能体",
+        "大模型",
+        "机器人",
+        "芯片",
+        "算力",
+        "软件",
+        "初创"
+      ],
+      "foreground": "a single illuminated AI server rack in the foreground"
+    },
+    "ai_power": {
+      "label": "AI Capex & Power",
+      "kicker_zh": "AI 资本开支与电力",
+      "kicker_en": "AI CAPEX & POWER",
+      "keywords": [
+        "ai capex",
+        "data center",
+        "data centre",
+        "electricity",
+        "power",
+        "grid",
+        "cooling",
+        "semiconductor",
+        "compute",
+        "数据中心",
+        "电力",
+        "电网",
+        "冷却",
+        "半导体",
+        "算力",
+        "资本开支"
+      ],
+      "foreground": "high-voltage transmission lines and a data-centre cooling stack in the foreground"
+    },
+    "macro": {
+      "label": "Macro & Markets",
+      "kicker_zh": "宏观与市场",
+      "kicker_en": "MACRO & MARKETS",
+      "keywords": [
+        "fed",
+        "rates",
+        "inflation",
+        "dollar",
+        "bond",
+        "equity",
+        "market",
+        "macro",
+        "recession",
+        "carry",
+        "volatility",
+        "美联储",
+        "利率",
+        "通胀",
+        "美元",
+        "债券",
+        "股票",
+        "市场",
+        "宏观",
+        "衰退",
+        "套息",
+        "波动率",
+        "收益率"
+      ],
+      "foreground": "government bond certificates and currency notes on a foreground ledge"
+    },
+    "investor": {
+      "label": "Investor Conversations",
+      "kicker_zh": "投资者对话",
+      "kicker_en": "INVESTOR CONVERSATIONS",
+      "keywords": [
+        "investor",
+        "fund",
+        "hedge",
+        "allocator",
+        "top traders",
+        "macrovoices",
+        "invest like the best",
+        "odd lots",
+        "compound",
+        "forward guidance",
+        "投资者",
+        "基金",
+        "对冲",
+        "配置",
+        "访谈",
+        "对话",
+        "投资人"
+      ],
+      "foreground": "an empty boardroom table and a studio microphone in the foreground"
+    },
+    "default": {
+      "label": "Independent Commentary",
+      "kicker_zh": "独立评论",
+      "kicker_en": "INDEPENDENT COMMENTARY",
+      "keywords": [],
+      "foreground": "a calm waterfront with one small boat in the foreground"
+    }
+  },
+  "defaults": {
+    "render_style": "sketch",
+    "candidates": 3,
+    "width": 1216,
+    "height": 704,
+    "steps": 28,
+    "cfg": 5.5,
+    "seed_base": 700,
+    "negative": "text, letters, typography, watermark, logo, signature, caption, deformed, distorted, extra fingers, bad anatomy, low quality, blurry, oversaturated, cartoon, anime, 3d render, cluttered, hud, infographic, chart, graph, people, faces"
+  }
+}

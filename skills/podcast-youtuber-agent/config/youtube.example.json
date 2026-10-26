@@ -12,5 +12,12 @@
   "privacyStatus": "private",
   "containsSyntheticMedia": true,
   "defaultLanguage": "en",
-  "defaultAudioLanguage": "en"
+  "defaultAudioLanguage": "en",
+  "cover": {
+    "topic": "ai_advances",
+    "subject": "a single illuminated AI server rack in the foreground",
+    "stat": "",
+    "render_style": "sketch",
+    "angle": "waterfront"
+  }
 }

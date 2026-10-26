@@ -53,6 +53,7 @@ bilingual = _load("bilingual")
 pronunciation = _load("pronunciation")
 narrate = _load("narrate")
 autopilot = _load("autopilot")
+playlists = _load("playlists")
 plan_visuals = _load_tech("plan_visuals")
 make_scenes = _load_tech("make_scenes")
 
@@ -266,6 +267,33 @@ class VisualLanguageTests(unittest.TestCase):
         self.assertEqual(data["eyebrow"], "评论 · 01")
         self.assertEqual(data["footer"], "评论 · 源音频")
         self.assertEqual(data["title"], "原油动了，成品油没动")
+
+
+class PlaylistClassificationTests(unittest.TestCase):
+    def test_keyword_boundaries(self):
+        self.assertFalse(playlists._hit("he said the market moved", "ai"))
+        self.assertTrue(playlists._hit("an ai model", "ai"))
+        self.assertTrue(playlists._hit("柴油和炼油", "柴油"))
+
+    def test_classify_returns_best_series(self):
+        config = {
+            "playlists": [
+                {"name": "AI Advances", "id": "ai", "keywords": ["ai", "model"]},
+                {"name": "Energy & Commodities", "id": "energy", "keywords": ["oil", "diesel"]},
+                {"name": "Europe & Fiscal Policy", "id": "europe", "keywords": ["france", "euro"]},
+            ],
+            "fallback": "AI Advances",
+        }
+        metadata = {
+            "title": "Diesel and the French bill",
+            "tags": ["oil", "france"],
+            "description": "A macro commentary on refining and the euro.",
+        }
+        result = playlists.classify(metadata, config, limit=2)
+        self.assertEqual([item["name"] for item in result[:2]], [
+            "Energy & Commodities",
+            "Europe & Fiscal Policy",
+        ])
 
 
 class LanguageDefaultTests(unittest.TestCase):

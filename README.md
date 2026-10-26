@@ -358,6 +358,20 @@ synthetic-media flag, supports resumable uploads, thumbnails, captions,
 playlists and `--publish-at` scheduling. See the skill documents for voice
 recording, Qwen3/Chatterbox setup and Google Cloud OAuth.
 
+`podcast-cover-agent` builds content-aware covers on a recurring Singapore
+Marina Bay backdrop: rotating angles, one topic-specific foreground object, and
+a consistent ink/watercolour or cinematic-photo style. It generates three
+candidates for review in minutes and writes a 1280×720 YouTube-ready PNG:
+
+```bash
+.venv/bin/python skills/podcast-cover-agent/scripts/cover.py \
+  --metadata build/ep01/youtube.zh.json \
+  --out out/ep01/cover.zh.png --candidates 3
+```
+
+Pass the chosen file to `bilingual.py --thumbnail-zh` or
+`youtube_upload.py --thumbnail`.
+
 ## Adding an exercise
 
 1. Copy an existing file in `exercises/`, change the values, and cite the

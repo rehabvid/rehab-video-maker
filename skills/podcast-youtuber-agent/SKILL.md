@@ -845,6 +845,23 @@ the title and thumbnail promise.
 Frame the title as analysis, commentary or critique. Do not title it as an
 interview or as an episode of the source show.
 
+Add an optional `cover` brief so the dedicated cover agent reflects the
+content, not just the channel look:
+
+```json
+"cover": {
+  "topic": "energy",
+  "subject": "a lone oil tanker and refinery storage tanks",
+  "stat": "25–35%",
+  "render_style": "sketch",
+  "angle": "waterfront"
+}
+```
+
+The cover agent uses Singapore Marina Bay as a recurring backdrop, rotates the
+angle, and puts one content-specific object in the foreground. See
+[`../podcast-cover-agent/SKILL.md`](../podcast-cover-agent/SKILL.md).
+
 Description example:
 
 ```text
@@ -905,10 +922,38 @@ Upload extras:
 - `--captions build/ep01/captions.srt` — uploaded as an English caption track
   (`--captions` may be repeated; use `--caption-track zh-Hans=path|中文` for
   explicit language/name pairs).
-- `--playlist PLAYLIST_ID` — adds the video to a playlist.
+- `--playlist PLAYLIST_ID` — adds the video to a playlist; repeat for multiple
+  series playlists.
 - `--publish-at 2026-11-01T18:00:00Z` — schedules publication. This forces
   `privacyStatus=private` and lets YouTube publish automatically at that time.
 - `--privacy unlisted|public` — only after you have reviewed the cut.
+
+### 6.4c Series playlists
+
+The channel uses one channel with six series playlists rather than separate
+channels: **AI Advances**, **AI Capex & Power**, **Macro & Markets**, **Energy &
+Commodities**, **Europe & Fiscal Policy**, and **Investor Conversations**. The
+IDs and keyword rules live in `state/youtube-playlists.json`.
+
+Classify before adding:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/playlists.py classify \
+  --metadata build/ep01/youtube.zh.json
+```
+
+Add to the best 1–3 matches:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/playlists.py add \
+  --video-id <youtube-id> --metadata build/ep01/youtube.zh.json
+```
+
+`autopilot.py` runs the add step after a successful upload unless
+`--no-playlists` is set. The classifier scores title, tags, description and
+chapter titles; a video can sit in a primary series and one or two topic
+playlists. Do not create a new channel for a new topic; add or adjust a
+playlist.
 
 The uploader is resumable, retries 429/5xx with bounded exponential backoff,
 and writes `youtube-upload.json` next to the video. If the thumbnail, captions

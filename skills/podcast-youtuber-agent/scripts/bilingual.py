@@ -501,7 +501,7 @@ def build(args) -> int:
     thumb_en = args.thumbnail or (args.out_dir / "thumbnail.en.png")
     if not thumb_en.exists():
         _thumbnail(args.slides, thumb_en)
-    thumb_zh = args.out_dir / "thumbnail.zh.png"
+    thumb_zh = Path(args.thumbnail_zh).expanduser() if args.thumbnail_zh else args.out_dir / "thumbnail.zh.png"
     if not thumb_zh.exists():
         _thumbnail(args.slides_zh, thumb_zh)
 
@@ -590,6 +590,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--crf", type=int, default=20)
     p.add_argument("--max-seconds", type=float, default=895.0)
     p.add_argument("--thumbnail")
+    p.add_argument(
+        "--thumbnail-zh",
+        help="pre-rendered Mandarin cover/thumbnail; skips thumbnail.py for zh",
+    )
     p.add_argument("--build-en", action="store_true", default=True)
     p.add_argument("--no-build-en", dest="build_en", action="store_false")
     p.add_argument("--upload", action="store_true")

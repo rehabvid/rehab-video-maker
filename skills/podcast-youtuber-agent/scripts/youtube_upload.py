@@ -536,20 +536,23 @@ def _add_extras(youtube, args, video_id: str, HttpError, MediaFileUpload) -> tup
             print(f"captions: {captions} ({language})")
         except Exception as exc:  # noqa: BLE001 - keep the upload
             warnings.append(f"captions failed for {language}: {exc}")
-    if args.playlist:
+    playlists = args.playlist or []
+    if isinstance(playlists, str):
+        playlists = [playlists]
+    for playlist in playlists:
         try:
             youtube.playlistItems().insert(
                 part="snippet",
                 body={
                     "snippet": {
-                        "playlistId": args.playlist,
+                        "playlistId": playlist,
                         "resourceId": {"kind": "youtube#video", "videoId": video_id},
                     }
                 },
             ).execute()
-            print(f"playlist: {args.playlist}")
+            print(f"playlist: {playlist}")
         except Exception as exc:  # noqa: BLE001 - keep the upload
-            warnings.append(f"playlist failed: {exc}")
+            warnings.append(f"playlist {playlist} failed: {exc}")
     return warnings, caption_tracks
 
 
@@ -579,7 +582,10 @@ def main(argv: list[str] | None = None) -> int:
         help="additional caption track as LANG=PATH or LANG=PATH|NAME; may repeat",
     )
     parser.add_argument("--localizations", help="JSON map of language -> title/description")
-    parser.add_argument("--playlist", help="playlist id")
+    parser.add_argument(
+        "--playlist", action="append", default=[],
+        help="playlist id; may repeat for multiple series playlists",
+    )
     parser.add_argument("--made-for-kids", action="store_true")
     parser.add_argument(
         "--no-synthetic-media",

@@ -251,7 +251,11 @@ Produce:
    independent commentary, not an episode of the source podcast, and that the
    creator was not a participant. Put verified external sources in a Sources
    block; keep unverified claims attributed to the episode. Chapters may be
-   approximate at this stage.
+   approximate at this stage. Add a `"cover"` object with the most specific
+   topic (`energy`, `europe`, `ai_advances`, `ai_power`, `macro`, `investor`),
+   one content-specific `subject` for the foreground, the single strongest
+   `stat` if one exists, and an `angle` from the Marina Bay pack. The cover
+   generator will otherwise infer these from the title and tags.
 5. Run `uv run python skills/podcast-content-agent/scripts/slides.py validate
    {work / 'slides.json'} --root . --wpm 150` and fix all errors and warnings.
 
@@ -303,6 +307,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--asr-model", default="mlx-community/whisper-large-v3-turbo-asr-fp16")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
+    parser.add_argument(
+        "--no-playlists", action="store_true",
+        help="skip automatic series-playlist assignment after upload",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     _resolve_language(parser, args)
@@ -467,6 +475,25 @@ def main(argv: list[str] | None = None) -> int:
                 video_id = receipt.get("video_id") or ""
             except Exception:
                 pass
+        playlist_config = ROOT / "state" / "youtube-playlists.json"
+        if (
+            video_id
+            and playlist_config.exists()
+            and not args.no_playlists
+        ):
+            playlist_meta = work / (
+                "youtube.zh.json"
+                if args.primary_language == "zh-Hans"
+                else "youtube.json"
+            )
+            playlist_code = run([
+                sys.executable, str(HERE / "playlists.py"), "add",
+                "--video-id", video_id,
+                "--metadata", str(playlist_meta),
+                "--config", str(playlist_config),
+            ])
+            if playlist_code:
+                log("playlist assignment failed; the upload is kept")
         mark = [
             sys.executable, str(CONTENT_SCRIPTS / "fetch_popular.py"), "mark",
             "--id", source_id, "--title", title,
