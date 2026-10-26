@@ -125,7 +125,7 @@ skills/podcast-youtuber-agent/
     pronunciation.py         # TTS-only heteronym overrides for finance/tech
     thumbnail.py             # 1280x720 title-card thumbnail from the slide list
     translate.py             # EN -> zh-Hans deck + YouTube metadata via OpenCode
-    bilingual.py             # shared visuals + English/Mandarin narration + upload
+    bilingual.py             # shared visuals + Mandarin primary + optional English upload
     build.py                 # validate -> narrate -> assemble -> optional upload
     youtube_upload.py        # OAuth 2.0 + resumable upload, captions, localizations
     autopilot.py             # queue: select -> editor -> Qwen3 video -> private upload
