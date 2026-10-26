@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import socket
 import sys
 import time
@@ -234,8 +235,9 @@ def _load_metadata(args) -> dict:
         data["tags"] = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
     if args.category_id:
         data["categoryId"] = str(args.category_id)
-    if args.localizations:
-        loc_path = Path(args.localizations).expanduser()
+    localizations_path = getattr(args, "localizations", None)
+    if localizations_path:
+        loc_path = Path(localizations_path).expanduser()
         try:
             localizations = json.loads(loc_path.read_text())
         except (OSError, json.JSONDecodeError) as exc:
@@ -265,6 +267,7 @@ def _load_metadata(args) -> dict:
     data.setdefault("defaultLanguage", "en")
     data.setdefault("defaultAudioLanguage", "en")
 
+    data["description"] = _with_chapters(str(data["description"]), data.get("chapters"))
     title = str(data["title"]).strip()
     description = str(data["description"])
     tags = data.get("tags") or []
@@ -289,6 +292,28 @@ def _load_metadata(args) -> dict:
         data["publishAt"] = when
         data["privacyStatus"] = "private"
     return data
+
+
+CHAPTER_LINE = re.compile(r"(?m)^\s*\d{1,2}:\d{2}(?::\d{2})?\s+\S")
+
+
+def _with_chapters(description: str, chapters: object) -> str:
+    """Append metadata chapters when the description has no timestamp lines."""
+    if not isinstance(chapters, list) or not chapters:
+        return description
+    if CHAPTER_LINE.search(description):
+        return description
+    lines = ["", "Chapters"]
+    for chapter in chapters:
+        if not isinstance(chapter, dict):
+            continue
+        start = str(chapter.get("start") or "").strip()
+        title = str(chapter.get("title") or "").strip()
+        if start and title:
+            lines.append(f"{start} {title}")
+    if len(lines) <= 2:
+        return description
+    return description.rstrip() + "\n" + "\n".join(lines) + "\n"
 
 
 def _parse_publish_at(value: str) -> str:

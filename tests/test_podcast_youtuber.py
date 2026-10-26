@@ -6,6 +6,7 @@ Run with: uv run python -m unittest discover -s tests -v
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -35,6 +36,7 @@ voice_sample = _load("voice_sample")
 youtube_upload = _load("youtube_upload")
 fetch_popular = _load("fetch_popular")
 trending = _load("trending")
+bilingual = _load("bilingual")
 
 
 class SlideValidationTests(unittest.TestCase):
@@ -153,6 +155,21 @@ class YouTubeMetadataTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             youtube_upload._load_metadata(self._args(description="  "))
 
+    def test_metadata_chapters_are_appended_to_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            metadata = Path(tmp) / "youtube.json"
+            metadata.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "Intro"},
+                    {"start": "1:00", "title": "Main idea"},
+                ]
+            }))
+            data = youtube_upload._load_metadata(
+                self._args(metadata=str(metadata), description="A description.")
+            )
+        self.assertIn("0:00 Intro", data["description"])
+        self.assertIn("1:00 Main idea", data["description"])
+
 
 class TrendingHelpersTests(unittest.TestCase):
     def test_parse_iso_duration(self):
@@ -180,6 +197,37 @@ class TrendingHelpersTests(unittest.TestCase):
         merged = trending._merge_duplicates([a, b])
         self.assertEqual(len(merged), 1)
         self.assertEqual(set(merged[0]["source_ids"]), {"a", "b"})
+
+
+class BilingualChapterTests(unittest.TestCase):
+    def test_chapters_follow_mandarin_shot_clock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            en_meta = root / "youtube.json"
+            zh_meta = root / "youtube.zh.json"
+            en_meta.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "Who is who"},
+                    {"start": "2:00", "title": "The AI arms race"},
+                ]
+            }))
+            zh_meta.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "人物介绍"},
+                    {"start": "2:00", "title": "AI军备竞赛"},
+                ]
+            }))
+            en_timing = {"shots": [
+                {"id": "01", "start": 0, "heading": None},
+                {"id": "02", "start": 120, "heading": "The AI arms race"},
+            ]}
+            zh_timing = {"shots": [
+                {"id": "01", "start": 0},
+                {"id": "02", "start": 90},
+            ]}
+            bilingual._retime_chapters(en_meta, zh_meta, en_timing, zh_timing)
+            chapters = json.loads(zh_meta.read_text())["chapters"]
+            self.assertEqual([c["start"] for c in chapters], ["0:00", "1:30"])
 
 
 class UsedEpisodeLedgerTests(unittest.TestCase):

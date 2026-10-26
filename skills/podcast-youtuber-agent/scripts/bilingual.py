@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -109,6 +110,82 @@ def _fit_clip(src: Path, dst: Path, seconds: float) -> Path:
     return dst
 
 
+CHAPTER_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how",
+    "in", "is", "it", "of", "on", "or", "the", "to", "what", "when", "where",
+    "who", "why", "with",
+}
+
+
+def _chapter_seconds(stamp: str) -> float:
+    parts = [int(part) for part in str(stamp).split(":")]
+    while parts and len(parts) < 3:
+        parts.insert(0, 0)
+    hours, minutes, seconds = parts[-3:]
+    return float(hours * 3600 + minutes * 60 + seconds)
+
+
+def _chapter_stamp(seconds: float) -> str:
+    total = max(0, int(round(seconds)))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes}:{secs:02d}"
+
+
+def _chapter_tokens(text: str) -> set[str]:
+    return {
+        token for token in re.findall(r"[a-z0-9]+", str(text).lower())
+        if token not in CHAPTER_STOPWORDS
+    }
+
+
+def _retime_chapters(
+    metadata_en: Path, metadata_zh: Path, en_timing: dict, zh_timing: dict
+) -> None:
+    """Map translated chapter titles back to the Chinese shot clock.
+
+    The Mandarin narration is usually shorter than English. Keeping the
+    English timestamps would leave late chapters beyond the end of the video,
+    so match each English chapter to the best English shot heading, then use
+    that same shot's Mandarin start time.
+    """
+    en_meta = load_json(metadata_en)
+    zh_meta = load_json(metadata_zh)
+    en_shots = en_timing.get("shots", [])
+    zh_by_id = {str(shot.get("id")): shot for shot in zh_timing.get("shots", [])}
+    chapters = zh_meta.get("chapters")
+    en_chapters = en_meta.get("chapters") or []
+    if not isinstance(chapters, list) or len(chapters) != len(en_chapters):
+        return
+
+    previous = -10.0
+    for chapter, en_chapter in zip(chapters, en_chapters):
+        title = str(en_chapter.get("title") or "")
+        en_start = _chapter_seconds(str(en_chapter.get("start") or "0:00"))
+        query = _chapter_tokens(title)
+        best = None
+        best_key = None
+        for shot in en_shots:
+            heading = str(shot.get("heading") or "")
+            overlap = len(query & _chapter_tokens(heading)) if query else 0
+            distance = abs(float(shot.get("start") or 0) - en_start)
+            key = (overlap, -distance)
+            if best_key is None or key > best_key:
+                best = shot
+                best_key = key
+        if best is None:
+            continue
+        zh = zh_by_id.get(str(best.get("id")))
+        if not zh:
+            continue
+        start = float(zh.get("start") or 0)
+        if start < previous + 10:
+            start = previous + 10
+        chapter["start"] = _chapter_stamp(start)
+        previous = start
+    save_json(metadata_zh, zh_meta)
+
+
 def _make_chinese_assets(args, out_zh: Path) -> int:
     work_zh = args.work_zh
     work_zh.mkdir(parents=True, exist_ok=True)
@@ -124,7 +201,13 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         "--speed", str(args.speed_zh),
         "--seed", str(args.seed),
     ]
-    if run(narrate):
+    if (
+        args.reuse_zh_narration
+        and (work_zh / "timing.json").exists()
+        and (work_zh / "master.wav").exists()
+    ):
+        log(f"reusing Mandarin narration in {work_zh}")
+    elif run(narrate):
         return 1
 
     en_timing_path = args.work / "timing-visuals.json"
@@ -143,8 +226,13 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         for key in ("visual", "visual_type", "kind"):
             if key in en:
                 shot[key] = en[key]
+    if args.metadata and args.metadata_zh:
+        _retime_chapters(args.metadata, args.metadata_zh, en_timing, zh_timing)
     zh_timing["language"] = "zh-Hans"
     zh_timing["title"] = args.slides_zh_title or zh_timing.get("title")
+    if args.no_burn_captions:
+        for shot in zh_shots:
+            shot["captions"] = False
     save_json(work_zh / "timing-visuals.json", zh_timing)
 
     if run([
@@ -331,21 +419,28 @@ def build(args) -> int:
     (args.out_dir / "bilingual.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 
     if args.upload:
-        if not args.metadata or not args.metadata_zh:
-            print("error: --upload requires --metadata and --metadata-zh", file=sys.stderr)
+        upload_en = args.upload_languages in {"both", "en"}
+        upload_zh = args.upload_languages in {"both", "zh"}
+        if upload_en and not args.metadata:
+            print("error: --upload requires --metadata for the English upload", file=sys.stderr)
             return 1
-        en_captions = [
-            ("en", args.work / "captions.srt", "English"),
-            ("zh-Hans", args.work_zh / "captions-for-english.srt", "中文（普通话）"),
-        ]
-        zh_captions = [
-            ("zh-Hans", args.work_zh / "captions.srt", "中文（普通话）"),
-            ("en", args.work_zh / "captions-en-for-zh.srt", "English"),
-        ]
-        if _upload(args, args.out_en, args.metadata, thumb_en, en_captions, args.out_dir / "youtube-en.json"):
+        if upload_zh and not args.metadata_zh:
+            print("error: --upload requires --metadata-zh for the Mandarin upload", file=sys.stderr)
             return 1
-        if _upload(args, args.out_zh, args.metadata_zh, thumb_zh, zh_captions, args.out_dir / "youtube-zh.json"):
-            return 1
+        if upload_en:
+            en_captions = [
+                ("en", args.work / "captions.srt", "English"),
+                ("zh-Hans", args.work_zh / "captions-for-english.srt", "中文（普通话）"),
+            ]
+            if _upload(args, args.out_en, args.metadata, thumb_en, en_captions, args.out_dir / "youtube-en.json"):
+                return 1
+        if upload_zh:
+            zh_captions = [
+                ("zh-Hans", args.work_zh / "captions.srt", "中文（普通话）"),
+                ("en", args.work_zh / "captions-en-for-zh.srt", "English"),
+            ]
+            if _upload(args, args.out_zh, args.metadata_zh, thumb_zh, zh_captions, args.out_dir / "youtube-zh.json"):
+                return 1
     log(f"English: {args.out_en}")
     log(f"Mandarin: {args.out_zh}")
     log(f"Manifest: {args.out_dir / 'bilingual.json'}")
@@ -372,6 +467,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ref-text-file", default=str(ROOT / "skills" / "podcast-youtuber-agent" / "config" / "sample-passage.txt"))
     p.add_argument("--device", default="mps", choices=["mps", "cpu"])
     p.add_argument("--speed-zh", type=float, default=1.0)
+    p.add_argument(
+        "--reuse-zh-narration", action="store_true",
+        help="reuse work-zh/timing.json and master.wav instead of synthesising again",
+    )
     p.add_argument("--seed", type=int, default=43)
     p.add_argument("--preset", default="veryfast")
     p.add_argument("--crf", type=int, default=20)
@@ -380,6 +479,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--build-en", action="store_true", default=True)
     p.add_argument("--no-build-en", dest="build_en", action="store_false")
     p.add_argument("--upload", action="store_true")
+    p.add_argument(
+        "--upload-languages", choices=["both", "en", "zh"], default="both",
+        help="with --upload: upload both videos, only English, or only Mandarin",
+    )
+    p.add_argument(
+        "--no-burn-captions", action="store_true",
+        help="keep burned captions out of the Mandarin master; upload SRT tracks only",
+    )
     p.add_argument("--slides-zh-title")
     p.set_defaults(func=build)
 

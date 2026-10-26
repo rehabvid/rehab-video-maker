@@ -840,10 +840,24 @@ build/ep01/zh/captions-en-for-zh.srt           # English, Mandarin timings
 build/ep01/zh/dub/dub.zh.m4a                   # exact English video length
 ```
 
-Both videos are uploaded privately when `--upload` is present. The English
-upload gets English and Mandarin caption tracks plus a `zh-Hans` localized
-title/description; the Mandarin upload gets Mandarin and English caption
-tracks. `--localizations` on `youtube_upload.py` accepts a JSON map:
+Both videos are uploaded privately when `--upload` is present. Use
+`--upload-languages zh` (or `en`) to upload only one language; the default is
+`both`. The English upload gets English and Mandarin caption tracks plus a
+`zh-Hans` localized title/description; the Mandarin upload gets Mandarin and
+English caption tracks.
+
+The Mandarin master normally keeps burned-in captions off with
+`--no-burn-captions`; the SRT tracks are still uploaded, so viewers select
+captions in YouTube instead of seeing duplicate text in every frame.
+`--reuse-zh-narration` reuses `work-zh/timing.json` and `master.wav`, which is
+useful when only visuals changed. Chapter timestamps are retimed from the
+English shot clock to the Mandarin shot clock before upload, so late chapters
+stay inside the shorter Chinese video.
+
+`youtube_upload.py` appends a metadata `chapters` list to the description when
+the description does not already contain timestamp lines. This makes YouTube
+recognise the chapters without a separate Studio step.
+`--localizations` on `youtube_upload.py` accepts a JSON map:
 
 ```json
 {"zh-Hans": {"title": "中文标题", "description": "中文描述"}}
