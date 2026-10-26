@@ -175,7 +175,7 @@ Supported `visual.type` values:
 
 - `chart` — ECharts; requires `data`.
 - `dag` — XYFlow directed acyclic graph; requires or derives nodes/edges.
-- `petrinet` — XYFlow places/transitions; uses `●` places and `▢` transitions.
+- `petrinet` — XYFlow places/transitions; places are circles with token dots and transitions are silent bars.
 - `diagram` — Mermaid flowchart.
 - `svg` — generated timeline/stack SVG.
 - `markdown` — a technical text slide.
@@ -201,8 +201,9 @@ The generated visuals favor one focal point over dashboard clutter:
   lower `fitView` padding, so causal chains stay readable at 1080p.
 - Charts reveal the finished chart left-to-right instead of animating values;
   value animation briefly prints long interpolated numbers on the labels.
-- Generated Petri nets use silent transition markers. Do not repeat the place
-  text on the transition; that made every idea appear twice.
+- Generated Petri nets draw places as circles with a token dot, transitions as
+  silent bars. Do not repeat the place text on the transition; that made every
+  idea appear twice.
 - Use `visual.source` for a real source line; otherwise the scene footer names
   the episode and says the source is the episode audio.
 - Put the source and date on every chart or diagram. If a source reports a
@@ -314,7 +315,7 @@ uv run python skills/tech-commentary-slideshow/scripts/build.py \
 | --- | --- | --- |
 | chart | `echarts` | value animation or left-to-right reveal |
 | dag | `xyflow` | nodes fade/scale, edges draw progressively |
-| petrinet | `xyflow` | places/transitions appear in sequence |
+| petrinet | `xyflow` | circle places, bar transitions, token dots |
 | diagram | `mermaid` | deterministic draw reveal |
 | svg | `image` + generated SVG | static |
 | markdown | `markdown` | fade-up |

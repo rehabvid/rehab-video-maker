@@ -227,18 +227,24 @@ def _nodes_edges(spec: dict, kind: str) -> tuple[list[dict], list[dict]]:
     if kind == "petrinet":
         for index, point in enumerate(points):
             place = f"p{index}"
-            nodes.append(_sized_node({"id": place, "label": f"● {_clip(point, 42)}", "kind": "input" if index == 0 else "default"}))
+            # Petri-net places are circles holding tokens; the token marks the
+            # current state.  Transitions are the silent bars between places.
+            nodes.append(_sized_node({
+                "id": place,
+                "label": _clip(point, 42),
+                "kind": "place",
+                "token": True,
+                "width": 220,
+                "height": 220,
+            }))
             if index < len(points) - 1:
                 transition = f"t{index}"
-                # A generated Petri net has no separate transition wording.
-                # Reusing the place text made every idea appear twice; keep the
-                # transition as a small silent marker instead.
                 nodes.append({
                     "id": transition,
-                    "label": "▢",
-                    "kind": "accent",
+                    "label": "",
+                    "kind": "transition",
                     "width": 64,
-                    "height": 64,
+                    "height": 12,
                 })
                 edges.extend([
                     {"id": f"e{index}a", "source": place, "target": transition},

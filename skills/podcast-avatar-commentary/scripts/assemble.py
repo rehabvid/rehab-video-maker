@@ -131,6 +131,11 @@ def _segments(shot: dict, timing: dict, root: Path, build: Path) -> tuple[Path, 
 
 
 def _overlay(shot: dict, build: Path) -> Path | None:
+    # Story cards already carry their title.  A second lower-third pill both
+    # duplicates the title and can show missing when the card language differs
+    # from the font's Latin default.
+    if shot.get("visual_type") == "story_card":
+        return None
     text = (shot.get("on_screen") or "").strip()
     if not text or len(text) > 70:
         return None

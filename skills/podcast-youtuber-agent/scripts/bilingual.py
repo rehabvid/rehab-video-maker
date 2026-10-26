@@ -237,6 +237,7 @@ def _render_zh_visuals(args, work_zh: Path, zh_timing: dict, background: Path | 
         "--manifest", str(scenes_path),
         "--visuals", str(visuals_dir),
         "--module", str(LINKZAG_MODULE),
+        "--keep-scenes",
     ]):
         return 1
 
@@ -346,6 +347,17 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
                 timing_path = story_timing
             else:
                 log("story backgrounds failed; keeping dark cards")
+            qa_path = work_zh / "background-qa.json"
+            qa_code = run([
+                sys.executable, str(TECH_SCRIPTS / "qa_backgrounds.py"),
+                "--timing", str(timing_path),
+                "--scenes", str(work_zh / "scenes.json"),
+                "--cover", str(cover_plate),
+                "--out", str(qa_path),
+            ])
+            if qa_code:
+                log("background QA failed; see background-qa.json")
+                return 1
         else:
             log(f"no cover art at {cover}; keeping dark cards")
     if run([

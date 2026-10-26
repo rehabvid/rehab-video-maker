@@ -393,7 +393,7 @@ def render_lower_third(path: Path, text: str) -> Path:
     """Transparent 2560x1440 overlay with a short lower-third label."""
     img = Image.new("RGBA", (MASTER_W, MASTER_H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    font = find_font(40, bold=True)
+    font = find_font(40, bold=True, text=text)
     pad_x, pad_y = 34, 18
     text_w = int(font.getlength(text))
     x, y = 120, MASTER_H - 190
