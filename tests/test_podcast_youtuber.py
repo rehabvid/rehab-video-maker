@@ -123,7 +123,7 @@ class VoiceSampleTests(unittest.TestCase):
 class PronunciationTests(unittest.TestCase):
     def test_finance_and_tech_heteronyms_get_tts_overrides(self):
         text = (
-            "央行行长在行业会议上说，重定价和重启是两回事。"
+            "央行行长在行业会议上说，重定价、重定面值和重启是几回事。"
             "利差倒挂，杠杆率上升，看空情绪和跳空风险都在增加。"
             "调用模型时，应用层要处理供给链和下载量。"
         )
@@ -131,6 +131,7 @@ class PronunciationTests(unittest.TestCase):
         self.assertIn("央航航掌", tts_text)
         self.assertIn("航业", tts_text)
         self.assertIn("崇定价", tts_text)
+        self.assertIn("崇定面值", tts_text)
         self.assertIn("崇启", tts_text)
         self.assertIn("利叉", tts_text)
         self.assertIn("到挂", tts_text)
@@ -176,7 +177,7 @@ class PronunciationTests(unittest.TestCase):
         terms = pronunciation.load_terms()
         matches = [term["match"] for term in terms]
         self.assertEqual(len(matches), len(set(matches)))
-        for required in ("重定价", "行业", "利差", "杠杆率", "调用", "应用"):
+        for required in ("重定价", "重定", "行业", "利差", "杠杆率", "调用", "应用"):
             self.assertIn(required, matches)
 
 
