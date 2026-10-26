@@ -637,6 +637,10 @@ def main(argv: list[str] | None = None) -> int:
         "--no-burn-captions", action="store_true",
         help="keep burned captions out of the Mandarin master; upload SRT tracks only",
     )
+    p.add_argument(
+        "--no-scene-backgrounds", action="store_true",
+        help="keep the old dark card backgrounds; default uses cover art and story cards",
+    )
     p.add_argument("--slides-zh-title")
     p.set_defaults(func=build)
 
