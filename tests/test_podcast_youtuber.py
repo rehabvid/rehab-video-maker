@@ -555,6 +555,29 @@ class BilingualChapterTests(unittest.TestCase):
             chapters = json.loads(zh_meta.read_text())["chapters"]
             self.assertEqual([c["start"] for c in chapters], ["0:00", "1:30"])
 
+    def test_nearest_shot_wins_over_a_later_token_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            en_meta = root / "youtube.json"
+            zh_meta = root / "youtube.zh.json"
+            en_meta.write_text(json.dumps({
+                "chapters": [{"start": "0:00", "title": "Who Pays the Agent?"}]
+            }))
+            zh_meta.write_text(json.dumps({
+                "chapters": [{"start": "0:00", "title": "谁在为智能体买单？"}]
+            }, ensure_ascii=False))
+            en_timing = {"shots": [
+                {"id": "01", "start": 0, "heading": None},
+                {"id": "02", "start": 200, "heading": "The Agent Read Your Inbox"},
+            ]}
+            zh_timing = {"shots": [
+                {"id": "01", "start": 0},
+                {"id": "02", "start": 150},
+            ]}
+            bilingual._retime_chapters(en_meta, zh_meta, en_timing, zh_timing)
+            chapters = json.loads(zh_meta.read_text())["chapters"]
+        self.assertEqual(chapters[0]["start"], "0:00")
+
     def test_english_localization_uses_mandarin_chapter_clock(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

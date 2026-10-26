@@ -181,7 +181,11 @@ def _retime_chapters(
             heading = str(shot.get("heading") or "")
             overlap = len(query & _chapter_tokens(heading)) if query else 0
             distance = abs(float(shot.get("start") or 0) - en_start)
-            key = (overlap, -distance)
+            # Chapter timestamps are approximate anchors. The nearest shot is
+            # the reliable match; title overlap only breaks near-ties. A token
+            # match on a later shot (for example "agent") used to pull the
+            # first chapter several minutes into the video.
+            key = (-distance, overlap)
             if best_key is None or key > best_key:
                 best = shot
                 best_key = key
