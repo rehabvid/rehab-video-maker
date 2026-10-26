@@ -295,7 +295,35 @@ def _load_metadata(args) -> dict:
 
 
 CHAPTER_LINE = re.compile(r"(?m)^\s*\d{1,2}:\d{2}(?::\d{2})?\s+\S")
-CHAPTERS_HEADER = re.compile(r"(?im)^\s*Chapters\s*$")
+CHAPTERS_HEADER = re.compile(
+    r"(?im)^\s*(?:chapters?|chapter list|timestamps?|timeline|"
+    r"章节|章節|章节导航|章節導航|章节列表|章節列表|"
+    r"时间轴|時間軸|时间线|時間線|时间戳|時間戳|内容导航|內容導航)\s*[:：]?\s*$"
+)
+CJK_TEXT = re.compile(r"[\u3400-\u9fff]")
+
+
+def _chapter_block(chapters: object) -> list[str]:
+    block = []
+    if not isinstance(chapters, list):
+        return block
+    for chapter in chapters:
+        if not isinstance(chapter, dict):
+            continue
+        start = str(chapter.get("start") or "").strip()
+        title = str(chapter.get("title") or "").strip()
+        if start and title:
+            block.append(f"{start} {title}")
+    return block
+
+
+def _replace_block(lines: list[str], start: int, end: int, header: str,
+                   chapters: list[str]) -> str:
+    before = "\n".join(lines[:start]).rstrip()
+    after = "\n".join(lines[end:]).strip()
+    block = "\n".join([header, *chapters])
+    parts = [part for part in (before, block, after) if part]
+    return "\n\n".join(parts) + "\n"
 
 
 def _with_chapters(description: str, chapters: object) -> str:
@@ -305,17 +333,8 @@ def _with_chapters(description: str, chapters: object) -> str:
     source of truth so a rebuilt description cannot silently keep stale
     timestamps.  If no chapter block exists, append one.
     """
-    if not isinstance(chapters, list) or not chapters:
-        return description
-    block = ["Chapters"]
-    for chapter in chapters:
-        if not isinstance(chapter, dict):
-            continue
-        start = str(chapter.get("start") or "").strip()
-        title = str(chapter.get("title") or "").strip()
-        if start and title:
-            block.append(f"{start} {title}")
-    if len(block) <= 1:
+    chapter_lines = _chapter_block(chapters)
+    if not chapter_lines:
         return description
 
     text = description.rstrip()
@@ -337,14 +356,28 @@ def _with_chapters(description: str, chapters: object) -> str:
             else:
                 break
         if saw_timestamp or end == len(lines):
-            before = "\n".join(lines[:header]).rstrip()
-            after = "\n".join(lines[end:]).strip()
-            parts = [part for part in (before, "\n".join(block), after) if part]
-            return "\n\n".join(parts) + "\n"
+            return _replace_block(lines, header, end, lines[header].strip(), chapter_lines)
+
+    # Some translated descriptions drop the header.  Replace the first
+    # contiguous run of at least two timestamp lines rather than appending a
+    # second chapter block and leaving the stale one in place.
+    index = 0
+    while index < len(lines):
+        if not CHAPTER_LINE.match(lines[index]):
+            index += 1
+            continue
+        end = index
+        while end < len(lines) and CHAPTER_LINE.match(lines[end]):
+            end += 1
+        if end - index >= 2:
+            header_text = "章节" if CJK_TEXT.search(text) else "Chapters"
+            return _replace_block(lines, index, end, header_text, chapter_lines)
+        index = end
 
     if CHAPTER_LINE.search(text):
         return text + "\n"
-    return text + "\n\n" + "\n".join(block) + "\n"
+    header_text = "章节" if CJK_TEXT.search(text) else "Chapters"
+    return text + "\n\n" + "\n".join([header_text, *chapter_lines]) + "\n"
 
 
 def _parse_publish_at(value: str) -> str:

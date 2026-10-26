@@ -297,6 +297,49 @@ class YouTubeMetadataTests(unittest.TestCase):
         self.assertNotIn("1:00 Old middle", data["description"])
         self.assertTrue(data["description"].endswith("#tag\n"))
 
+    def test_metadata_chapters_replace_mandarin_description_chapters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            metadata = Path(tmp) / "youtube.zh.json"
+            metadata.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "新介绍"},
+                    {"start": "2:00", "title": "新主体"},
+                ]
+            }, ensure_ascii=False))
+            data = youtube_upload._load_metadata(
+                self._args(
+                    metadata=str(metadata),
+                    description=(
+                        "说明。\n\n章节：\n"
+                        "0:00 旧介绍\n1:00 旧中间\n\nAI 语音披露"
+                    ),
+                )
+            )
+        self.assertIn("章节：\n0:00 新介绍\n2:00 新主体", data["description"])
+        self.assertNotIn("0:00 旧介绍", data["description"])
+        self.assertNotIn("1:00 旧中间", data["description"])
+        self.assertTrue(data["description"].endswith("AI 语音披露\n"))
+
+    def test_metadata_chapters_replace_headerless_timestamp_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            metadata = Path(tmp) / "youtube.zh.json"
+            metadata.write_text(json.dumps({
+                "chapters": [
+                    {"start": "0:00", "title": "新介绍"},
+                    {"start": "2:00", "title": "新主体"},
+                ]
+            }, ensure_ascii=False))
+            data = youtube_upload._load_metadata(
+                self._args(
+                    metadata=str(metadata),
+                    description="说明。\n\n0:00 旧介绍\n1:00 旧中间\n\n尾注",
+                )
+            )
+        self.assertIn("章节\n0:00 新介绍\n2:00 新主体", data["description"])
+        self.assertNotIn("0:00 旧介绍", data["description"])
+        self.assertNotIn("1:00 旧中间", data["description"])
+        self.assertTrue(data["description"].endswith("尾注\n"))
+
 
 class TrendingHelpersTests(unittest.TestCase):
     def test_parse_iso_duration(self):
