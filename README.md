@@ -266,10 +266,11 @@ uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
   --privacy private
 ```
 
-Mandarin is the default published narration. The English deck supplies the
-shared visual/timing track; it is translated first and is not uploaded unless
-the user explicitly asks for an English narration. English audiences can use
-YouTube auto-dub on the Mandarin primary audio.
+Mandarin is the default published narration. The English deck is the
+source/reference plan; it is translated first and is not uploaded unless the
+user explicitly asks for an English narration. The Mandarin master renders its
+own Chinese chart/DAG labels instead of reusing the English visual track.
+English audiences can use YouTube auto-dub on the Mandarin primary audio.
 
 ```bash
 uv run python skills/podcast-youtuber-agent/scripts/translate.py \

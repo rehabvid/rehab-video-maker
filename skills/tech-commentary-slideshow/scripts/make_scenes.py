@@ -286,7 +286,13 @@ def _markdown(spec: dict) -> str:
     return "\n".join(lines)
 
 
-def _scene(slug: str, shot: dict, module: Path, episode: str = "COMMENTARY") -> dict:
+def _scene(
+    slug: str,
+    shot: dict,
+    module: Path,
+    episode: str = "COMMENTARY",
+    language: str = "en",
+) -> dict:
     visual = shot["visual"]
     kind = visual["type"]
     spec = visual.get("spec") or {}
@@ -416,7 +422,8 @@ def _scene(slug: str, shot: dict, module: Path, episode: str = "COMMENTARY") -> 
         "eyebrow": f"{episode} · {str(shot.get('id') or '')}",
         "title": title,
         "subtitle": spec.get("subtitle") or "",
-        "footer": spec.get("source") or f"{episode} · source audio",
+        "footer": spec.get("source")
+        or f"{episode} · {'源音频' if language.lower().startswith('zh') else 'source audio'}",
         "items": items,
     }
     scene_path = scene_dir / f"{sid}.yaml"
@@ -449,9 +456,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: LinkZag.Show not found at {module}", file=sys.stderr)
         return 1
     slug = plan_data.get("slug") or "episode"
+    language = str(plan_data.get("language") or "en")
     title_text = str(plan_data.get("title") or "")
     title_prefix = title_text.split(":", 1)[0].strip() if ":" in title_text else ""
-    episode = title_prefix if 0 < len(title_prefix) <= 14 else "COMMENTARY"
+    episode = (
+        "评论"
+        if language.lower().startswith("zh")
+        else (title_prefix if 0 < len(title_prefix) <= 14 else "COMMENTARY")
+    )
     generated_scene_dir = module / "content" / "scenes" / "generated" / _slug(slug)
     generated_asset_dir = module / "content" / "assets" / "generated" / _slug(slug)
     for directory in (generated_scene_dir, generated_asset_dir):
@@ -467,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
         visual = shot.get("visual") or {}
         if visual.get("type") not in {"chart", "dag", "petrinet", "diagram", "svg", "markdown"}:
             continue
-        scenes.append(_scene(slug, shot, module, episode=episode))
+        scenes.append(_scene(slug, shot, module, episode=episode, language=language))
 
     manifest = {
         "slug": slug,

@@ -202,13 +202,33 @@ Role rules for all spoken and written output:
   an episode of the original podcast. Never title it "Interview with..." unless
   the creator actually conducted the interview.
 
+Editorial rules:
+- Make an argument, not a recap. At least half the beats must add the creator's
+  framework, evidence, counterpoint, implication or a falsifiable call. Do not
+  walk through the episode in order.
+- Cold open (5-10 seconds) with the thesis, tension or number. Then a compact
+  independent-commentary frame (10-15 seconds) naming the host and guests.
+  Credentials never come before the hook.
+- Every section answers: what the source says, what I think, why it matters,
+  and what would change my mind. Keep source attribution separate from the
+  creator's judgment.
+- Confidence discipline: do not add a claim scorecard, "verified" label or
+  external fact-check unless confidence is very high and the claim has a cited
+  primary source or reputable web research. Otherwise attribute it to the
+  episode ("Alhajji argues...") and do not score it.
+- Visual language must match the published video. For the Mandarin deck every
+  chart title, category, series name, unit and source line must be Chinese;
+  proper names, tickers and URLs may stay. The translated deck's `visual`
+  labels are rendered into the Mandarin video, so translate them, not just the
+  narration.
+- Keep beats short enough for natural TTS (roughly 45-65 English words). Use
+  30-45 slides, not a card every ten seconds. Hold important charts longer.
+
 Produce:
 1. `script.txt` - 1,850-2,000 words of continuous spoken commentary. At the
    measured Qwen3 slide-by-slide pace of roughly 145-150 wpm this is roughly
-   12.5-14 minutes. Do not exceed 2,000 words. Start with a 15-25 second setup
-   that names the original host and guest, gives their current roles and one
-   credibility fact each, and frames the video as independent commentary. Then
-   a specific hook, 3-5 ideas with the creator's own analysis, and a low-key
+   12.5-14 minutes. Do not exceed 2,000 words. Open with the hook/thesis, then
+   the compact setup, 3-5 ideas with the creator's own analysis, and a low-key
    close. No headings, bullets, stage directions, or invented facts. Cite
    claims in the metadata; do not put citations in the spoken text.
 2. `people.json` - original host/guest names, roles, 2-4 sentence verified
@@ -216,18 +236,22 @@ Produce:
    roles. If the host is unnamed, say so and use `the host`.
 3. `slides.json` - run:
    `uv run python skills/podcast-content-agent/scripts/slides.py draft --script {work / 'script.txt'} --out {work / 'slides.json'} --title "{title}" --voice-profile voices/me --engine qwen3 --fps 30 --wpm 150`
-   Then edit it: 35-55 slides, clear headings, first title and last end card.
-   Replace the deck title and first title card with a commentary-framed title;
-   do not simply reuse the source episode title. Keep `"format": "broll-slides"`
-   and `"engine": "qwen3"`. Add explicit `visual` hints to 6-10 technical
-   slides. Use only real data in chart data; DAG/diagram/PetriNet hints are
-   allowed for workflows, architectures and causal chains.
-4. `youtube.json` - private upload metadata: commentary-framed title, 2-3
-   paragraph description, source URL ({source_url}), chapters, AI-voice
-   disclosure, tags, `"containsSyntheticMedia": true`,
+   Then edit it: 30-45 slides, headings that state a claim, first title and last
+   end card. Replace the deck title and first title card with a
+   commentary-framed title; do not simply reuse the source episode title. Keep
+   `"format": "broll-slides"` and `"engine": "qwen3"`. Add explicit `visual`
+   hints to 6-10 technical slides. Use only real data in chart data, include a
+   source/date line, and use ranges rather than invented midpoints; DAG/
+   diagram/PetriNet hints are allowed for workflows, architectures and causal
+   chains.
+4. `youtube.json` - private upload metadata: commentary-framed title that
+   promises a payoff, 2-3 paragraph description, source URL ({source_url}),
+   chapters, AI-voice disclosure, tags, `"containsSyntheticMedia": true`,
    `"privacyStatus": "private"`. The description must state that this is
    independent commentary, not an episode of the source podcast, and that the
-   creator was not a participant. Chapters may be approximate at this stage.
+   creator was not a participant. Put verified external sources in a Sources
+   block; keep unverified claims attributed to the episode. Chapters may be
+   approximate at this stage.
 5. Run `uv run python skills/podcast-content-agent/scripts/slides.py validate
    {work / 'slides.json'} --root . --wpm 150` and fix all errors and warnings.
 

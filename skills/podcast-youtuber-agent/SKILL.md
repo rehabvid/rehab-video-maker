@@ -44,8 +44,9 @@ write or perform as if the creator was part of the original recording.
 ## Language policy
 
 - **Default published narration is Mandarin (`zh-Hans`).** The English deck is
-  the working source for visuals, timing and translation; it is not published
-  by default.
+  the working source for editorial structure, timing and translation; the
+  Mandarin video renders its own Chinese visuals. The English deck is not
+  published by default.
 - Do **not** upload a separate English narration unless the user explicitly
   asks for English. English audiences should use YouTube's auto-dub on the
   Mandarin primary audio. Keep a Chinese caption track and an English
@@ -55,6 +56,31 @@ write or perform as if the creator was part of the original recording.
   `--language both` / `--bilingual`.
 - The upload remains private by default. Mandarin is the primary ledger entry
   unless English was explicitly requested.
+
+## Positioning and channel architecture
+
+Start with **one channel and a small set of series playlists**, not separate
+channels for every topic.
+
+- Organize playlists by the channel's **lens**, not by source show. Examples:
+  “Physical Bottlenecks,” “Who Pays?,” “AI Capex & Power,” “France & the Euro,”
+  “Investor Conversations.”
+- Keep 5–7 active playlists. Add a **Start Here** playlist and one “Best of” or
+  “Deep Dives” playlist; put the strongest evergreen video first.
+- Use the same title grammar, thumbnail system and chapter rhythm across a
+  series. A viewer should recognize the series before reading the title.
+- Shorts are top-of-funnel, not a separate channel. Clip the strongest 45–60
+  seconds and link back to the long video.
+- Do **not** split Mandarin and English into separate channels while YouTube
+  auto-dub and localized metadata are working. Language is a distribution
+  layer, not a separate brand.
+- Consider a separate channel only when a new format has a **different
+  audience, cadence and editorial promise** (for example a daily news desk
+  versus long-form analysis) and you can sustain it independently. Topic
+  variety alone belongs in playlists.
+- Review playlist-level retention and browse/suggested traffic. If one series
+  consistently earns independent demand, it can become a spin-off channel;
+  otherwise keep the audience consolidated.
 
 The skill still owns the editorial loop: fetch candidates, score them, research
 the guest, and write a continuous spoken script. This document adds the
@@ -70,7 +96,7 @@ production layer:
 - One 1920×1080 MP4, 30 fps (or 25), H.264 + AAC 48 kHz stereo.
 - **Default 10–15 minutes** (target 12–15), roughly **one quarter of the
   source audio** (25%, with a 10-minute floor and a 15-minute cap).
-- **35–60 slides.** Qwen3-TTS Base 0.6B measured about **145–155 wpm** on
+- **30–45 slides.** Qwen3-TTS Base 0.6B measured about **145–155 wpm** on
   slide-by-slide narration. Plan with **150 wpm**: a 10–15 minute commentary
   needs about **1,500–2,250 words**. Use `slides.py --wpm 150` and the measured
   `timing.json` runtime for the final check. A 100-word calibration sample is
@@ -125,7 +151,7 @@ skills/podcast-youtuber-agent/
     pronunciation.py         # TTS-only heteronym overrides for finance/tech
     thumbnail.py             # 1280x720 title-card thumbnail from the slide list
     translate.py             # EN -> zh-Hans deck + YouTube metadata via OpenCode
-    bilingual.py             # shared visuals + Mandarin primary + optional English upload
+    bilingual.py             # localized visuals + Mandarin primary + optional English upload
     build.py                 # validate -> narrate -> assemble -> optional upload
     youtube_upload.py        # OAuth 2.0 + resumable upload, captions, localizations
     autopilot.py             # queue: select -> editor -> Qwen3 video -> private upload
@@ -455,12 +481,13 @@ matters now. If Wikipedia is missing or stale, use the person's company page,
 show bio, or a reputable interview. Record the source URL next to every fact.
 Do not infer a title from the episode description alone.
 
-Write a **15–25 second setup at the very beginning**: name the original
-interviewer and interviewee, their current roles, and one credibility fact or
-stake for each. State plainly that this is independent commentary on their
-conversation, then move into the hook. Do not use a host-style welcome or imply
-that you were part of the episode. Keep the setup factual and short; the
-commentary, not the biography, is the reason the video exists.
+Write a **5–10 second cold open first**: the thesis, the surprising number or
+the contradiction. Then use a **10–15 second independent-commentary frame** to
+name the original interviewer and interviewee, their current roles, and one
+credibility fact or stake for each. State plainly that this is independent
+commentary on their conversation. Do not use a host-style welcome or imply that
+you were part of the episode. The hook earns the viewer's attention; the
+credentials explain why the conversation matters.
 
 ### 2.3 Write the spoken script
 
@@ -476,15 +503,21 @@ count.
 
 Flow:
 
-1. A 15–25 second setup: identify the original interviewer and interviewee,
-   their current roles and one credibility fact each, sourced from web research,
-   and frame the video as independent commentary. This is not a host intro.
-2. A quiet, specific hook: a surprising number, contradiction or personal
-   stake. No “hey guys,” no “in today's video.”
+1. A 5–10 second cold open: a surprising number, contradiction or thesis. No
+   “hey guys,” no “in today's video.”
+2. A 10–15 second independent-commentary frame: identify the original
+   interviewer and interviewee, their current roles and one credibility fact
+   each, sourced from web research. This is not a host intro.
 3. Three or four core ideas, each followed by the creator's research-backed
-   insight, historical parallel, risk or practical implication.
-4. A genuine question that survives after the video stops.
-5. A low-key close: comments, what they are testing, what to watch next.
+   insight, historical parallel, risk or practical implication. At least half
+   the beats must add something beyond recap.
+4. Separate what the source claims from what the creator believes. Add a claim
+   scorecard or “verified” label only when confidence is very high and the
+   claim has a cited primary or reputable web source; otherwise keep it
+   attributed to the episode.
+5. A genuine question that survives after the video stops, plus one falsifiable
+   “what I’m watching” call when confidence is high.
+6. A low-key close: comments, what they are testing, what to watch next.
 
 The script is the narration. The slide list is the visual layer; do not put
 headings or stage directions into the script. The creator is the commentator,
@@ -554,7 +587,15 @@ Rules:
 - `title` needs `on_screen` (or the top-level title).
 - `end` needs a `heading` or `question`; use `next_text` for the CTA.
 - Keep the first slide a title and the last an end card.
-- 35–60 slides is a good target for 10–15 minutes.
+- 30–45 slides is a good target for 10–15 minutes; hold important charts
+  longer instead of adding another card.
+- **Visual language matches the published video.** A Mandarin video needs
+  Chinese chart titles, categories, series names, units, causal-chain labels
+  and source/footer lines; an English video needs English. Proper names,
+  tickers, URLs and the original cover art may remain in their source language.
+  Do not reuse English-rendered charts in a Mandarin master.
+- Every chart needs real values and a source/date line. If the source reports a
+  range, show the range rather than inventing a midpoint.
 
 ### 3.3 Validate and plan
 
@@ -608,6 +649,12 @@ Rules:
 - Timing is measured with ffprobe, never estimated.
 - Lead is 0.6 s on the first slide, 0.25 s thereafter; tail is 0.35 s.
 - The timeline is quantised to the video frame grid.
+- Qwen3 can sometimes finish the words and then emit a long, quiet,
+  speech-like tail. `narrate.py` trims tails longer than 1 s when the tail is
+  more than 12 dB below the speech level; the build log reports the trim. Keep
+  beats short and listen to the 4–5 longest beats before upload.
+- For a more authored feel, record the 5–10 second cold open and/or close in
+  your own voice; use the cloned voice for the body.
 - The cache is keyed by text + engine + voice-profile hash + settings. Editing
   a slide re-synthesises only that slide; `--force` redoes all.
 - `--engine edge` is the fallback. It produces a consistent neutral voice but
@@ -691,19 +738,26 @@ The desired status is `ready for upload`.
 
 ### QA checklist
 
-- First 20 seconds contain a specific hook.
+- First 10 seconds contain a specific thesis, number or contradiction.
+- The video argues; it does not simply summarize the episode in order.
 - Every factual claim traces to the transcript or a cited source.
 - Quotes are exact, attributed and linked.
-- Your own insight appears at least twice.
+- “Verified” and scorecards appear only where confidence is high and a source
+  is cited; otherwise the claim is attributed to the episode.
+- Your own insight appears at least twice, and at least one falsifiable
+  “what I’m watching” call is stated when confidence is high.
+- Visual language matches the published video: Mandarin charts are Chinese,
+  English charts are English; source/date lines are present.
 - The ending asks a real question.
 - Captions are readable and inside the safe area.
 - No line exceeds two lines of 42 characters.
 - Names and companies are spelled correctly.
-- Audio is intelligible at 1× and 1.5×; no clipping.
+- Audio is intelligible at 1× and 1.5×; no clipping and no long TTS tail
+  artifacts (the `narrate.py` tail guard should report any trim).
 - Video is 1920×1080, 30 fps (or 25), H.264 + AAC 48 kHz stereo.
 - The deck is actually b-roll/slides; no accidental avatar or black frame.
 - AI voice disclosure is in the description and on YouTube's synthetic-media
-  flag. The end card can also say “AI voice narration.”
+  flag. Do not claim “human-reviewed” on the thumbnail unless it is true.
 
 ---
 
@@ -773,11 +827,20 @@ Include:
 - the original episode title, guest and link;
 - a line saying this is independent commentary, not an episode of the original
   podcast;
-- sources;
+- sources, including primary/web links for any external claim presented as
+  verified; otherwise keep the claim attributed to the episode;
 - chapters;
 - the AI-voice disclosure;
 - sponsor/affiliate disclosures;
 - “not financial advice” when relevant.
+
+**Title and thumbnail as a promise.** The title should name a tension or payoff,
+not just a topic; test a number/question version against a plain descriptive
+version. Keep the thumbnail to one number/tension and 4–7 words, in the same
+language as the video. Do not put a defensive “AI-assisted / human-reviewed”
+disclaimer in the thumbnail; the AI disclosure belongs in the description and
+YouTube's synthetic-media flag. The first 10 seconds must deliver the hook that
+the title and thumbnail promise.
 
 Frame the title as analysis, commentary or critique. Do not title it as an
 interview or as an episode of the source show.
@@ -900,7 +963,7 @@ published finance/tech video.
 ### 6.4b Mandarin primary, optional English
 
 The default release is Mandarin with an English translated caption track. The
-English master is a local visual/timing reference and is **not uploaded**.
+English master is a local timing/editorial reference and is **not uploaded**.
 Translate the deck and metadata first, then build and upload the Mandarin
 version:
 
@@ -921,12 +984,14 @@ uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
 ```
 
 `translate.py` uses the same OpenCode model as the editorial writer. It
-translates only human-visible fields, preserves shot ids and the whole
-`visual`/chart payload, sets `language: "zh-Hans"`, and writes
+translates human-visible fields **and chart/DAG labels**, preserves shot ids,
+numeric visual data and URLs, sets `language: "zh-Hans"`, and writes
 `slides.zh.json` plus `youtube.zh.json`.
 
-`bilingual.py` reuses the English visual track, synthesises Mandarin with the
-same Qwen3 cloned voice, and produces:
+`bilingual.py` keeps the English master as a local timing/reference cut, but
+renders a **separate Mandarin visual track** from `slides.zh.json` (Chinese
+chart titles, categories, series names and footer labels). It synthesises
+Mandarin with the same Qwen3 cloned voice and produces:
 
 ```text
 out/ep01-bilingual/final.en.mp4
@@ -1036,11 +1101,12 @@ It downloads the episode audio and runs local MLX Whisper ASR before writing,
 so the first run also downloads the ASR model. Use `--asr-model` to choose a
 smaller/faster model.
 
-By default, the queue translates the finished deck, renders Mandarin narration,
-and uploads only the private Mandarin video. The English master remains local
-as the shared visual/timing reference. The ledger points at the Mandarin
-upload. When the channel's YouTube auto-dub setting is on, YouTube can add
-English and other language tracks from the Mandarin primary audio.
+By default, the queue translates the finished deck, renders Mandarin narration
+and Mandarin visuals, and uploads only the private Mandarin video. The English
+master remains local as a timing/reference cut but is not uploaded, and its
+English chart labels are not reused in the Mandarin video. The ledger points at
+the Mandarin upload. When the channel's YouTube auto-dub setting is on, YouTube
+can add English and other language tracks from the Mandarin primary audio.
 
 Use `--language en` only when the user explicitly asks for an English
 narration. Use `--language both` / `--bilingual` to publish English and

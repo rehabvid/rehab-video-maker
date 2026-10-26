@@ -301,9 +301,9 @@ def render_title_card(
     draw_paragraph(draw, subtitle, sub_font, (margin + 44, 760), MASTER_W - 2 * margin - 44, MUTED, 12)
     # Keep the disclosure out of the lower third: burned captions live there.
     disclosure = (
-        "AI 辅助评论。脚本、资料与观点均经人工核验。"
+        "独立评论 · AI 生成语音"
         if contains_cjk(title) else
-        "An AI-assisted commentary. Script, sources and opinions are human-reviewed."
+        "Independent commentary · AI-generated voice"
     )
     draw.text(
         (margin + 44, 92),

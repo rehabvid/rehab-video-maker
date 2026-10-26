@@ -23,12 +23,18 @@ deterministic pixels locally; FFmpeg assembles the final video.
 
 ## Language and pronunciation
 
-- The English deck is the canonical visual/timing plan. The **default published
-  narration is Mandarin (`zh-Hans`)**; do not upload a separate English
-  narration unless the user explicitly asks for one. English audiences use
-  YouTube auto-dub from the Mandarin primary audio.
-- Translate the deck for the Mandarin master and keep the English deck for the
-  shared visual track.
+- The English deck is the canonical editorial/timing plan and translation
+  source. The **default published narration is Mandarin (`zh-Hans`)**; do not
+  upload a separate English narration unless the user explicitly asks for one.
+  English audiences use YouTube auto-dub from the Mandarin primary audio.
+- The English deck is the source/reference plan. The Mandarin master renders
+  its own charts, DAGs and diagrams from `slides.zh.json`; do not reuse
+  English-rendered visuals in the Mandarin video.
+- Every human-visible visual label must match the video language. For Mandarin,
+  translate chart titles, categories, series names, axes, units, node/edge
+  labels and source/footer text. Keep tickers, proper names and URLs as needed.
+  The scene planner reads `language` from the deck and localizes the eyebrow
+  and footer.
 - `narrate.py` applies the finance/tech polyphone lexicon in
   `../podcast-youtuber-agent/config/pronunciation.zh.json` to TTS text only.
   Captions keep the original Chinese. Audit with
@@ -163,6 +169,12 @@ The generated visuals favor one focal point over dashboard clutter:
   text on the transition; that made every idea appear twice.
 - Use `visual.source` for a real source line; otherwise the scene footer names
   the episode and says the source is the episode audio.
+- Put the source and date on every chart or diagram. If a source reports a
+  range, show the range; do not invent a midpoint.
+- Keep the deck to roughly 30–45 slides for a 10–15 minute video. Hold a chart
+  long enough to read it instead of adding another card.
+- All human-visible scene labels must be in the video language. The Mandarin
+  build uses a separate plan with Chinese labels and a `-zh` scene slug.
 
 ## Workflow
 

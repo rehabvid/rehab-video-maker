@@ -39,6 +39,16 @@ def _load(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
+def _language(slides: dict) -> str:
+    declared = str(slides.get("language") or "").strip()
+    if declared:
+        return declared
+    sample = str(slides.get("title") or "") + " " + " ".join(
+        str(shot.get("narration") or "") for shot in slides.get("shots", [])[:3]
+    )
+    return "zh-Hans" if any("\u4e00" <= char <= "\u9fff" for char in sample) else "en"
+
+
 def _short(text: str, limit: int = 92) -> str:
     text = re.sub(r"\s+", " ", str(text or "")).strip()
     if len(text) <= limit:
@@ -240,6 +250,7 @@ def plan(slides: dict, timing: dict, policy: dict) -> dict:
     return {
         "slug": slides.get("slug") or "episode",
         "title": slides.get("title") or "Technical commentary",
+        "language": _language(slides),
         "fps": int(slides.get("fps") or 30),
         "policy": policy,
         "shots": planned,

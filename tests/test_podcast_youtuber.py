@@ -17,10 +17,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import yaml
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "skills" / "podcast-youtuber-agent" / "scripts"
+TECH_SCRIPTS = ROOT / "skills" / "tech-commentary-slideshow" / "scripts"
 SHARED = ROOT / "skills" / "podcast-avatar-commentary" / "scripts"
 sys.path.insert(0, str(SHARED))
 sys.path.insert(0, str(SCRIPTS))
@@ -28,6 +30,14 @@ sys.path.insert(0, str(SCRIPTS))
 
 def _load(name: str):
     spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_tech(name: str):
+    spec = importlib.util.spec_from_file_location(f"tech_{name}", TECH_SCRIPTS / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -43,6 +53,8 @@ bilingual = _load("bilingual")
 pronunciation = _load("pronunciation")
 narrate = _load("narrate")
 autopilot = _load("autopilot")
+plan_visuals = _load_tech("plan_visuals")
+make_scenes = _load_tech("make_scenes")
 
 
 class SlideValidationTests(unittest.TestCase):
@@ -217,6 +229,43 @@ class NarrationTailTests(unittest.TestCase):
             self._write(path, np.concatenate([speech, silence]))
             self.assertEqual(narrate._trim_tail_artifact(path), 0.0)
             self.assertAlmostEqual(self._duration(path), 1.4, places=2)
+
+
+class VisualLanguageTests(unittest.TestCase):
+    def test_plan_language_defaults_to_chinese_for_cjk_decks(self):
+        self.assertEqual(
+            plan_visuals._language({"title": "柴油瓶颈", "shots": []}),
+            "zh-Hans",
+        )
+        self.assertEqual(
+            plan_visuals._language({"language": "en", "title": "Diesel"}),
+            "en",
+        )
+
+    def test_scene_eyebrow_and_footer_follow_language(self):
+        shot = {
+            "id": "01",
+            "kind": "markdown",
+            "narration": "原油动了，成品油没动。",
+            "heading": "原油动了，成品油没动",
+            "visual": {
+                "type": "markdown",
+                "spec": {
+                    "title": "原油动了，成品油没动",
+                    "points": ["原油恢复八成到九成"],
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            module = Path(tmp)
+            (module / "package.json").write_text("{}")
+            scene = make_scenes._scene(
+                "zh-test", shot, module, episode="评论", language="zh-Hans"
+            )
+            data = yaml.safe_load((module / scene["scene"]).read_text())
+        self.assertEqual(data["eyebrow"], "评论 · 01")
+        self.assertEqual(data["footer"], "评论 · 源音频")
+        self.assertEqual(data["title"], "原油动了，成品油没动")
 
 
 class LanguageDefaultTests(unittest.TestCase):

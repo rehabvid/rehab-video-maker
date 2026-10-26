@@ -67,13 +67,21 @@ Write exactly two valid UTF-8 JSON files:
 For the deck:
 
 - Preserve the complete JSON structure, every key, every shot id, `kind`,
-  `fps`, `engine`, `voice_profile`, and the entire `visual` object exactly.
-- Translate only human-visible strings in these fields when present:
+  `fps`, `engine`, `voice_profile`, and the numerical values inside `visual`.
+  Set the deck-level `language` to `"zh-Hans"`.
+- Translate every human-visible string in these fields when present:
   `title`, `narration`, `heading`, `bullets` (each item), `kicker`,
   `on_screen`, `subtitle`, `quote`, `attribution`, `question`, `next_text`.
-- Do not translate names, ticker symbols, URLs, dates, numbers, units, or
-  chart data. Keep chart `data.categories` and `series` labels readable in
-  Chinese where they are plain labels, but never change numeric values.
+- Also localize the visual labels, because the Mandarin video renders its own
+  charts and diagrams from this deck. Inside `visual`, translate plain
+  human-visible labels such as `data.categories`, `series[].name`, `unit`,
+  `source`, `title`, `subtitle`, `label`, `points`, `text`, SVG text and
+  Mermaid labels. Keep `type`, `chart_type`, `animated`, IDs, URLs, ticker
+  symbols, company/product names and every numeric value unchanged.
+- Do not translate names, ticker symbols, URLs, dates or numbers. A chart
+  category that is a proper name (for example a company or a person) may stay
+  in its original language; an ordinary label such as "Crude" or "Refined
+  products" must be translated.
 - Use natural spoken Simplified Chinese, not a literal word-for-word gloss.
   Keep each `narration` suitable for about the same speaking time as the
   English source. Do not add facts, opinions, headings, or commentary.

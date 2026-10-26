@@ -47,10 +47,57 @@ the recording.
   as an episode of the original show. Never use “Interview with…” unless the
   creator actually conducted that interview.
 
+## Editorial standard: argue, don't recap
+
+A star commentator is known for a **point of view**, not for covering an
+episode in order. Every video needs:
+
+- a cold open (5–10 seconds) with the thesis, tension or number;
+- a compact independent-commentary frame (10–15 seconds) naming the host and
+  guests — credentials come after the hook, never before it;
+- at least half the beats adding the creator's framework, evidence,
+  counterpoint, implication or a falsifiable call;
+- one recurring question the video keeps answering;
+- a close with what the creator is watching next.
+
+For each section, separate: **what the source says → what I think → why it
+matters → what would change my mind.** Do not read the episode back to the
+viewer.
+
+## Confidence and evidence
+
+- Attribute source claims explicitly: “Alhajji argues…”, “The episode reports…”.
+- Use “I verified” only for claims checked against a primary source or
+  reputable web research; record the URL in the metadata.
+- Add a claim scorecard or a “verified/unverified” label only when confidence
+  is very high and the evidence is cited. Otherwise omit the scorecard and
+  keep the claim attributed to the episode.
+- Never imply that the creator personally interviewed the guest or independently
+  confirmed a claim without evidence.
+- Prefer primary data (EIA, IEA, OPEC, Eurostat, central banks, company filings)
+  over another commentator's summary. If the data is not available, say so.
+
+## Visual language
+
+Every human-visible word in the video must match the **published video
+language**:
+
+- Mandarin video → Chinese chart titles, categories, series names, axes,
+  units, causal-chain labels and footer/source lines.
+- English video → English labels.
+- Proper names, tickers, URLs and the original source cover may stay in their
+  original language.
+
+Do not reuse English-rendered charts in the Mandarin master. Translate the
+`visual` labels in `slides.zh.json` and render the Mandarin visuals from that
+deck. Charts need a real source/date line and real values; if the source gives a
+range, show the range rather than an invented midpoint.
+
 ## Language policy
 
 - Write the source script and `slides.json` in English: that deck is the
-  canonical visual/timing plan and the translation source.
+  canonical editorial/timing plan and the translation source. The Mandarin
+  master renders its own localized charts/DAGs from the translated deck.
 - The **default published narration is Mandarin (`zh-Hans`)**. Translate the
   finished English deck and metadata; do not publish the English narration
   unless the user explicitly asks for it.
@@ -85,9 +132,10 @@ as 重定价 (chóng), 行业/央行/行长 (háng), 利差 (chā), 杠杆率 (g
   around one thesis. Do not pad.
 - If the episode is over ~60 minutes, keep the strongest through-line and stop
   at 15 minutes.
-- `slides.json` should contain **35–60 beats**. Qwen3-TTS Base 0.6B reads at
+- `slides.json` should contain **30–45 beats**. Qwen3-TTS Base 0.6B reads at
   roughly **150 wpm**; a 10–15 minute commentary needs about **1,500–2,250
-  words**. Use `slides.py --wpm 150`, then verify with measured timing.
+  words**. Use `slides.py --wpm 150`, then verify with measured timing. Fewer,
+  longer-held slides read better than a card every ten seconds.
 
 ## Freshness and no repeats
 
@@ -240,13 +288,16 @@ uv run python skills/podcast-content-agent/scripts/slides.py \
 
 ## Script shape
 
-1. 15–25 second setup, not a host intro: identify the original
+1. A 5–10 second cold open: the thesis, number, contradiction or stake.
+2. A 10–15 second independent-commentary frame: identify the original
    host/interviewer and guest, give their current roles and one credibility fact
    each, and state that this is independent commentary on their conversation.
-2. A specific hook: number, contradiction or stake.
+   Credentials never come before the hook.
 3. Three or four core ideas, each followed by the creator's analysis, risk or
-   practical implication.
-4. A real question that survives the video.
+   practical implication. At least half the beats must add something beyond
+   recap.
+4. A real question that survives the video, plus one falsifiable “what I’m
+   watching” call when confidence is high.
 5. A low-key close.
 
 No headings, no bullet reading, no “hey guys,” no invented quotes or numbers.
@@ -263,8 +314,8 @@ Deliver:
 - `build/ep01/plan.md` — estimated runtime and slide list.
 
 For the default Mandarin release, translate the deck and metadata, then build
-with the bilingual/Mandarin path (English remains a local visual/timing
-reference and is not uploaded):
+with the bilingual/Mandarin path (English remains a local timing/reference cut
+and is not uploaded; the Mandarin video renders its own Chinese visuals):
 
 ```bash
 uv run python skills/podcast-youtuber-agent/scripts/translate.py \

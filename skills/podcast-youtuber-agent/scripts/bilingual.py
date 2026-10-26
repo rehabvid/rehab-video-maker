@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Build Mandarin by default, with an optional English upload.
 
-The English build is the existing slideshow pipeline and supplies the shared
-visual/timing track.  Mandarin reuses that edit and adds translated narration
-and captions, so no LinkZag scenes need to be rendered twice.  The script also
-creates ``dub.zh.m4a``, time-fitted to the English video, for YouTube Studio's
-multi-language audio track (the public Data API does not yet expose an
-audio-track insert method).
+The English build is the existing slideshow pipeline and supplies the reference
+edit/timing.  Mandarin renders its own charts, DAGs and diagrams from the
+translated deck so every human-visible visual label matches the published
+language.  The script also creates ``dub.zh.m4a``, time-fitted to the English
+video, for YouTube Studio's multi-language audio track (the public Data API
+does not yet expose an audio-track insert method).
 
 The default upload is Mandarin only: English audiences use YouTube auto-dub
 from the Mandarin primary audio.  Upload English only when the user explicitly
@@ -26,16 +26,17 @@ Typical flow::
       --metadata-zh build/ep01/youtube.zh.json \\
       --work build/ep01 --out-dir out/ep01-bilingual --upload
 
-The English and Mandarin videos share the same edit and visuals.  To get one
-YouTube URL with an audio language selector, attach ``dub.zh.m4a`` in YouTube
-Studio -> Languages; use both audio and subtitles in the generated
-``bilingual.json`` manifest.
+The English and Mandarin videos share the same edit/timing, but each language
+gets its own localized visual track.  To get one YouTube URL with an audio
+language selector, attach ``dub.zh.m4a`` in YouTube Studio -> Languages; use
+both audio and subtitles in the generated ``bilingual.json`` manifest.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -44,6 +45,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 SHARED = ROOT / "skills" / "podcast-avatar-commentary" / "scripts"
+TECH_SCRIPTS = ROOT / "skills" / "tech-commentary-slideshow" / "scripts"
+LINKZAG_MODULE = ROOT / "modules" / "linkZagShow"
 if str(SHARED) not in sys.path:
     sys.path.insert(0, str(SHARED))
 
@@ -195,6 +198,65 @@ def _retime_chapters(
     save_json(metadata_zh, zh_meta)
 
 
+def _render_zh_visuals(args, work_zh: Path, zh_timing: dict) -> int:
+    """Render Mandarin charts, DAGs and diagrams from the Chinese deck.
+
+    The English master is only a timing/reference cut.  Reusing its rendered
+    visuals inside the Mandarin video would leave English chart titles and axis
+    labels on a Chinese video.  Plan and render the translated deck separately,
+    using a language-specific slug so the two scene sets do not overwrite each
+    other.
+    """
+    plan_path = work_zh / "visual-plan.json"
+    scenes_path = work_zh / "scenes.json"
+    visuals_dir = work_zh / "visuals"
+    if run([
+        sys.executable, str(TECH_SCRIPTS / "plan_visuals.py"),
+        "--slides", str(args.slides_zh),
+        "--timing", str(work_zh / "timing.json"),
+        "--out", str(plan_path),
+    ]):
+        return 1
+    plan = load_json(plan_path)
+    plan["slug"] = f"{plan.get('slug') or 'episode'}-zh"
+    save_json(plan_path, plan)
+    if run([
+        sys.executable, str(TECH_SCRIPTS / "make_scenes.py"),
+        "--plan", str(plan_path),
+        "--module", str(LINKZAG_MODULE),
+        "--out", str(scenes_path),
+    ]):
+        return 1
+    if run([
+        sys.executable, str(TECH_SCRIPTS / "render_scenes.py"),
+        "--manifest", str(scenes_path),
+        "--visuals", str(visuals_dir),
+        "--module", str(LINKZAG_MODULE),
+    ]):
+        return 1
+
+    scenes = load_json(scenes_path)
+    by_id = {str(scene.get("id")): scene for scene in scenes.get("scenes", [])}
+    for shot in zh_timing.get("shots", []):
+        sid = str(shot.get("id"))
+        scene = by_id.get(sid)
+        if not scene:
+            if isinstance(shot.get("visual"), dict):
+                shot.pop("visual", None)
+            continue
+        suffix = ".mp4" if scene.get("animated") else ".png"
+        visual = visuals_dir / f"shot-{sid}{suffix}"
+        if not visual.exists():
+            print(f"warning: missing Mandarin visual {visual}", file=sys.stderr)
+            if isinstance(shot.get("visual"), dict):
+                shot.pop("visual", None)
+            continue
+        shot["kind"] = "broll"
+        shot["visual"] = os.path.relpath(visual, ROOT).replace(os.sep, "/")
+        shot["visual_type"] = scene.get("type")
+    return 0
+
+
 def _make_chinese_assets(args, out_zh: Path) -> int:
     work_zh = args.work_zh
     work_zh.mkdir(parents=True, exist_ok=True)
@@ -227,18 +289,26 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
     en_by_id = {str(s["id"]): s for s in en_timing.get("shots", [])}
     zh_shots = zh_timing.get("shots", [])
     for shot in zh_shots:
-        en = en_by_id.get(str(shot.get("id")))
-        if not en:
+        if str(shot.get("id")) not in en_by_id:
             print(f"error: Chinese shot {shot.get('id')} has no English counterpart", file=sys.stderr)
             return 1
-        # Reuse the English visual decisions and exact visual paths.
-        for key in ("visual", "visual_type", "kind"):
-            if key in en:
-                shot[key] = en[key]
     if args.metadata and args.metadata_zh:
         _retime_chapters(args.metadata, args.metadata_zh, en_timing, zh_timing)
     zh_timing["language"] = "zh-Hans"
     zh_timing["title"] = args.slides_zh_title or zh_timing.get("title")
+    if args.builder == "tech":
+        if _render_zh_visuals(args, work_zh, zh_timing):
+            return 1
+    else:
+        # The legacy podcast builder has no LinkZag scene pass; retain its old
+        # panel/card behaviour rather than passing unrenderable visual dicts.
+        for shot in zh_shots:
+            en = en_by_id.get(str(shot.get("id"))) or {}
+            for key in ("visual", "visual_type", "kind"):
+                if isinstance(en.get(key), str):
+                    shot[key] = en[key]
+                elif key in {"visual_type", "kind"} and key in en:
+                    shot[key] = en[key]
     if args.no_burn_captions:
         for shot in zh_shots:
             shot["captions"] = False
