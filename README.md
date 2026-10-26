@@ -285,7 +285,8 @@ This writes `final.en.mp4`, `final.zh.mp4`, English/Chinese caption tracks and a
 time-fitted `dub.zh.m4a` for YouTube Studio's multi-language-audio selector. The
 public YouTube Data API cannot insert an alternate audio track, so the Studio
 attach step is manual; uploading both videos is fully automated. Autopilot has
-the same path with `--bilingual`.
+the same path with `--bilingual`; its default primary upload is the Mandarin
+version (`--primary-language en` switches the ledger link to English).
 
 Every run should start from the current popular lists, not a saved topic. The
 ranked list merges PodcastTranscript.ai with curated AI, startup, technology and

@@ -79,6 +79,16 @@
       "url": "https://youtu.be/CpWpAoYsUZs",
       "note": "autopilot Qwen3 commentary; output /Users/zhaoli/git/haymant/rehab-video-maker/out/autopilot/si423-why-trend-following-might-outlast-the-ai-arms-/final.mp4",
       "used_at": "2026-10-25T09:37:46+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.captivate.fm:e1bf0b5d-983a-49d7-8d55-fb302e051d80"
+      ],
+      "title": "GM108: Maybe Japan Is Finally Changing for Real ft. Jesper Koll",
+      "video_id": "Xs-e_bRKfqY",
+      "url": "https://youtu.be/Xs-e_bRKfqY",
+      "note": "autopilot Qwen3 commentary; English /Users/zhaoli/git/haymant/rehab-video-maker/out/autopilot/gm108-maybe-japan-is-finally-changing-for-real-ft-je/final.en.mp4; Mandarin /Users/zhaoli/git/haymant/rehab-video-maker/out/autopilot/gm108-maybe-japan-is-finally-changing-for-real-ft-je/final.zh.mp4; primary=zh-Hans",
+      "used_at": "2026-10-26T01:44:52+00:00"
     }
   ]
 }

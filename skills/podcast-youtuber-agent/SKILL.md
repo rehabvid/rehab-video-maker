@@ -919,7 +919,10 @@ smaller/faster model.
 Add `--bilingual` to translate the finished deck, render Mandarin narration,
 and upload private English and Mandarin videos. The two videos share the same
 visual edit; `bilingual.json` also contains a time-fitted `dub.zh.m4a` for the
-Studio multi-language-audio selector.
+Studio multi-language-audio selector. With `--bilingual`, the ledger points at
+the Mandarin upload by default; use `--primary-language en` to point it at the
+English upload instead. When the channel's YouTube auto-dub setting is on,
+YouTube can add further language tracks from the uploaded primary audio.
 
 Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
 private by default. Review each private video before publishing. The queue

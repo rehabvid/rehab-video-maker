@@ -211,11 +211,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--source", choices=["pt", "investment"], default="pt")
     parser.add_argument("--bilingual", action="store_true", help="also translate, narrate and upload Mandarin")
+    parser.add_argument(
+        "--primary-language", choices=["en", "zh-Hans"], default=None,
+        help="which upload to mark as primary (default: zh-Hans with --bilingual, en otherwise)",
+    )
     parser.add_argument("--asr-model", default="mlx-community/whisper-large-v3-turbo-asr-fp16")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
+    if args.primary_language is None:
+        args.primary_language = "zh-Hans" if args.bilingual else "en"
+    if args.primary_language == "zh-Hans" and not args.bilingual:
+        parser.error("--primary-language zh-Hans requires --bilingual")
     AUTOPILOT.mkdir(parents=True, exist_ok=True)
     if STOP.exists():
         log(f"stop file exists: {STOP}")
@@ -337,7 +345,9 @@ def main(argv: list[str] | None = None) -> int:
                 "--upload",
             ])
             out_note = f"English {out_dir / 'final.en.mp4'}; Mandarin {out_dir / 'final.zh.mp4'}"
-            receipt_path = out_dir / "youtube-en.json"
+            receipt_path = out_dir / (
+                "youtube-zh.json" if args.primary_language == "zh-Hans" else "youtube-en.json"
+            )
         else:
             build_code = run([
                 sys.executable, str(TECH_SCRIPTS / "build.py"),
@@ -367,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         mark = [
             sys.executable, str(CONTENT_SCRIPTS / "fetch_popular.py"), "mark",
             "--id", source_id, "--title", title,
-            "--note", f"autopilot Qwen3 commentary; {out_note}",
+            "--note", f"autopilot Qwen3 commentary; {out_note}; primary={args.primary_language}",
         ]
         if video_id:
             mark += ["--video-id", video_id, "--url", f"https://youtu.be/{video_id}"]
