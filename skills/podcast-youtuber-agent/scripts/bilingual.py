@@ -202,7 +202,7 @@ def _retime_chapters(
     save_json(metadata_zh, zh_meta)
 
 
-def _render_zh_visuals(args, work_zh: Path, zh_timing: dict) -> int:
+def _render_zh_visuals(args, work_zh: Path, zh_timing: dict, background: Path | None = None) -> int:
     """Render Mandarin charts, DAGs and diagrams from the Chinese deck.
 
     The English master is only a timing/reference cut.  Reusing its rendered
@@ -229,6 +229,7 @@ def _render_zh_visuals(args, work_zh: Path, zh_timing: dict) -> int:
         "--plan", str(plan_path),
         "--module", str(LINKZAG_MODULE),
         "--out", str(scenes_path),
+        *(["--background", str(background)] if background and background.exists() else []),
     ]):
         return 1
     if run([
@@ -300,8 +301,13 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         _retime_chapters(args.metadata, args.metadata_zh, en_timing, zh_timing)
     zh_timing["language"] = "zh-Hans"
     zh_timing["title"] = args.slides_zh_title or zh_timing.get("title")
+    cover_path = (
+        Path(args.thumbnail_zh).expanduser()
+        if args.thumbnail_zh
+        else out_zh.parent / "cover.zh.png"
+    )
     if args.builder == "tech":
-        if _render_zh_visuals(args, work_zh, zh_timing):
+        if _render_zh_visuals(args, work_zh, zh_timing, cover_path):
             return 1
     else:
         # The legacy podcast builder has no LinkZag scene pass; retain its old
@@ -319,11 +325,7 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
     save_json(work_zh / "timing-visuals.json", zh_timing)
     timing_path = work_zh / "timing-visuals.json"
     if args.builder == "tech" and not args.no_scene_backgrounds:
-        cover = (
-            Path(args.thumbnail_zh).expanduser()
-            if args.thumbnail_zh
-            else out_zh.parent / "cover.zh.png"
-        )
+        cover = cover_path
         if cover.exists():
             story_timing = work_zh / "timing-story.json"
             story_code = run([

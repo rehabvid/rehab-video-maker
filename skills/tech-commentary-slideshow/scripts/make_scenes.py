@@ -12,12 +12,14 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import shutil
 import os
 import re
 import sys
 from pathlib import Path
 
 import yaml
+from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_MODULE = Path("modules/linkZagShow")
@@ -292,6 +294,8 @@ def _scene(
     module: Path,
     episode: str = "COMMENTARY",
     language: str = "en",
+    background: str | None = None,
+    theme: str | None = None,
 ) -> dict:
     visual = shot["visual"]
     kind = visual["type"]
@@ -415,8 +419,8 @@ def _scene(
         "duration": max(3.0, float(shot.get("duration") or 8.0)),
         "width": 1920,
         "height": 1080,
-        "theme": "dark",
-        "background": "theme",
+        "theme": theme or "dark",
+        "background": background or "theme",
         "variant": "slide",
         "padding": 96,
         "eyebrow": f"{episode} · {str(shot.get('id') or '')}",
@@ -435,6 +439,8 @@ def _scene(
         "type": kind,
         "animated": animated,
         "duration": scene["duration"],
+        "background": background,
+        "theme": theme or "dark",
     }
 
 
@@ -443,6 +449,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plan", required=True)
     parser.add_argument("--module", default=str(DEFAULT_MODULE))
     parser.add_argument("--out", help="manifest path (default: alongside the plan)")
+    parser.add_argument("--background", help="image backdrop applied to every visual scene")
+    parser.add_argument("--background-theme", choices=["light", "dark"], help="override auto light/dark classification")
     args = parser.parse_args(argv)
 
     plan_path = Path(args.plan)
@@ -474,12 +482,35 @@ def main(argv: list[str] | None = None) -> int:
                 elif child.is_dir():
                     child.rmdir()
 
+    background_value = None
+    background_theme = args.background_theme
+    if args.background:
+        source = Path(args.background).expanduser()
+        if source.exists():
+            generated_asset_dir.mkdir(parents=True, exist_ok=True)
+            dest = generated_asset_dir / "background.png"
+            shutil.copyfile(source, dest)
+            if background_theme is None:
+                with Image.open(source) as image:
+                    gray = image.convert("L").resize((64, 64))
+                    average = sum(gray.getdata()) / 4096.0
+                background_theme = "light" if average > 145 else "dark"
+            rel = _rel(dest, module)
+            from urllib.parse import quote
+            background_value = "image:/__linkzag/asset?path=" + quote(rel, safe="")
+            print(f"scene background: {rel} ({background_theme})")
+        else:
+            print(f"warning: scene background not found: {source}", file=sys.stderr)
+
     scenes = []
     for shot in plan_data.get("shots", []):
         visual = shot.get("visual") or {}
         if visual.get("type") not in {"chart", "dag", "petrinet", "diagram", "svg", "markdown"}:
             continue
-        scenes.append(_scene(slug, shot, module, episode=episode, language=language))
+        scenes.append(_scene(
+            slug, shot, module, episode=episode, language=language,
+            background=background_value, theme=background_theme,
+        ))
 
     manifest = {
         "slug": slug,

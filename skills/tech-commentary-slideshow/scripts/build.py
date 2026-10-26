@@ -131,6 +131,7 @@ def main(argv: list[str] | None = None) -> int:
                 "--plan", str(plan_path),
                 "--module", args.module,
                 "--out", str(scenes_path),
+                *(["--background", str(Path(args.cover).expanduser())] if args.cover else []),
             ]):
                 return 1
             render = [

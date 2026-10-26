@@ -68,6 +68,15 @@ The scene heuristic is deliberately conservative: it illustrates concrete
 nouns and processes, and leaves abstract argument pages on the cover backdrop.
 Do not generate fake faces, logos or text inside the art.
 
+LinkZag chart, DAG and diagram scenes also receive the same cover plate through
+`--background`. The scene runtime classifies the plate as light or dark and
+applies the matching theme, then draws the image at low opacity under a theme
+veil so the data remains the focal point. `bilingual.py` invokes
+`qa_backgrounds.py` after composition; the build fails if a card lacks a story
+background, a custom visual lacks the image backdrop, or a scene theme does not
+match the cover class. The QA report is written to
+`build/<episode>/zh/background-qa.json`.
+
 ## Skill boundaries
 
 1. **Content layer** — `podcast-content-agent` (or the shared content scripts in
