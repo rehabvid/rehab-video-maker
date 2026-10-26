@@ -77,6 +77,10 @@ For the deck:
 - Use natural spoken Simplified Chinese, not a literal word-for-word gloss.
   Keep each `narration` suitable for about the same speaking time as the
   English source. Do not add facts, opinions, headings, or commentary.
+- This deck is the published Mandarin narration. Use standard mainland
+  finance/technology terminology. Do not add pinyin or pronunciation notes;
+  the narrator applies a TTS-only heteronym lexicon. Do not add `tts_text`
+  unless a proper name needs a one-off spoken spelling.
 - `attribution` may stay in the original language when it is a proper name.
 - Keep every `bullets` array the same length.
 
