@@ -115,6 +115,46 @@
       "url": "https://youtu.be/F2eakdzoTEg",
       "note": "11:14 Mandarin commentary; private; Marina Bay sketch cover; AI Advances + Macro & Markets + Investor Conversations playlists; English localization/auto-dub; no separate English upload",
       "used_at": "2026-10-26T13:02:37+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:5d4b6646-cc2c-11f1-b83e-6fbc19058151"
+      ],
+      "title": "Christina Cacioppo - Building an Enduring Software Company in the Age of AI - [Invest Like the Best, EP.496]",
+      "video_id": "YqPOk-96B1g",
+      "url": "https://youtu.be/YqPOk-96B1g",
+      "note": "12.5 min Mandarin commentary; private; Marina Bay cover; story backgrounds; playlists auto",
+      "used_at": "2026-10-26T15:26:07+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feed.podbean.com:macrovoices.podbean.com/d38be6c6-fa7a-3758-9bfe-49b14f84e13f"
+      ],
+      "title": "MacroVoices #554 Yasir Arafat: Mass Manufacturing Nuclear Power Plants",
+      "video_id": "xZiifirIqy8",
+      "url": "https://youtu.be/xZiifirIqy8",
+      "note": "generated in cooldown; uploaded after quota reset",
+      "used_at": "2026-10-26T16:40:16+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:4bab0140-c690-11f1-ba93-9ff1cc3f5ef5"
+      ],
+      "title": "David Vélez - Building Nubank and the Future of Global Banking - [Invest Like the Best, EP.495]",
+      "video_id": "Mm0IFtRr-44",
+      "url": "https://youtu.be/Mm0IFtRr-44",
+      "note": "generated in cooldown; uploaded after quota reset",
+      "used_at": "2026-10-26T17:49:53+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:cbc65564-c276-11f1-811b-8f4772221d6a"
+      ],
+      "title": "An Economy So Good No One Can Live In It with Jill Schlesinger⁠",
+      "video_id": "pending",
+      "url": "",
+      "note": "generated; awaiting YouTube quota",
+      "used_at": "2026-10-26T19:01:38+00:00"
     }
   ]
 }
