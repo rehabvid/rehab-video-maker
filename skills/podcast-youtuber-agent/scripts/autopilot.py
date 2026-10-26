@@ -265,6 +265,70 @@ after the files validate. Work efficiently; read the transcript in chunks.
 """
 
 
+def _queue_pending(work: Path, out_dir: Path, source_id: str, title: str, language: str) -> Path | None:
+    """Write a pending-upload manifest and reserve the source in the ledger."""
+    if language == "en":
+        video = out_dir / "final.mp4"
+        metadata = work / "youtube.json"
+        thumbnail = out_dir / "thumbnail.png"
+        captions = [["en", str(work / "captions.srt"), "English"]]
+        localizations = None
+    else:
+        video = out_dir / "final.zh.mp4"
+        metadata = work / "youtube.zh.json"
+        cover = out_dir / "cover.zh.png"
+        thumbnail = cover if cover.exists() else out_dir / "thumbnail.zh.png"
+        captions = [
+            ["zh-Hans", str(work / "zh" / "captions.srt"), "中文（普通话）"],
+            ["en", str(work / "zh" / "captions-en-for-zh.srt"), "English"],
+        ]
+        localizations = out_dir / "localizations.en.json"
+        if not localizations.exists() and (work / "youtube.zh.json").exists():
+            try:
+                import bilingual  # noqa: PLC0415
+                en = _load(work / "youtube.json")
+                zh = _load(work / "youtube.zh.json")
+                aligned = bilingual._align_chapter_starts(
+                    en.get("chapters") or [], zh.get("chapters") or []
+                )
+                data = bilingual._localizations(work / "youtube.json", "en", aligned)
+                localizations.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+                )
+            except Exception:
+                localizations = None
+    if not video.exists():
+        log(f"pending: video missing {video}")
+        return None
+    manifest = {
+        "video": str(video),
+        "metadata": str(metadata),
+        "thumbnail": str(thumbnail) if thumbnail.exists() else None,
+        "captions": [item for item in captions if Path(item[1]).exists()],
+        "localizations": str(localizations) if localizations and localizations.exists() else None,
+        "source_id": source_id,
+        "title": title,
+        "language": language,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    pending_path = out_dir / "pending-upload.json"
+    pending_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    ledger_path = ROOT / "state" / "used-episodes.json"
+    ledger = _load(ledger_path) if ledger_path.exists() else {"used": []}
+    if not any(source_id in (entry.get("source_ids") or []) for entry in ledger.get("used", [])):
+        ledger.setdefault("used", []).append({
+            "source_ids": [source_id],
+            "title": title,
+            "video_id": "pending",
+            "url": "",
+            "note": "generated; awaiting YouTube quota",
+            "used_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        })
+        ledger_path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n")
+    log(f"pending queued: {pending_path}")
+    return pending_path
+
+
 def _resolve_language(parser: argparse.ArgumentParser, args) -> None:
     """Normalise the language flags and enforce the primary-language pairing."""
     if args.english and args.bilingual:
@@ -315,6 +379,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-scene-backgrounds", action="store_true",
         help="keep the old dark cards; default uses cover art and story cards",
+    )
+    parser.add_argument(
+        "--generate-only", action="store_true",
+        help="build and queue for later upload; do not spend YouTube quota",
     )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
@@ -453,9 +521,12 @@ def main(argv: list[str] | None = None) -> int:
                 "--voice-python", str(ROOT / ".venv-voice" / "bin" / "python"),
                 "--max-seconds", "895",
                 "--preset", "veryfast",
-                "--upload",
-                "--upload-languages", "both" if args.language == "both" else "zh",
             ]
+            if not args.generate_only:
+                bilingual_cmd += [
+                    "--upload",
+                    "--upload-languages", "both" if args.language == "both" else "zh",
+                ]
             if cover_path.exists():
                 bilingual_cmd += ["--thumbnail-zh", str(cover_path)]
             if args.no_scene_backgrounds:
@@ -476,24 +547,41 @@ def main(argv: list[str] | None = None) -> int:
                 "youtube-zh.json" if args.primary_language == "zh-Hans" else "youtube-en.json"
             )
         else:
-            build_code = run([
+            build_cmd = [
                 sys.executable, str(TECH_SCRIPTS / "build.py"),
                 "--slides", str(work / "slides.json"),
                 "--out", str(out_dir / "final.mp4"),
                 "--work", str(work),
                 "--engine", "qwen3",
                 "--ref-text-file", str(REF_TEXT),
-                "--upload",
-                "--metadata", str(work / "youtube.json"),
-                "--privacy", "private",
                 "--max-seconds", "895",
                 "--preset", "veryfast",
-            ])
+            ]
+            if not args.generate_only:
+                build_cmd += [
+                    "--upload",
+                    "--metadata", str(work / "youtube.json"),
+                    "--privacy", "private",
+                ]
+            build_code = run(build_cmd)
             out_note = f"output {out_dir / 'final.mp4'}"
             receipt_path = out_dir / "youtube-upload.json"
         if build_code:
             log(f"build/upload failed for {slug}; stopping")
             break
+        if args.generate_only:
+            pending = _queue_pending(
+                work, out_dir, source_id, title,
+                "en" if args.language == "en" else "zh-Hans",
+            )
+            if pending is None:
+                log(f"could not queue {slug}; stopping")
+                break
+            completed += 1
+            log(f"generated {completed}/{args.episodes}: {title} -> {pending}")
+            if completed < args.episodes:
+                time.sleep(max(0, args.sleep))
+            continue
         video_id = ""
         if receipt_path.exists():
             try:
