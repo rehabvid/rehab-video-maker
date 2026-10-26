@@ -33,6 +33,11 @@ from pathlib import Path
 
 import numpy as np
 
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import pronunciation  # noqa: E402
+
 SHARED = Path(__file__).resolve().parents[2] / "podcast-avatar-commentary" / "scripts"
 if str(SHARED) not in sys.path:
     sys.path.insert(0, str(SHARED))
@@ -102,6 +107,38 @@ def _fingerprint(
         ]
     )
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def _tts_text(shot: dict) -> str:
+    """Spoken text, with an optional pronunciation-only override."""
+    return str(shot.get("tts_text") or shot.get("narration") or "")
+
+
+def _apply_pronunciation(shots: list[dict], config: str | None) -> list[dict]:
+    """Add TTS-only pronunciation text without changing captions."""
+    report: list[dict] = []
+    for shot in shots:
+        narration = str(shot.get("narration") or "")
+        if not narration:
+            continue
+        explicit = str(shot.get("tts_text") or "").strip()
+        if explicit:
+            tts_text = explicit
+            applied: list[dict] = []
+            source = "explicit"
+        else:
+            tts_text, applied = pronunciation.prepare_tts_text(narration, config)
+            source = "lexicon"
+        if tts_text and tts_text != narration:
+            shot["tts_text"] = tts_text
+            report.append({
+                "id": str(shot.get("id") or ""),
+                "original": narration,
+                "tts_text": tts_text,
+                "source": source,
+                "applied": applied,
+            })
+    return report
 
 
 def _profile(args) -> dict:
@@ -201,17 +238,17 @@ def _build_master(timeline: list[dict], out_wav: Path, out_dir: Path,
     }
 
 
-async def _edge_synth(jobs: list[tuple[dict, Path, str, str]]) -> None:
+async def _edge_synth(jobs: list[tuple[str, Path, str, str]]) -> None:
     import edge_tts
 
     semaphore = asyncio.Semaphore(4)
 
-    async def one(shot: dict, path: Path, voice: str, rate: str) -> None:
+    async def one(text: str, path: Path, voice: str, rate: str) -> None:
         async with semaphore:
-            communicate = edge_tts.Communicate(shot["narration"], voice, rate=rate)
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
             await communicate.save(str(path))
 
-    await asyncio.gather(*(one(shot, path, voice, rate) for shot, path, voice, rate in jobs))
+    await asyncio.gather(*(one(text, path, voice, rate) for text, path, voice, rate in jobs))
 
 
 def _reference_text(args, profile: dict) -> str:
@@ -246,7 +283,7 @@ def _chatterbox_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict]
             and cached_entry.get("file") == path.name
         )
         if not reusable:
-            jobs.append({"id": sid, "text": shot["narration"], "out": str(path)})
+            jobs.append({"id": sid, "text": _tts_text(shot), "out": str(path)})
     return jobs
 
 
@@ -308,7 +345,7 @@ def _qwen3_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict],
             and cached_entry.get("file") == path.name
         )
         if not reusable:
-            jobs.append({"id": sid, "text": shot["narration"], "out": str(path)})
+            jobs.append({"id": sid, "text": _tts_text(shot), "out": str(path)})
     return jobs
 
 
@@ -370,6 +407,12 @@ def build(args) -> int:
         print(f"error: unknown engine '{engine}'", file=sys.stderr)
         return 1
 
+    pronunciation_report: list[dict] = []
+    if not getattr(args, "no_pronunciation", False):
+        pronunciation_report = _apply_pronunciation(
+            shots, getattr(args, "pronunciation_config", None)
+        )
+
     profile = None
     profile_hash = ""
     ref_text = ""
@@ -413,7 +456,7 @@ def build(args) -> int:
 
     fingerprints = {
         str(shot["id"]): _fingerprint(
-            shot["narration"],
+            shot["narration"] + "\n<TTS>\n" + _tts_text(shot),
             engine,
             profile_hash,
             edge_voice or str(profile["name"] if profile else ""),
@@ -461,9 +504,12 @@ def build(args) -> int:
                 and cached_entry.get("file") == path.name
             )
             if not reusable:
-                jobs.append((shot, path, voice_name, args.rate))
+                jobs.append((_tts_text(shot), path, voice_name, args.rate))
         if args.dry_run:
-            print(json.dumps([shot["id"] for shot, _, _, _ in jobs], indent=2))
+            print(json.dumps([
+                {"text": text, "out": str(path)}
+                for text, path, _, _ in jobs
+            ], ensure_ascii=False, indent=2))
             return 0
         if jobs:
             print(f"synthesising {len(jobs)} cues with {voice_name} at {args.rate}")
@@ -494,7 +540,11 @@ def build(args) -> int:
         if override > 0:
             shot_duration = max(shot_duration, quantize(override, fps))
         entry = {
-            **{key: value for key, value in shot.items() if key != "narration"},
+            **{
+                key: value
+                for key, value in shot.items()
+                if key not in {"narration", "tts_text"}
+            },
             "narration": shot["narration"],
             "audio": f"audio/{path.name}",
             "audio_seconds": duration,
@@ -513,6 +563,14 @@ def build(args) -> int:
             str(shot.get("narration") or "") for shot in shots
         )) else "en"
     )
+    if pronunciation_report:
+        config_arg = getattr(args, "pronunciation_config", None)
+        save_json(out / "pronunciation.json", {
+            "language": language,
+            "config": str(Path(config_arg).resolve())
+            if config_arg else str(pronunciation.DEFAULT_CONFIG),
+            "overrides": pronunciation_report,
+        })
     save_json(
         manifest_path,
         {
@@ -601,6 +659,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rate", default=DEFAULT_RATE, help="edge-tts rate, use --rate=-6%%")
     parser.add_argument("--force", action="store_true", help="re-synthesise every cue")
     parser.add_argument("--dry-run", action="store_true", help="print pending jobs only")
+    parser.add_argument(
+        "--no-pronunciation", action="store_true",
+        help="do not apply the finance/tech polyphone lexicon to TTS text",
+    )
+    parser.add_argument(
+        "--pronunciation-config",
+        help="alternate pronunciation lexicon JSON (default: config/pronunciation.zh.json)",
+    )
     args = parser.parse_args(argv)
     return build(args)
 

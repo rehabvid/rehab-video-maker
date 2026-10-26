@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Build and optionally upload English + Mandarin versions of a deck.
+"""Build Mandarin by default, with an optional English upload.
 
-The English build is the existing slideshow pipeline.  Mandarin reuses the
-same visual track and adds translated narration and captions, so no LinkZag
-scenes need to be rendered twice.  The script also creates ``dub.zh.m4a``,
-time-fitted to the English video, for YouTube Studio's multi-language audio
-track (the public Data API does not yet expose an audio-track insert method).
+The English build is the existing slideshow pipeline and supplies the shared
+visual/timing track.  Mandarin reuses that edit and adds translated narration
+and captions, so no LinkZag scenes need to be rendered twice.  The script also
+creates ``dub.zh.m4a``, time-fitted to the English video, for YouTube Studio's
+multi-language audio track (the public Data API does not yet expose an
+audio-track insert method).
+
+The default upload is Mandarin only: English audiences use YouTube auto-dub
+from the Mandarin primary audio.  Upload English only when the user explicitly
+asks for an English narration; use ``--upload-languages both`` for both.
 
 Typical flow::
 
@@ -13,7 +18,7 @@ Typical flow::
     uv run python skills/podcast-youtuber-agent/scripts/translate.py \\
       --slides build/ep01/slides.json --youtube build/ep01/youtube.json
 
-    # 2. Build both language versions and upload them privately.
+    # 2. Build both language masters and upload the Mandarin one privately.
     uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \\
       --slides build/ep01/slides.json \\
       --slides-zh build/ep01/slides.zh.json \\
@@ -21,10 +26,10 @@ Typical flow::
       --metadata-zh build/ep01/youtube.zh.json \\
       --work build/ep01 --out-dir out/ep01-bilingual --upload
 
-The English and Mandarin videos share the same edit and visuals.  Uploading
-both is the fully automated option.  To get one YouTube URL with an audio
-language selector, attach ``dub.zh.m4a`` in YouTube Studio -> Languages; use
-booth audio and subtitles in the generated ``bilingual.json`` manifest.
+The English and Mandarin videos share the same edit and visuals.  To get one
+YouTube URL with an audio language selector, attach ``dub.zh.m4a`` in YouTube
+Studio -> Languages; use both audio and subtitles in the generated
+``bilingual.json`` manifest.
 """
 
 from __future__ import annotations
@@ -411,9 +416,12 @@ def build(args) -> int:
             "dub_for_studio": str(args.work_zh / "dub" / "dub.zh.m4a"),
         },
         "note": (
-            "YouTube has no public Data API for alternate audio tracks. "
-            "Upload both videos, or attach dub_for_studio in Studio -> Languages "
-            "to one English video to expose the audio language selector."
+            "Mandarin is the default published narration. English can come from "
+            "YouTube auto-dub on the Mandarin primary audio, or upload the "
+            "optional English master when the user explicitly requested an "
+            "English narration. YouTube has no public Data API for alternate "
+            "audio tracks; attach dub_for_studio in Studio -> Languages if you "
+            "want an in-player audio selector."
         ),
     }
     (args.out_dir / "bilingual.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
@@ -450,7 +458,7 @@ def build(args) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("build", help="build English + Mandarin videos")
+    p = sub.add_parser("build", help="build Mandarin primary with optional English master")
     p.add_argument("--slides", required=True)
     p.add_argument("--slides-zh", required=True)
     p.add_argument("--metadata")
@@ -480,8 +488,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-build-en", dest="build_en", action="store_false")
     p.add_argument("--upload", action="store_true")
     p.add_argument(
-        "--upload-languages", choices=["both", "en", "zh"], default="both",
-        help="with --upload: upload both videos, only English, or only Mandarin",
+        "--upload-languages", choices=["both", "en", "zh"], default="zh",
+        help=(
+            "with --upload: default zh (Mandarin primary; English via YouTube "
+            "auto-dub); use en or both only when English narration is explicit"
+        ),
     )
     p.add_argument(
         "--no-burn-captions", action="store_true",

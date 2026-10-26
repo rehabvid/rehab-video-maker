@@ -21,6 +21,20 @@ Animation is optional per slide. The default is deliberately mixed:
 No avatar, no generated video model, no cloud renderer. LinkZag.Show produces
 deterministic pixels locally; FFmpeg assembles the final video.
 
+## Language and pronunciation
+
+- The English deck is the canonical visual/timing plan. The **default published
+  narration is Mandarin (`zh-Hans`)**; do not upload a separate English
+  narration unless the user explicitly asks for one. English audiences use
+  YouTube auto-dub from the Mandarin primary audio.
+- Translate the deck for the Mandarin master and keep the English deck for the
+  shared visual track.
+- `narrate.py` applies the finance/tech polyphone lexicon in
+  `../podcast-youtuber-agent/config/pronunciation.zh.json` to TTS text only.
+  Captions keep the original Chinese. Audit with
+  `../podcast-youtuber-agent/scripts/pronunciation.py --slides <slides.zh.json>`.
+  Use a per-slide `tts_text` override for names or terms not in the lexicon.
+
 ## Skill boundaries
 
 1. **Content layer** — `podcast-content-agent` (or the shared content scripts in

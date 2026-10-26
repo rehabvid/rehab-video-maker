@@ -3,7 +3,10 @@
 
 This is intentionally a thin coordinator. It uses OpenCode itself as the
 editorial writer, then hands the result to the existing content and slideshow
-skills. Every upload is private by default.
+skills. The default published narration is Mandarin (``zh-Hans``); the English
+deck is the working visual/timing track and is not uploaded unless English is
+explicitly requested. English audiences can use YouTube auto-dubbing from the
+Mandarin primary audio. Every upload is private by default.
 
 Run from the repository root::
 
@@ -14,6 +17,9 @@ Use ``--source investment`` to select a fresh episode from the curated RSS
 feeds (Top Traders Unplugged, Macro Voices, Invest Like the Best, The Compound,
 Odd Lots, Forward Guidance). RSS audio is downloaded and transcribed locally
 with MLX Whisper before the writer runs.
+
+Use ``--language en`` only when the user explicitly wants an English narration.
+Use ``--language both`` (or the legacy ``--bilingual``) to publish both.
 
 Stop after the current episode by creating ``build/autopilot/STOP``.
 """
@@ -230,24 +236,52 @@ after the files validate. Work efficiently; read the transcript in chunks.
 """
 
 
+def _resolve_language(parser: argparse.ArgumentParser, args) -> None:
+    """Normalise the language flags and enforce the primary-language pairing."""
+    if args.english and args.bilingual:
+        parser.error("--english and --bilingual are mutually exclusive")
+    if args.english:
+        args.language = "en"
+    if args.bilingual:
+        args.language = "both"
+    if args.primary_language is None:
+        args.primary_language = "en" if args.language == "en" else "zh-Hans"
+    if args.language == "en" and args.primary_language != "en":
+        parser.error("--language en requires --primary-language en")
+    if args.language == "zh-Hans" and args.primary_language != "zh-Hans":
+        parser.error("--language zh-Hans requires --primary-language zh-Hans")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--source", choices=["pt", "investment"], default="pt")
-    parser.add_argument("--bilingual", action="store_true", help="also translate, narrate and upload Mandarin")
+    parser.add_argument(
+        "--language", choices=["zh-Hans", "en", "both"], default="zh-Hans",
+        help=(
+            "published narration language; default zh-Hans (Mandarin). "
+            "Use en only when the user explicitly asks for English narration, "
+            "or both to publish Mandarin and English"
+        ),
+    )
+    parser.add_argument(
+        "--english", action="store_true",
+        help="alias for --language en (explicit English narration request)",
+    )
+    parser.add_argument(
+        "--bilingual", action="store_true",
+        help="legacy alias for --language both (publish English and Mandarin)",
+    )
     parser.add_argument(
         "--primary-language", choices=["en", "zh-Hans"], default=None,
-        help="which upload to mark as primary (default: zh-Hans with --bilingual, en otherwise)",
+        help="which upload to mark as primary (default follows --language)",
     )
     parser.add_argument("--asr-model", default="mlx-community/whisper-large-v3-turbo-asr-fp16")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--sleep", type=int, default=15)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.primary_language is None:
-        args.primary_language = "zh-Hans" if args.bilingual else "en"
-    if args.primary_language == "zh-Hans" and not args.bilingual:
-        parser.error("--primary-language zh-Hans requires --bilingual")
+    _resolve_language(parser, args)
     AUTOPILOT.mkdir(parents=True, exist_ok=True)
     if STOP.exists():
         log(f"stop file exists: {STOP}")
@@ -333,7 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         out_dir = ROOT / "out" / "autopilot" / slug
         out_dir.mkdir(parents=True, exist_ok=True)
         out_note = ""
-        if args.bilingual:
+        if args.language in {"zh-Hans", "both"}:
             translate_code = run([
                 sys.executable, str(HERE / "translate.py"),
                 "--slides", str(work / "slides.json"),
@@ -367,8 +401,19 @@ def main(argv: list[str] | None = None) -> int:
                 "--max-seconds", "895",
                 "--preset", "veryfast",
                 "--upload",
+                "--upload-languages", "both" if args.language == "both" else "zh",
             ])
-            out_note = f"English {out_dir / 'final.en.mp4'}; Mandarin {out_dir / 'final.zh.mp4'}"
+            if args.language == "both":
+                out_note = (
+                    f"English {out_dir / 'final.en.mp4'}; "
+                    f"Mandarin {out_dir / 'final.zh.mp4'}; uploaded both"
+                )
+            else:
+                out_note = (
+                    f"Mandarin {out_dir / 'final.zh.mp4'}; "
+                    f"English reference {out_dir / 'final.en.mp4'} not uploaded; "
+                    "YouTube auto-dub handles English"
+                )
             receipt_path = out_dir / (
                 "youtube-zh.json" if args.primary_language == "zh-Hans" else "youtube-en.json"
             )

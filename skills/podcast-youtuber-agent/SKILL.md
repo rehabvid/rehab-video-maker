@@ -41,6 +41,21 @@ write or perform as if the creator was part of the original recording.
   as an episode of the original podcast. Never use “Interview with…” unless the
   creator actually conducted that interview.
 
+## Language policy
+
+- **Default published narration is Mandarin (`zh-Hans`).** The English deck is
+  the working source for visuals, timing and translation; it is not published
+  by default.
+- Do **not** upload a separate English narration unless the user explicitly
+  asks for English. English audiences should use YouTube's auto-dub on the
+  Mandarin primary audio. Keep a Chinese caption track and an English
+  translated caption track so both audiences can read along.
+- For an explicit English request, run `autopilot.py --language en` (or
+  `--english`). For a deliberate two-video release, use
+  `--language both` / `--bilingual`.
+- The upload remains private by default. Mandarin is the primary ledger entry
+  unless English was explicitly requested.
+
 The skill still owns the editorial loop: fetch candidates, score them, research
 the guest, and write a continuous spoken script. This document adds the
 production layer:
@@ -96,6 +111,7 @@ skills/podcast-youtuber-agent/
     voice-test.slides.json   # 3-slide smoke test for the voice pipeline
     voice.example.json       # voice-profile shape (real profiles are gitignored)
     youtube.example.json     # upload metadata shape
+    pronunciation.zh.json    # TTS-only finance/tech polyphone lexicon
     trending-sources.json    # curated YouTube channels for full episodes
     priority-people.json     # founders/investors/traders/hosts used in ranking
   scripts/
@@ -106,6 +122,7 @@ skills/podcast-youtuber-agent/
     voice_sample.py          # analyse, trim and register a reference WAV
     chatterbox_worker.py     # batch Chatterbox worker (voice venv)
     narrate.py               # voice synthesis, timing, master.wav, captions
+    pronunciation.py         # TTS-only heteronym overrides for finance/tech
     thumbnail.py             # 1280x720 title-card thumbnail from the slide list
     translate.py             # EN -> zh-Hans deck + YouTube metadata via OpenCode
     bilingual.py             # shared visuals + English/Mandarin narration + upload
@@ -835,10 +852,57 @@ and writes `youtube-upload.json` next to the video. If the thumbnail, captions
 or playlist step fails after the video uploads, the receipt records the warning
 instead of discarding the successful upload.
 
-### 6.4b Bilingual English + Mandarin
+### 6.4a Mandarin pronunciation for finance and technology
 
-The pipeline can produce both languages from one English edit. Translate the
-deck and metadata first, then build and upload both versions:
+Mandarin has many heteronyms, and a TTS model can choose the wrong reading even
+when the sentence is otherwise natural. Common investment/tech examples:
+
+| Term | Correct | Common wrong reading | TTS-only override |
+| --- | --- | --- | --- |
+| 重定价 | chóng dìngjià | zhòng dìngjià | 崇定价 |
+| 行业 | hángyè | xíngyè | 航业 |
+| 利差 | lìchā | lìchà | 利叉 |
+| 杠杆率 | gànggǎnlǜ | gānggǎnlǜ | 杠敢绿 |
+| 调用 | diàoyòng | tiáoyòng | 掉用 |
+| 看空 | kànkōng | kànkòng | 看跌 |
+
+`narrate.py` applies `config/pronunciation.zh.json` to the **TTS text only**.
+Captions, headings, metadata and the English translation keep the original
+wording. The build writes `build/ep01/zh/pronunciation.json` so every applied
+override is auditable.
+
+Inspect a script before rendering:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/pronunciation.py \
+  --slides build/ep01/slides.zh.json
+
+uv run python skills/podcast-youtuber-agent/scripts/pronunciation.py \
+  --text "央行行长说，重定价和重启不是一回事。"
+```
+
+Add a lexicon entry as `[original, spoken, pinyin, note]`. Use a same-sounding
+character where possible; use a short paraphrase when a homophone would be
+ambiguous. For a one-off name or phrase, put `tts_text` on that slide instead of
+changing the shared lexicon:
+
+```json
+{
+  "id": "07",
+  "narration": "重定价是这期节目的核心。",
+  "tts_text": "崇定价是这期节目的核心。"
+}
+```
+
+Use `--no-pronunciation` only for a controlled test. Do not use it for a
+published finance/tech video.
+
+### 6.4b Mandarin primary, optional English
+
+The default release is Mandarin with an English translated caption track. The
+English master is a local visual/timing reference and is **not uploaded**.
+Translate the deck and metadata first, then build and upload the Mandarin
+version:
 
 ```bash
 uv run python skills/podcast-youtuber-agent/scripts/translate.py \
@@ -852,7 +916,7 @@ uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
   --metadata build/ep01/youtube.json \
   --metadata-zh build/ep01/youtube.zh.json \
   --work build/ep01 \
-  --out-dir out/ep01-bilingual \
+  --out-dir out/ep01-mandarin \
   --upload
 ```
 
@@ -876,11 +940,12 @@ build/ep01/zh/captions-en-for-zh.srt           # English, Mandarin timings
 build/ep01/zh/dub/dub.zh.m4a                   # exact English video length
 ```
 
-Both videos are uploaded privately when `--upload` is present. Use
-`--upload-languages zh` (or `en`) to upload only one language; the default is
-`both`. The English upload gets English and Mandarin caption tracks plus a
-`zh-Hans` localized title/description; the Mandarin upload gets Mandarin and
-English caption tracks.
+`--upload` defaults to `--upload-languages zh`: the Mandarin master is uploaded
+privately, and the English master stays local for reuse. The Mandarin upload
+gets Mandarin and English caption tracks plus an `en` localized
+title/description. Use `--upload-languages en` only when the user explicitly
+asked for English narration, and `--upload-languages both` only for a
+deliberate two-video release.
 
 The Mandarin master normally keeps burned-in captions off with
 `--no-burn-captions`; the SRT tracks are still uploaded, so viewers select
@@ -900,16 +965,21 @@ recognise the chapters without a separate Studio step.
 ```
 
 **YouTube limitation:** the public Data API can upload videos, captions and
-localized metadata, but it has no endpoint for a second audio track. To give
-viewers a single URL with an in-player language selector, use the generated
-`dub/dub.zh.m4a` in **YouTube Studio → Languages → Add language → Dub**. The
-file is already time-fitted to `final.en.mp4`. Uploading both complete videos
-is the fully automated fallback and lets viewers choose by video.
+localized metadata, but it has no endpoint for a second audio track. The
+default Mandarin upload is the primary audio; enable the channel's auto-dub
+setting so YouTube can generate English and other language tracks from it. If
+you need an in-player selector immediately, use the generated `dub/dub.zh.m4a`
+in **YouTube Studio → Languages → Add language → Dub**. The file is already
+time-fitted to `final.en.mp4`. Publishing both complete videos is only for an
+explicit two-language request.
 
-`autopilot.py --bilingual` performs the translation, both builds and both
-uploads automatically. Mandarin captions use CJK-aware line wrapping and the
-system CJK font (STHeiti / Songti on macOS, Noto Sans CJK on Linux). Do not
-upload a burned-in Mandarin video that uses an Arial-only font path.
+`autopilot.py` defaults to Mandarin: it translates the deck, builds the
+Mandarin master and uploads only that video. Use `--language en` only when the
+user explicitly asks for English narration; use `--language both` (or the
+legacy `--bilingual`) to publish both. Mandarin captions use CJK-aware line
+wrapping and the system CJK font (STHeiti / Songti on macOS, Noto Sans CJK on
+Linux). Do not upload a burned-in Mandarin video that uses an Arial-only font
+path.
 
 ### 6.5 Quota and platform limits
 
@@ -966,13 +1036,17 @@ It downloads the episode audio and runs local MLX Whisper ASR before writing,
 so the first run also downloads the ASR model. Use `--asr-model` to choose a
 smaller/faster model.
 
-Add `--bilingual` to translate the finished deck, render Mandarin narration,
-and upload private English and Mandarin videos. The two videos share the same
-visual edit; `bilingual.json` also contains a time-fitted `dub.zh.m4a` for the
-Studio multi-language-audio selector. With `--bilingual`, the ledger points at
-the Mandarin upload by default; use `--primary-language en` to point it at the
-English upload instead. When the channel's YouTube auto-dub setting is on,
-YouTube can add further language tracks from the uploaded primary audio.
+By default, the queue translates the finished deck, renders Mandarin narration,
+and uploads only the private Mandarin video. The English master remains local
+as the shared visual/timing reference. The ledger points at the Mandarin
+upload. When the channel's YouTube auto-dub setting is on, YouTube can add
+English and other language tracks from the Mandarin primary audio.
+
+Use `--language en` only when the user explicitly asks for an English
+narration. Use `--language both` / `--bilingual` to publish English and
+Mandarin videos; then `--primary-language` chooses the ledger entry. The
+translated deck is always validated, and the pronunciation lexicon is applied
+before narration.
 
 Stop after the current episode with `touch build/autopilot/STOP`. Uploads are
 private by default. Review each private video before publishing. The queue

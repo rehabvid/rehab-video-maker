@@ -266,8 +266,10 @@ uv run python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
   --privacy private
 ```
 
-For a bilingual release, translate the finished deck and metadata, then build
-both language versions from one visual edit:
+Mandarin is the default published narration. The English deck supplies the
+shared visual/timing track; it is translated first and is not uploaded unless
+the user explicitly asks for an English narration. English audiences can use
+YouTube auto-dub on the Mandarin primary audio.
 
 ```bash
 uv run python skills/podcast-youtuber-agent/scripts/translate.py \
@@ -278,18 +280,29 @@ uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
   --slides-zh build/ep01/slides.zh.json \
   --metadata build/ep01/youtube.json \
   --metadata-zh build/ep01/youtube.zh.json \
-  --work build/ep01 --out-dir out/ep01-bilingual --upload
+  --work build/ep01 --out-dir out/ep01-mandarin --upload
 ```
 
-This writes `final.en.mp4`, `final.zh.mp4`, English/Chinese caption tracks and a
-time-fitted `dub.zh.m4a` for YouTube Studio's multi-language-audio selector. The
-public YouTube Data API cannot insert an alternate audio track, so the Studio
-attach step is manual; uploading both videos is fully automated. Pass
-`--upload-languages zh` to upload only the Mandarin version, and
-`--no-burn-captions` to keep captions off the Mandarin master while still
-uploading SRT tracks. Autopilot has the same path with `--bilingual`; its
-default primary upload is the Mandarin version (`--primary-language en`
-switches the ledger link to English).
+This writes `final.en.mp4` locally as the visual/timing reference,
+`final.zh.mp4` as the Mandarin master, English/Chinese caption tracks and a
+time-fitted `dub.zh.m4a` for YouTube Studio's multi-language-audio selector.
+`--upload` defaults to `--upload-languages zh`; use `en` only for an explicit
+English request, or `both` for a deliberate two-video release. The public
+YouTube Data API cannot insert an alternate audio track, so the Studio attach
+step is manual. Pass `--no-burn-captions` to keep captions off the Mandarin
+master while still uploading SRT tracks. Autopilot follows the same policy; its
+default is `--language zh-Hans`, with `--language en` / `--english` and
+`--language both` available when explicitly requested.
+
+The Mandarin TTS layer applies a finance/tech heteronym lexicon
+(`skills/podcast-youtuber-agent/config/pronunciation.zh.json`) to the spoken
+text only. Captions and metadata retain the original wording. Audit a translated
+deck before rendering:
+
+```bash
+uv run python skills/podcast-youtuber-agent/scripts/pronunciation.py \
+  --slides build/ep01/slides.zh.json
+```
 
 Every run should start from the current popular lists, not a saved topic. The
 ranked list merges PodcastTranscript.ai with curated AI, startup, technology and

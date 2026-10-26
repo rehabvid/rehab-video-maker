@@ -47,6 +47,34 @@ the recording.
   as an episode of the original show. Never use “Interview with…” unless the
   creator actually conducted that interview.
 
+## Language policy
+
+- Write the source script and `slides.json` in English: that deck is the
+  canonical visual/timing plan and the translation source.
+- The **default published narration is Mandarin (`zh-Hans`)**. Translate the
+  finished English deck and metadata; do not publish the English narration
+  unless the user explicitly asks for it.
+- English audiences use YouTube auto-dub from the Mandarin primary audio. Keep
+  a translated English caption track and localized metadata so they can read
+  along.
+- Do not set `--language en` or upload an English master merely because the
+  source podcast is English.
+
+## Chinese pronunciation
+
+Finance and technology Mandarin is full of heteronyms. The narrator applies
+[`../podcast-youtuber-agent/config/pronunciation.zh.json`](../podcast-youtuber-agent/config/pronunciation.zh.json)
+to TTS text only, so captions keep the original wording. It covers terms such
+as 重定价 (chóng), 行业/央行/行长 (háng), 利差 (chā), 杠杆率 (gàng), 调用
+(diào), 看空 (kōng) and 应用 (yìng).
+
+- When translating, use standard mainland finance/tech terminology.
+- Do not add pinyin to `narration`; the lexicon and TTS layer handle it.
+- For a proper name or a new term that the lexicon misses, add a `tts_text`
+  field to that slide with a same-sounding or unambiguous spoken variant.
+- Run `python skills/podcast-youtuber-agent/scripts/pronunciation.py --slides
+  build/ep01/slides.zh.json` to audit the override list before rendering.
+
 ## Length policy
 
 - Default video: **10–15 minutes**.
@@ -234,14 +262,25 @@ Deliver:
 - `build/ep01/people.json` — cited host/guest briefs;
 - `build/ep01/plan.md` — estimated runtime and slide list.
 
-Then run:
+For the default Mandarin release, translate the deck and metadata, then build
+with the bilingual/Mandarin path (English remains a local visual/timing
+reference and is not uploaded):
 
 ```bash
-uv run python skills/tech-commentary-slideshow/scripts/build.py \
+uv run python skills/podcast-youtuber-agent/scripts/translate.py \
   --slides build/ep01/slides.json \
-  --out out/ep01/final.mp4 \
-  --voice-profile voices/me
+  --youtube build/ep01/youtube.json \
+  --out-dir build/ep01
+
+uv run python skills/podcast-youtuber-agent/scripts/bilingual.py build \
+  --slides build/ep01/slides.json \
+  --slides-zh build/ep01/slides.zh.json \
+  --metadata build/ep01/youtube.json \
+  --metadata-zh build/ep01/youtube.zh.json \
+  --work build/ep01 --out-dir out/ep01-mandarin --upload
 ```
 
-For a talking avatar instead, use `podcast-avatar-commentary`; for a
-b-roll-only legacy render, use `podcast-youtuber-agent`.
+For an explicit English request, build `slides.json` directly with
+`tech-commentary-slideshow/scripts/build.py`. For a talking avatar instead, use
+`podcast-avatar-commentary`; for a b-roll-only legacy render, use
+`podcast-youtuber-agent`.

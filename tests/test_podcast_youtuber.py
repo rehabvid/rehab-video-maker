@@ -5,6 +5,7 @@ Run with: uv run python -m unittest discover -s tests -v
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import sys
@@ -21,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "skills" / "podcast-youtuber-agent" / "scripts"
 SHARED = ROOT / "skills" / "podcast-avatar-commentary" / "scripts"
 sys.path.insert(0, str(SHARED))
+sys.path.insert(0, str(SCRIPTS))
 
 
 def _load(name: str):
@@ -37,6 +39,9 @@ youtube_upload = _load("youtube_upload")
 fetch_popular = _load("fetch_popular")
 trending = _load("trending")
 bilingual = _load("bilingual")
+pronunciation = _load("pronunciation")
+narrate = _load("narrate")
+autopilot = _load("autopilot")
 
 
 class SlideValidationTests(unittest.TestCase):
@@ -113,6 +118,95 @@ class VoiceSampleTests(unittest.TestCase):
         start, end = voice_sample.trim_bounds(samples)
         self.assertEqual(start, 0.0)
         self.assertAlmostEqual(end, 1.0, places=2)
+
+
+class PronunciationTests(unittest.TestCase):
+    def test_finance_and_tech_heteronyms_get_tts_overrides(self):
+        text = (
+            "央行行长在行业会议上说，重定价和重启是两回事。"
+            "利差倒挂，杠杆率上升，看空情绪和跳空风险都在增加。"
+            "调用模型时，应用层要处理供给链和下载量。"
+        )
+        tts_text, applied = pronunciation.prepare_tts_text(text)
+        self.assertIn("央航航掌", tts_text)
+        self.assertIn("航业", tts_text)
+        self.assertIn("崇定价", tts_text)
+        self.assertIn("崇启", tts_text)
+        self.assertIn("利叉", tts_text)
+        self.assertIn("到挂", tts_text)
+        self.assertIn("杠敢绿", tts_text)
+        self.assertIn("看跌", tts_text)
+        self.assertIn("价格缺口", tts_text)
+        self.assertIn("掉用", tts_text)
+        self.assertIn("硬用层", tts_text)
+        self.assertIn("楚理", tts_text)
+        self.assertIn("供己链", tts_text)
+        self.assertIn("下再量", tts_text)
+        self.assertGreaterEqual(len(applied), 10)
+
+    def test_non_chinese_text_is_untouched(self):
+        text = "The Fed and the ECB are watching the long end of the curve."
+        tts_text, applied = pronunciation.prepare_tts_text(text)
+        self.assertEqual(tts_text, text)
+        self.assertEqual(applied, [])
+
+    def test_explicit_tts_text_wins_over_lexicon(self):
+        shot = {
+            "id": "01",
+            "narration": "重定价和重启",
+            "tts_text": "崇定价与重新启动",
+        }
+        report = narrate._apply_pronunciation([shot], None)
+        self.assertEqual(shot["tts_text"], "崇定价与重新启动")
+        self.assertEqual(report[0]["source"], "explicit")
+
+    def test_qwen_jobs_use_tts_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shot = {
+                "id": "01",
+                "narration": "重定价",
+                "tts_text": "崇定价",
+            }
+            jobs = narrate._qwen3_jobs(
+                [shot], Path(tmp), {}, {"01": "fingerprint"}, False
+            )
+        self.assertEqual(jobs[0]["text"], "崇定价")
+
+    def test_lexicon_terms_are_unique_and_cover_current_finance_terms(self):
+        terms = pronunciation.load_terms()
+        matches = [term["match"] for term in terms]
+        self.assertEqual(len(matches), len(set(matches)))
+        for required in ("重定价", "行业", "利差", "杠杆率", "调用", "应用"):
+            self.assertIn(required, matches)
+
+
+class LanguageDefaultTests(unittest.TestCase):
+    def test_mandarin_is_the_default(self):
+        args = SimpleNamespace(
+            language="zh-Hans", english=False, bilingual=False,
+            primary_language=None,
+        )
+        autopilot._resolve_language(argparse.ArgumentParser(), args)
+        self.assertEqual(args.language, "zh-Hans")
+        self.assertEqual(args.primary_language, "zh-Hans")
+
+    def test_english_requires_an_explicit_flag(self):
+        args = SimpleNamespace(
+            language="en", english=True, bilingual=False,
+            primary_language=None,
+        )
+        autopilot._resolve_language(argparse.ArgumentParser(), args)
+        self.assertEqual(args.language, "en")
+        self.assertEqual(args.primary_language, "en")
+
+    def test_bilingual_is_opt_in(self):
+        args = SimpleNamespace(
+            language="zh-Hans", english=False, bilingual=True,
+            primary_language=None,
+        )
+        autopilot._resolve_language(argparse.ArgumentParser(), args)
+        self.assertEqual(args.language, "both")
+        self.assertEqual(args.primary_language, "zh-Hans")
 
 
 class YouTubeMetadataTests(unittest.TestCase):
