@@ -174,6 +174,79 @@ def _rss_source_file(candidate: dict, work: Path, asr_model: str) -> Path | None
     return path
 
 
+def _youtube_source_file(candidate: dict, work: Path) -> Path | None:
+    """Fetch a YouTube transcript and build the source.json writer input."""
+    source_ids = [str(x) for x in candidate.get("source_ids") or [] if x]
+    if not source_ids:
+        return None
+    video_id = source_ids[0]
+    transcript_json = work / "youtube-transcript.json"
+    code = run([
+        sys.executable, str(CONTENT_SCRIPTS / "trending.py"),
+        "transcript", "--source", "youtube", "--id", video_id,
+        "--out", str(transcript_json),
+    ])
+    if code or not transcript_json.exists():
+        return None
+    data = _load(transcript_json)
+    segments = data.get("segments") or []
+    text = " ".join(
+        str(segment.get("text") or "").strip()
+        for segment in segments
+        if str(segment.get("text") or "").strip()
+    )
+    if len(text) < 1000:
+        return None
+    description = str(candidate.get("description") or "")
+    source = {
+        "transcription": {
+            "id": video_id,
+            "slug": slugify(candidate.get("title", "")),
+            "title": candidate.get("title", ""),
+            "description": description,
+            "audio_url": "",
+            "image": "",
+            "duration": int(candidate.get("duration_seconds") or 0),
+            "language": "English",
+            "category": "youtube",
+            "created_at": candidate.get("published_at", ""),
+            "summary": description[:500],
+            "long_summary": description,
+            "faqs": [],
+            "transcript": text,
+        }
+    }
+    path = work / "source.json"
+    path.write_text(json.dumps(source, indent=2, ensure_ascii=False) + "\n")
+    return path
+
+
+def select_youtube_candidate() -> dict | None:
+    """Pick a fresh LLM/AI interview from the curated YouTube channels."""
+    AUTOPILOT.mkdir(parents=True, exist_ok=True)
+    out = AUTOPILOT / "youtube-candidates.json"
+    code = run([
+        sys.executable, str(CONTENT_SCRIPTS / "trending.py"),
+        "list", "--skip-podcasttranscript", "--limit", "30",
+        "--no-transcript-check", "--out", str(out),
+    ], quiet=True)
+    if code:
+        return None
+    items = _load(out)
+    ranked = []
+    for item in items:
+        duration = int(item.get("duration_seconds") or 0)
+        if duration < 20 * 60:
+            continue
+        title = str(item.get("title") or "").lower()
+        keywords = ("llm", "model", "openai", "anthropic", "inference", "agent", "ai ")
+        if not any(word in f" {title} " for word in keywords):
+            continue
+        ranked.append((float(item.get("score") or 0), duration, item))
+    ranked.sort(key=lambda pair: (pair[0], pair[1]), reverse=True)
+    return ranked[0][2] if ranked else None
+
+
 def writer_prompt(candidate: dict, work: Path) -> str:
     title = candidate.get("title") or "Podcast commentary"
     source_url = candidate.get("url") or ""
@@ -348,7 +421,11 @@ def _resolve_language(parser: argparse.ArgumentParser, args) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--episodes", type=int, default=1)
-    parser.add_argument("--source", choices=["pt", "investment"], default="pt")
+    parser.add_argument("--source", choices=["pt", "investment", "youtube"], default="pt")
+    parser.add_argument(
+        "--candidate-file",
+        help="explicit candidate JSON (for editorial selection); one episode",
+    )
     parser.add_argument(
         "--language", choices=["zh-Hans", "en", "both"], default="zh-Hans",
         help=(
@@ -397,7 +474,14 @@ def main(argv: list[str] | None = None) -> int:
         if STOP.exists():
             log("stop file detected; exiting")
             break
-        candidate = select_investment_candidate() if args.source == "investment" else select_candidate()
+        if args.candidate_file:
+            candidate = _load(Path(args.candidate_file).expanduser())
+        elif args.source == "investment":
+            candidate = select_investment_candidate()
+        elif args.source == "youtube":
+            candidate = select_youtube_candidate()
+        else:
+            candidate = select_candidate()
         if candidate is None:
             log("no fresh transcript-backed candidate at >=40 minutes; stopping")
             break
@@ -421,6 +505,10 @@ def main(argv: list[str] | None = None) -> int:
             if _rss_source_file(candidate, work, args.asr_model) is None:
                 log(f"ASR/transcript failed for {slug}; stopping")
                 break
+        elif candidate.get("source") == "youtube":
+            if _youtube_source_file(candidate, work) is None:
+                log(f"YouTube transcript failed for {slug}; stopping")
+                break
         else:
             with source_file.open("w") as handle:
                 subprocess.run(
@@ -431,6 +519,8 @@ def main(argv: list[str] | None = None) -> int:
                 log("empty source file; stopping")
                 break
 
+        if args.candidate_file and completed > 0:
+            break
         write_code = 1
         writer_log = work / "writer.log"
         for attempt in range(1, 5):

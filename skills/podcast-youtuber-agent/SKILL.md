@@ -1155,6 +1155,20 @@ nohup caffeinate -dimsu .venv/bin/python \
   >> build/autopilot/investment-run.log 2>&1 &
 ```
 
+To exercise editorial control, pass a candidate JSON saved from
+`investment_sources.py list` or `trending.py list`. `--source youtube` selects
+fresh interviews from the curated AI YouTube channels and fetches their
+transcripts with `youtube-transcript-api`:
+
+```bash
+.venv/bin/python skills/podcast-youtuber-agent/scripts/autopilot.py \
+  --source youtube --candidate-file build/autopilot/candidate.json \
+  --episodes 1 --generate-only
+```
+
+`--candidate-file` is intended for one episode; use `--generate-only` to queue
+when the YouTube upload cap is exhausted, then drain with `upload_pending.py`.
+
 It downloads the episode audio and runs local MLX Whisper ASR before writing,
 so the first run also downloads the ASR model. Use `--asr-model` to choose a
 smaller/faster model.
