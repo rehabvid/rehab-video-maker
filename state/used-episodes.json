@@ -195,6 +195,26 @@
       "url": "https://youtu.be/qzKpfuifHos",
       "note": "generated in cooldown; uploaded after quota reset",
       "used_at": "2026-10-27T11:12:25+00:00"
+    },
+    {
+      "source_ids": [
+        "AwuTTOJGEi0"
+      ],
+      "title": "The Changing Physics of Cybersecurity and Drug Development with OpenAI President Greg Brockman",
+      "video_id": "cixSfrH4C2M",
+      "url": "https://youtu.be/cixSfrH4C2M",
+      "note": "generated in cooldown; uploaded after quota reset",
+      "used_at": "2026-10-27T13:12:20+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:2296d374-ab1a-11f1-b8f4-b3edc98ebd97"
+      ],
+      "title": "How OpenAI Could Cause a US Recession With Steve Eisman",
+      "video_id": "Bwbc38WFeZQ",
+      "url": "https://youtu.be/Bwbc38WFeZQ",
+      "note": "generated in cooldown; uploaded after quota reset",
+      "used_at": "2026-10-27T14:00:42+00:00"
     }
   ]
 }
