@@ -169,7 +169,8 @@ Platform rules of thumb:
   comments.
 - **Hacker News:** only for a technical/engineering angle; no marketing voice.
 - **WeChat:** publish an article/video to an existing audience; a mini program
-  does not solve discovery.
+  does not solve discovery. The `wxa/sec/vod/*` APIs are mini-program short-drama
+  VOD uploads, not Channels publishing.
 - **TikTok/Reels:** label synthetic narration; do not upload watermarked or
   third-party clips.
 

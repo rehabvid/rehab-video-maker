@@ -29,3 +29,12 @@
 ## Newsletter
 - A free Substack/Buttondown list is the only audience you own.
 - Republish the argument, not the whole transcript; embed the video.
+
+## WeChat mini-program VOD APIs are not Channels publishing
+
+`wxa/sec/vod/singlefileupload` and `wxa/sec/vod/uploadpart` upload media into
+a **mini program's short-drama/VOD** asset system. They require a mini program
+with the `文娱-微短剧` category, a server-side `access_token`, and the short-drama
+permission set (id 153). They return a `media_id`; they do not create a
+视频号/Channels post, feed item, or public short-video upload. Do not treat these
+endpoints as a WeChat Channels publishing API.
