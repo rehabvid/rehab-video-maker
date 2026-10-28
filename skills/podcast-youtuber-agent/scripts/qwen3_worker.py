@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0, help="post-process to this English WPM; 0 disables")
-    parser.add_argument("--max-chunk-chars", type=int, default=180)
+    parser.add_argument("--max-chunk-chars", type=int, default=10000)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
     parser.add_argument("--seed", type=int, default=43)

@@ -58,9 +58,10 @@ write or perform as if the creator was part of the original recording.
   unless English was explicitly requested.
 - Current production setting: English uses Qwen3 at natural model speed and a
   post-processing target of `--target-wpm-en 170` (the renderer slows or speeds
-  each cue with `atempo`). It also sentence-chunks long English cues and applies
-  `loudnorm=I=-16:TP=-1.5:LRA=7` to every cue so one shot does not sit hotter or
-  faster than its neighbours. This avoids the instability Qwen showed when the
+  each cue with `atempo`). English cues are generated in one pass per shot
+  (`--max-chunk-chars 10000`); sentence chunking caused Qwen voice drift and
+  female-timbre glitches in later chunks. Every cue is normalised with
+  `loudnorm=I=-16:TP=-1.5:LRA=7`. This avoids the instability Qwen showed when the
   model speed itself was pushed to 1.16. Mandarin uses Qwen3 at natural speed.
   Chatterbox remains available with `--engine chatterbox`, but it is not the
   default English engine.
