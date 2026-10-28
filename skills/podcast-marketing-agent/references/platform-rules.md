@@ -25,6 +25,10 @@
 - Use 公众号 articles or 视频号 if there is an existing Chinese audience.
 - Do not repost YouTube links as the primary CTA; host or embed video where the
   audience can actually watch it.
+- `wechat-channels-agent` can automate the Channels creator UI through Playwright
+  after a manual QR login. This is not an official API; selectors can break and
+  automated publishing may put the account at risk. Default to a draft, one
+  video per run, and never claim originality for third-party source material.
 
 ## Newsletter
 - A free Substack/Buttondown list is the only audience you own.

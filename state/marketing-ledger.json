@@ -29,10 +29,11 @@
   ],
   "wechat": [
     {
-      "account": "tagact",
-      "status": "ready-for-manual-upload",
-      "asset": "build/marketing/wechat/tagact/rickards-gold-thesis.mp4",
-      "copy": "build/marketing/wechat/tagact/rickards-gold-thesis.md"
+      "account": "linkZag",
+      "status": "ready-for-login",
+      "asset": "build/marketing/wechat/linkZag/rickards-gold-thesis.mp4",
+      "cover": "build/marketing/wechat/linkZag/rickards-gold-thesis-cover.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest.json"
     }
   ]
 }

@@ -19,7 +19,7 @@ unsolicited links.
 | Reddit | **No safe auto-post**; draft only | Native posts by the owner, following each subreddit's self-promotion rules |
 | X / LinkedIn | Draft; post only with user-provided API credentials or manually | Clip/thread distribution |
 | WeChat mini program | **Not recommended** as a growth channel | Build only if there is a real product need |
-| WeChat Channels / 公众号 | Manual | Existing Chinese network; not cold-start |
+| WeChat Channels / 公众号 | UI automation after manual QR (video) or manual (article) | Existing Chinese network; not cold-start; see `wechat-channels-agent` |
 | TikTok / Instagram Reels | Manual or approved API | Reuse the same vertical clips |
 | Newsletter/Substack | Draft; publish manually | Own the audience instead of renting reach |
 | Podcast/newsletter outreach | Draft only | Guest/source amplification |
@@ -170,7 +170,9 @@ Platform rules of thumb:
 - **Hacker News:** only for a technical/engineering angle; no marketing voice.
 - **WeChat:** publish an article/video to an existing audience; a mini program
   does not solve discovery. The `wxa/sec/vod/*` APIs are mini-program short-drama
-  VOD uploads, not Channels publishing.
+  VOD uploads, not Channels publishing. `wechat-channels-agent` can drive the
+  Channels creator UI with Playwright after a one-time QR login; it is
+  unofficial, selector-brittle and account-risk-bearing.
 - **TikTok/Reels:** label synthetic narration; do not upload watermarked or
   third-party clips.
 
