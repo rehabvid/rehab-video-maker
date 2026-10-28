@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ref-text-file", default="skills/podcast-youtuber-agent/config/sample-passage.txt")
     parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
     parser.add_argument("--speed", type=float, default=1.0)
+    parser.add_argument("--target-wpm", type=float, default=0.0)
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=43)
@@ -102,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
                 "--ref-text-file", args.ref_text_file,
                 "--qwen3-model", args.qwen3_model,
                 "--speed", str(args.speed),
+                "--target-wpm", str(args.target_wpm),
                 *(["--turbo"] if args.turbo else []),
                 "--exaggeration", str(args.exaggeration),
                 "--cfg-weight", str(args.cfg_weight),

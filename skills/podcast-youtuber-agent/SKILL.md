@@ -56,8 +56,10 @@ write or perform as if the creator was part of the original recording.
   `--language both` / `--bilingual`.
 - The upload remains private by default. Mandarin is the primary ledger entry
   unless English was explicitly requested.
-- Current production setting: English uses Qwen3 at `--speed-en 1.16`
-  (approximately 170 wpm); Mandarin uses Qwen3 at natural speed (`1.0`).
+- Current production setting: English uses Qwen3 at natural model speed and a
+  post-processing target of `--target-wpm-en 170` (the renderer slows or speeds
+  each cue with `atempo`). This avoids the instability Qwen showed when the
+  model speed itself was pushed to 1.16. Mandarin uses Qwen3 at natural speed.
   Chatterbox remains available with `--engine chatterbox`, but it is not the
   default English engine.
 

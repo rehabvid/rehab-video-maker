@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -73,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ref-text-file", required=False, help="exact transcript of the reference WAV")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--speed", type=float, default=1.0)
+    parser.add_argument("--target-wpm", type=float, default=0.0, help="post-process to this English WPM; 0 disables")
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
     parser.add_argument("--seed", type=int, default=43)
@@ -121,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     for index, job in enumerate(jobs, start=1):
         job_id = str(job.get("id") or index)
         text = (job.get("text") or "").strip()
+        text = re.sub(r"\ba16z\b", "Andreessen Horowitz", text, flags=re.IGNORECASE)
         out = Path(job.get("out") or "")
         if not text or not out:
             failures.append(f"{job_id}: missing text or out")
@@ -148,6 +152,26 @@ def main(argv: list[str] | None = None) -> int:
             result = results[0]
             audio_write(str(out), result.audio, result.sample_rate)
             duration = result.samples / result.sample_rate
+            if args.target_wpm > 0:
+                words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", text))
+                if words >= 8 and duration > 0:
+                    current = words / duration * 60.0
+                    factor = args.target_wpm / current
+                    if abs(factor - 1.0) >= 0.035:
+                        tmp = out.with_suffix(".pace.wav")
+                        try:
+                            subprocess.run([
+                                "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                                "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
+                                "-ar", str(result.sample_rate), "-ac", "1", str(tmp),
+                            ], check=True)
+                            tmp.replace(out)
+                            duration = result.samples / result.sample_rate / factor
+                            print(f"  pace {current:.0f} -> {args.target_wpm:.0f} wpm ({factor:.3f}x)", file=sys.stderr)
+                        except Exception as exc:  # noqa: BLE001
+                            print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
+                            try: tmp.unlink()
+                            except OSError: pass
             print(
                 f"  wrote {out} ({duration:.2f}s, "
                 f"{duration / max(result.processing_time_seconds, 1e-6):.2f}x realtime)",

@@ -83,6 +83,7 @@ def _build_english(args, out_en: Path) -> int:
         "--voice-profile", args.voice_profile,
         "--engine", args.engine,
         "--speed", str(args.speed_en),
+        "--target-wpm", str(args.target_wpm_en),
         "--preset", args.preset,
         "--crf", str(args.crf),
     ]
@@ -629,7 +630,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ref-text-file", default=str(ROOT / "skills" / "podcast-youtuber-agent" / "config" / "sample-passage.txt"))
     p.add_argument("--device", default="mps", choices=["mps", "cpu"])
     p.add_argument("--speed-zh", type=float, default=1.0)
-    p.add_argument("--speed-en", type=float, default=1.16, help="English Qwen rate; 1.16 targets ~170 wpm")
+    p.add_argument("--speed-en", type=float, default=1.0, help="English Qwen model speed; keep 1.0")
+    p.add_argument("--target-wpm-en", type=float, default=170.0, help="English Qwen post-speed target")
     p.add_argument(
         "--reuse-zh-narration", action="store_true",
         help="reuse work-zh/timing.json and master.wav instead of synthesising again",
