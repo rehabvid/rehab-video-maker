@@ -148,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0, help="post-process to this English WPM; 0 disables")
     parser.add_argument("--target-syllables-per-sec", type=float, default=0.0, help="normalize speech-only syllable rate")
-    parser.add_argument("--max-chunk-chars", type=int, default=10000)
+    parser.add_argument("--max-chunk-chars", type=int, default=180)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
     parser.add_argument("--seed", type=int, default=43)
@@ -264,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
                     if current > 260 or current < 80:
                         raise RuntimeError(f"invalid TTS pace ({current:.0f} wpm); refusing extreme stretch")
                     factor = args.target_wpm / current
-                    if factor < 0.65 or factor > 1.65:
+                    if factor < 0.5 or factor > 2.0:
                         raise RuntimeError(f"invalid TTS pace correction {factor:.2f}x")
                     if abs(factor - 1.0) < 0.01:
                         break
@@ -293,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
                     if current > 7.8 or current < 3.0:
                         raise RuntimeError(f"invalid syllable rate ({current:.2f}/s); refusing extreme stretch")
                     factor = args.target_syllables_per_sec / current
-                    if factor < 0.65 or factor > 1.65:
+                    if factor < 0.5 or factor > 2.0:
                         raise RuntimeError(f"invalid syllable correction {factor:.2f}x")
                     if abs(factor - 1.0) < 0.01:
                         break

@@ -67,7 +67,8 @@ write or perform as if the creator was part of the original recording.
   checkpoint produced extreme short-audio artifacts during these tests.
   English shots are also paced by **speech-only syllable rate** (target 5.15
   syllables/second), because WPM alone masks differences in pauses and long
-  proper nouns. Keep normal slides to roughly 70–95 syllables and the source/
+  proper nouns. Long English cues are sentence-chunked before synthesis so
+  Qwen cannot truncate a whole slide into a few seconds. Keep normal slides to roughly 70–95 syllables and the source/
   disclaimer slide to 30–35 words and ≤60 syllables. This avoids the instability Qwen showed when the
   model speed itself was pushed to 1.16. Mandarin uses Qwen3 at natural speed.
   Chatterbox remains available with `--engine chatterbox`, but it is not the
