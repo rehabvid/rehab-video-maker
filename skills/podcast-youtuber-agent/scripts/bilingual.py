@@ -373,6 +373,24 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
     ]):
         return 1
 
+    # Speech QA is deliberately after assembly so it sees the actual cue files
+    # used by the video. A failure blocks upload; a human still reviews accent.
+    for language, audio_dir, slides_path, qa_name in (
+        ("en", args.work / "audio", args.slides, "audio-qa-en.json"),
+        ("zh", args.work_zh / "audio", args.slides_zh, "audio-qa-zh.json"),
+    ):
+        qa_code = run([
+            sys.executable, str(TECH_SCRIPTS / "qa_audio.py"),
+            "--audio-dir", str(audio_dir),
+            "--slides", str(slides_path),
+            "--language", language,
+            "--voice-python", str(args.voice_python),
+            "--out", str(work_zh / qa_name) if language == "zh" else str(args.work / qa_name),
+        ])
+        if qa_code:
+            log(f"audio QA failed for {language}; blocking upload")
+            return 1
+
     # Captions for the English video use the English shot clock.
     zh_caption_timeline = []
     for en in en_timing.get("shots", []):

@@ -77,6 +77,15 @@ background, a custom visual lacks the image backdrop, or a scene theme does not
 match the cover class. The QA report is written to
 `build/<episode>/zh/background-qa.json`.
 
+`qa_audio.py` checks each generated cue with Whisper ASR and compares it to the
+expected narration. It flags truncated/looping audio, repeated words/phrases,
+large WER/CER, missing speech, extreme pace, near-clipping and very quiet cues.
+Both English and Mandarin are checked; the build fails and blocks upload when a
+cue is flagged. This catches stutters and broken words that a waveform-only
+check misses, but it is not a substitute for listening: accent, timbre and
+naturalness still require human review. Reports are written to
+`build/<episode>/audio-qa-en.json` and `build/<episode>/zh/audio-qa-zh.json`.
+
 ## Skill boundaries
 
 1. **Content layer** — `podcast-content-agent` (or the shared content scripts in
