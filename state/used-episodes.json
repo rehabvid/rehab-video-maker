@@ -215,6 +215,16 @@
       "url": "https://youtu.be/Bwbc38WFeZQ",
       "note": "generated in cooldown; uploaded after quota reset",
       "used_at": "2026-10-27T14:00:42+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:75aabc6c-d20f-11f1-ad42-f36d9cbe53b7"
+      ],
+      "title": "Dirty Dozen Charts, Anthropic’s S-1, Amazon Earnings Preview, Cost of Capital Hits AI",
+      "video_id": "xLglulP7vDM",
+      "url": "https://youtu.be/xLglulP7vDM",
+      "note": "generated in cooldown; uploaded after quota reset",
+      "used_at": "2026-10-28T02:26:25+00:00"
     }
   ]
 }

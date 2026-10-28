@@ -218,7 +218,14 @@ def _sized_node(node: dict) -> dict:
 def _nodes_edges(spec: dict, kind: str) -> tuple[list[dict], list[dict]]:
     data = spec.get("data") or {}
     if isinstance(data.get("nodes"), list) and data["nodes"]:
-        return [_sized_node(node) for node in data["nodes"]], data.get("edges") or []
+        allowed = {"default", "accent", "muted", "input", "output", "place", "transition"}
+        nodes = []
+        for node in data["nodes"]:
+            item = dict(node)
+            if item.get("kind") not in allowed:
+                item["kind"] = "default"
+            nodes.append(_sized_node(item))
+        return nodes, data.get("edges") or []
     points = [str(p) for p in (spec.get("points") or []) if str(p).strip()]
     if not points:
         points = [spec.get("title") or "The idea"]
