@@ -110,15 +110,19 @@ def main(argv: list[str] | None = None) -> int:
             "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,gblur=sigma=32,eq=brightness=-0.10[bg];"
             "[fg]scale=1080:-2[fg];"
-            "[bg][fg]overlay=(W-w)/2:(H-h)/2",
+            "[bg][fg]overlay=(W-w)/2:(H-h)/2[v]",
+            "-map", "[v]", "-map", "0:a?",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", str(args.crf),
-            "-pix_fmt", "yuv420p", "-an", str(base),
+            "-c:a", "aac", "-b:a", "160k", "-shortest",
+            "-pix_fmt", "yuv420p", str(base),
         ], check=True)
         subprocess.run([
             "ffmpeg", "-hide_banner", "-v", "error", "-y",
             "-i", str(base), "-i", str(hook_png),
-            "-filter_complex", "[0:v][1:v]overlay=0:0",
+            "-filter_complex", "[0:v][1:v]overlay=0:0[v]",
+            "-map", "[v]", "-map", "0:a?",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", str(args.crf),
+            "-c:a", "aac", "-b:a", "160k", "-shortest",
             "-pix_fmt", "yuv420p", str(out),
         ], check=True)
     print(out)

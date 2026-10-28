@@ -75,21 +75,31 @@ Diagnose in this order:
 
 ## Shorts workflow
 
-Create a vertical clip:
+Create a **native vertical** clip with chart/visual, transcript captions and a
+background, rather than cropping the 16:9 video:
 
 ```bash
-.venv/bin/python skills/podcast-marketing-agent/scripts/make_short.py \
+.venv/bin/python skills/podcast-marketing-agent/scripts/make_promo_short.py \
   --video out/autopilot/<slug>/final.zh.mp4 \
-  --start 38 --duration 42 \
+  --background out/autopilot/<slug>/cover.zh.plate.png \
+  --visual build/autopilot/<slug>/zh/visuals/shot-05.mp4 \
+  --srt build/autopilot/<slug>/zh/captions.srt \
+  --start 0.5 --duration 30 \
   --hook "真正的问题不是模型，而是许可" \
   --cta "完整拆解在频道里" \
   --out build/marketing/shorts/<slug>-01.mp4
 ```
 
-The renderer makes a 1080x1920 blurred-background clip with a safe-area hook
-and CTA. Review every clip manually before upload; automated clipping still
-needs editorial judgement. Upload as private first, verify captions/thumbnail,
-then publish with `#Shorts` in the title or description.
+`make_promo_short.py` builds a native 1080x1920 canvas: a blurred/toned cover
+background, an optional chart/DAG visual from `visuals/shot-*.mp4`, transcript
+captions from the source SRT, hook, CTA and the creator's original commentary
+audio. It does **not** simply crop a slide. If no suitable chart exists, omit
+`--visual`; the transcript and background still carry the vertical.
+
+Use the older `make_short.py` only as a fast fallback when no chart/transcript
+asset is available. Review every clip before upload; automated selection still
+needs editorial judgement. Upload privately first, verify audio/captions and
+thumbnail, then publish with `#Shorts` in the title or description.
 
 ```bash
 .venv/bin/python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
