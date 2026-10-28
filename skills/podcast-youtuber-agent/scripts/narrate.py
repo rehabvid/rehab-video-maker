@@ -431,6 +431,7 @@ def _run_qwen3(args, jobs: list[dict], profile: dict, ref_text: str) -> None:
         "--model", args.qwen3_model,
         "--speed", str(args.speed),
         "--target-wpm", str(args.target_wpm),
+        "--target-syllables-per-sec", str(args.target_syllables_per_sec),
         "--temperature", str(args.qwen3_temperature),
         "--seed", str(args.seed),
     ]
@@ -718,6 +719,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--qwen3-temperature", type=float, default=0.8)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0, help="Qwen English post-speed target; 0 disables")
+    parser.add_argument("--target-syllables-per-sec", type=float, default=0.0, help="Qwen English speech-only syllable rate")
     parser.add_argument("--ref-text-file", help="exact transcript of the reference recording")
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)

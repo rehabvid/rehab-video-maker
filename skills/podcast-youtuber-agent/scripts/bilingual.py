@@ -84,6 +84,7 @@ def _build_english(args, out_en: Path) -> int:
         "--engine", args.engine,
         "--speed", str(args.speed_en),
         "--target-wpm", str(args.target_wpm_en),
+        "--target-syllables-per-sec", str(args.target_syllables_en),
         "--preset", args.preset,
         "--crf", str(args.crf),
     ]
@@ -632,6 +633,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--speed-zh", type=float, default=1.0)
     p.add_argument("--speed-en", type=float, default=1.0, help="English Qwen model speed; keep 1.0")
     p.add_argument("--target-wpm-en", type=float, default=170.0, help="English Qwen post-speed target")
+    p.add_argument("--target-syllables-en", type=float, default=5.15, help="English speech-only syllables/sec")
     p.add_argument(
         "--reuse-zh-narration", action="store_true",
         help="reuse work-zh/timing.json and master.wav instead of synthesising again",

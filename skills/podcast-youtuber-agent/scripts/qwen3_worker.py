@@ -65,6 +65,44 @@ def _split_chunks(text: str, max_chars: int = 180) -> list[str]:
     return [chunk for chunk in chunks if chunk.strip()]
 
 
+def _audio_duration(path: Path) -> float:
+    try:
+        out = subprocess.check_output([
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=nw=1:nk=1", str(path),
+        ])
+        return float(out.decode().strip())
+    except Exception:
+        return 0.0
+
+
+def _syllables(text: str) -> int:
+    total = 0
+    for word in re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)?", text):
+        w = word.lower()
+        groups = re.findall(r"[aeiouy]+", w)
+        count = len(groups)
+        if w.endswith("e") and count > 1 and not w.endswith(("le", "ee")):
+            count -= 1
+        total += max(1, count)
+    return total
+
+
+def _speech_seconds(path: Path) -> float:
+    duration = _audio_duration(path)
+    if duration <= 0:
+        return 0.0
+    try:
+        log = subprocess.run([
+            "ffmpeg", "-hide_banner", "-i", str(path),
+            "-af", "silencedetect=noise=-35dB:d=0.08", "-f", "null", "-",
+        ], capture_output=True, text=True).stderr
+        silence = sum(float(x) for x in re.findall(r"silence_duration: ([\d.]+)", log))
+        return max(0.1, duration - silence)
+    except Exception:
+        return duration
+
+
 def _token_cap(text: str) -> int:
     """Estimate a safe generation cap for English or CJK text.
 
@@ -109,6 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0, help="post-process to this English WPM; 0 disables")
+    parser.add_argument("--target-syllables-per-sec", type=float, default=0.0, help="normalize speech-only syllable rate")
     parser.add_argument("--max-chunk-chars", type=int, default=10000)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
@@ -215,27 +254,56 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"warning: loudness normalization failed: {exc}", file=sys.stderr)
                 try: loud_tmp.unlink()
                 except OSError: pass
-            duration = len(audio) / sample_rate
+            duration = _audio_duration(out)
             if args.target_wpm > 0:
                 words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", text))
-                if words >= 8 and duration > 0:
+                for pass_index in range(2):
+                    if words < 8 or duration <= 0:
+                        break
                     current = words / duration * 60.0
                     factor = args.target_wpm / current
-                    if abs(factor - 1.0) >= 0.01:
-                        tmp = out.with_suffix(".pace.wav")
-                        try:
-                            subprocess.run([
-                                "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
-                                "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
-                                "-ar", str(sample_rate), "-ac", "1", str(tmp),
-                            ], check=True)
-                            tmp.replace(out)
-                            duration = len(audio) / sample_rate / factor
-                            print(f"  pace {current:.0f} -> {args.target_wpm:.0f} wpm ({factor:.3f}x)", file=sys.stderr)
-                        except Exception as exc:  # noqa: BLE001
-                            print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
-                            try: tmp.unlink()
-                            except OSError: pass
+                    if abs(factor - 1.0) < 0.01:
+                        break
+                    tmp = out.with_suffix(f".pace{pass_index}.wav")
+                    try:
+                        subprocess.run([
+                            "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                            "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
+                            "-ar", str(sample_rate), "-ac", "1", str(tmp),
+                        ], check=True)
+                        tmp.replace(out)
+                        duration = _audio_duration(out)
+                        print(f"  pace {current:.1f} -> {args.target_wpm:.1f} wpm ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
+                        try: tmp.unlink()
+                        except OSError: pass
+                        break
+            if args.target_syllables_per_sec > 0:
+                syllables = _syllables(text)
+                for pass_index in range(2):
+                    speech = _speech_seconds(out)
+                    if syllables < 8 or speech <= 0:
+                        break
+                    current = syllables / speech
+                    factor = args.target_syllables_per_sec / current
+                    if abs(factor - 1.0) < 0.01:
+                        break
+                    tmp = out.with_suffix(f".syl{pass_index}.wav")
+                    try:
+                        subprocess.run([
+                            "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                            "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
+                            "-ar", str(sample_rate), "-ac", "1", str(tmp),
+                        ], check=True)
+                        tmp.replace(out)
+                        duration = _audio_duration(out)
+                        print(f"  syllables {current:.2f} -> {args.target_syllables_per_sec:.2f}/s ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"warning: syllable pacing failed: {exc}", file=sys.stderr)
+                        try: tmp.unlink()
+                        except OSError: pass
+                        break
             print(
                 f"  wrote {out} ({duration:.2f}s, "
                 f"{duration / max(result.processing_time_seconds, 1e-6):.2f}x realtime)",
