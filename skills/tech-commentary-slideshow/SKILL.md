@@ -77,6 +77,10 @@ background, a custom visual lacks the image backdrop, or a scene theme does not
 match the cover class. The QA report is written to
 `build/<episode>/zh/background-qa.json`.
 
+`retry_audio.py` regenerates only the cues that fail `qa_audio.py`, using a
+fresh seed each attempt. It stops when the gate passes or the retry budget is
+exhausted; a failed gate blocks upload.
+
 `qa_audio.py` checks each generated cue with Whisper ASR and compares it to the
 expected narration. It flags truncated/looping audio, repeated words/phrases,
 large WER/CER, missing speech, extreme pace, near-clipping and very quiet cues.
