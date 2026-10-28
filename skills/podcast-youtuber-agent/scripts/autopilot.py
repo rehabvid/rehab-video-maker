@@ -282,7 +282,11 @@ Editorial rules:
   walk through the episode in order.
 - Cold open (5-10 seconds) with the thesis, tension or number. Then a compact
   independent-commentary frame (10-15 seconds) naming the host and guests.
-  Credentials never come before the hook.
+  Credentials never come before the hook. Keep that source/credentials/
+  independence beat to 25–45 words total; do not pack a bio, source URL,
+  chapter list and disclaimer into one rushed sentence. If it exceeds 45
+  words, split it into two slides or cut credentials to the single most
+  relevant role.
 - Every section answers: what the source says, what I think, why it matters,
   and what would change my mind. Keep source attribution separate from the
   creator's judgment.

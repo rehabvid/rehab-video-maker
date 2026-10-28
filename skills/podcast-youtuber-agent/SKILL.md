@@ -36,7 +36,9 @@ write or perform as if the creator was part of the original recording.
   asked the question or supplied the answer.
 - Open with a clear independent-commentary frame, not an imitation of the
   podcast's own intro. Do not imply that the original show or its guests
-  endorse the commentary.
+  endorse the commentary. Keep the source/credentials/independence beat to
+  25–45 words; at 170 wpm that is about 9–16 seconds. If it is longer, split
+  it or cut to one role rather than squeezing it.
 - Titles and descriptions must read as commentary, analysis or critique, never
   as an episode of the original podcast. Never use “Interview with…” unless the
   creator actually conducted that interview.
