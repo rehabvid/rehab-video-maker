@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default="mps", choices=["mps", "cpu"])
     parser.add_argument("--turbo", action="store_true")
     parser.add_argument("--ref-text-file", default="skills/podcast-youtuber-agent/config/sample-passage.txt")
-    parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16")
+    parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0)
     parser.add_argument("--target-syllables-per-sec", type=float, default=0.0)

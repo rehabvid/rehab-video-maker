@@ -261,7 +261,11 @@ def main(argv: list[str] | None = None) -> int:
                     if words < 8 or duration <= 0:
                         break
                     current = words / duration * 60.0
+                    if current > 260 or current < 80:
+                        raise RuntimeError(f"invalid TTS pace ({current:.0f} wpm); refusing extreme stretch")
                     factor = args.target_wpm / current
+                    if factor < 0.7 or factor > 1.45:
+                        raise RuntimeError(f"invalid TTS pace correction {factor:.2f}x")
                     if abs(factor - 1.0) < 0.01:
                         break
                     tmp = out.with_suffix(f".pace{pass_index}.wav")
@@ -286,7 +290,11 @@ def main(argv: list[str] | None = None) -> int:
                     if syllables < 8 or speech <= 0:
                         break
                     current = syllables / speech
+                    if current > 7.8 or current < 3.0:
+                        raise RuntimeError(f"invalid syllable rate ({current:.2f}/s); refusing extreme stretch")
                     factor = args.target_syllables_per_sec / current
+                    if factor < 0.7 or factor > 1.45:
+                        raise RuntimeError(f"invalid syllable correction {factor:.2f}x")
                     if abs(factor - 1.0) < 0.01:
                         break
                     tmp = out.with_suffix(f".syl{pass_index}.wav")

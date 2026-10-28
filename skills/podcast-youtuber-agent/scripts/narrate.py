@@ -68,7 +68,7 @@ EDGE_VOICES = {
 DEFAULT_EDGE_VOICE = "andrew"
 DEFAULT_RATE = "-6%"
 DEFAULT_VOICE_PROFILE = "voices/me"
-QWEN3_MODEL = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16"
+QWEN3_MODEL = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
 DEFAULT_REF_TEXT = Path("skills/podcast-youtuber-agent/config/sample-passage.txt")
 
 

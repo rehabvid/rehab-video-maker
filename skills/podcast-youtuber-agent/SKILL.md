@@ -63,8 +63,8 @@ write or perform as if the creator was part of the original recording.
   each cue with `atempo`). English cues are generated in one pass per shot
   (`--max-chunk-chars 10000`); sentence chunking caused Qwen voice drift and
   female-timbre glitches in later chunks. Every cue is normalised with
-  `loudnorm=I=-16:TP=-1.5:LRA=7`. Qwen3-TTS 1.7B Base is the default English
-  model; 0.6B was less stable and produced occasional noise/timbre drift.
+  `loudnorm=I=-16:TP=-1.5:LRA=7`. Qwen3-TTS 0.6B Base is the default English model; the 1.7B local
+  checkpoint produced extreme short-audio artifacts during these tests.
   English shots are also paced by **speech-only syllable rate** (target 5.15
   syllables/second), because WPM alone masks differences in pauses and long
   proper nouns. Keep normal slides to roughly 70–95 syllables and the source/
