@@ -76,6 +76,115 @@ def _audio_duration(path: Path) -> float:
         return 0.0
 
 
+EN_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+           "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+           "seventeen", "eighteen", "nineteen"]
+EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+
+def _en_int(n: int) -> str:
+    if n < 20:
+        return EN_ONES[n]
+    if n < 100:
+        return EN_TENS[n // 10] + (("-" + EN_ONES[n % 10]) if n % 10 else "")
+    if n < 1000:
+        return EN_ONES[n // 100] + " hundred" + ((" " + _en_int(n % 100)) if n % 100 else "")
+    for value, name in ((1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand")):
+        if n >= value:
+            return _en_int(n // value) + " " + name + ((" " + _en_int(n % value)) if n % value else "")
+    return str(n)
+
+
+def _en_number(number: str, unit: str, currency: bool, percent: bool, year: bool) -> str:
+    integer, _, decimal = number.partition(".")
+    value = int(integer.replace(",", ""))
+    if year and 1900 <= value <= 2099 and not decimal and not unit:
+        first = value // 100
+        last = value % 100
+        words = _en_int(first) + " " + (("oh " + EN_ONES[last]) if last < 10 else _en_int(last))
+    else:
+        words = _en_int(value)
+    if decimal:
+        words += " point " + " ".join(EN_ONES[int(c)] for c in decimal)
+    if unit:
+        words += " " + unit
+    if currency:
+        words += " dollars"
+    if percent:
+        words += " percent"
+    return words
+
+
+def _verbalize_english(text: str) -> str:
+    pattern = re.compile(r"(\$)?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(billion|million|trillion|thousand|percent|%)?", re.I)
+    def replace(match: re.Match) -> str:
+        currency = bool(match.group(1))
+        number = match.group(2) + (("." + match.group(3)) if match.group(3) else "")
+        unit = (match.group(4) or "").lower()
+        percent = unit == "percent" or unit == "%"
+        if unit in {"percent", "%"}:
+            unit = ""
+        year = not unit and not currency and not percent
+        return " " + _en_number(number, unit, currency, percent, year) + " "
+    return re.sub(r"\s+", " ", pattern.sub(replace, text)).strip()
+
+
+ZH_DIGITS = "零一二三四五六七八九"
+ZH_UNITS = ["", "十", "百", "千"]
+
+
+def _zh_int(n: int) -> str:
+    if n == 0:
+        return "零"
+    parts = []
+    for unit_index in range(3, -1, -1):
+        divisor = 10 ** unit_index
+        digit = (n // divisor) % 10
+        if digit:
+            parts.append(ZH_DIGITS[digit] + ZH_UNITS[unit_index])
+        elif parts and n % divisor and (n // divisor) % 10 != 0:
+            parts.append("零")
+    return "".join(parts) or "零"
+
+
+def _zh_number(number: str, unit: str, percent: bool, year: bool) -> str:
+    integer, _, decimal = number.partition(".")
+    value = int(integer)
+    if year and not decimal and not unit and 1900 <= value <= 2099:
+        words = "".join(ZH_DIGITS[int(c)] for c in integer)
+    else:
+        words = _zh_int(value)
+    if decimal:
+        words += "点" + "".join(ZH_DIGITS[int(c)] for c in decimal)
+    if unit:
+        words += unit
+    if percent:
+        words = "百分之" + words
+    return words
+
+
+def _verbalize_chinese(text: str) -> str:
+    pattern = re.compile(r"(\d+(?:,\d{3})*)(?:\.(\d+))?\s*(亿|万|%|年)?")
+    def replace(match: re.Match) -> str:
+        number = match.group(1).replace(",", "") + (("." + match.group(2)) if match.group(2) else "")
+        unit = match.group(3) or ""
+        percent = unit == "%"
+        year = unit == "年"
+        if percent or year:
+            unit = ""
+        result = _zh_number(number, unit, percent, year)
+        if year:
+            result += "年"
+        return result
+    return pattern.sub(replace, text)
+
+
+def verbalize_numbers(text: str) -> str:
+    if re.search(r"[\u3400-\u9fff]", text):
+        return _verbalize_chinese(text)
+    return _verbalize_english(text)
+
+
 def _syllables(text: str) -> int:
     total = 0
     for word in re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)?", text):
@@ -198,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         job_id = str(job.get("id") or index)
         text = (job.get("text") or "").strip()
         text = re.sub(r"\ba16z\b", "Andreessen Horowitz", text, flags=re.IGNORECASE)
+        text = verbalize_numbers(text)
         out = Path(job.get("out") or "")
         if not text or not out:
             failures.append(f"{job_id}: missing text or out")
