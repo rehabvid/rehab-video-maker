@@ -61,7 +61,8 @@ write or perform as if the creator was part of the original recording.
   each cue with `atempo`). English cues are generated in one pass per shot
   (`--max-chunk-chars 10000`); sentence chunking caused Qwen voice drift and
   female-timbre glitches in later chunks. Every cue is normalised with
-  `loudnorm=I=-16:TP=-1.5:LRA=7`. This avoids the instability Qwen showed when the
+  `loudnorm=I=-16:TP=-1.5:LRA=7`. Qwen3-TTS 1.7B Base is the default English
+  model; 0.6B was less stable and produced occasional noise/timbre drift. This avoids the instability Qwen showed when the
   model speed itself was pushed to 1.16. Mandarin uses Qwen3 at natural speed.
   Chatterbox remains available with `--engine chatterbox`, but it is not the
   default English engine.
