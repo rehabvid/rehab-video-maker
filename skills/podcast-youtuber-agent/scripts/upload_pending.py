@@ -111,7 +111,8 @@ def main(argv: list[str] | None = None) -> int:
         if cover is None:
             print(f"no approved cover for {manifest_path}; leaving pending", file=sys.stderr)
             continue
-        receipt = manifest_path.parent / "youtube-zh.json"
+        lang = str(manifest.get("language") or "zh-Hans")
+        receipt = manifest_path.parent / ("youtube-en.json" if lang == "en" else "youtube-zh.json")
         cmd = [
             sys.executable, str(UPLOAD),
             "--video", str(video),
