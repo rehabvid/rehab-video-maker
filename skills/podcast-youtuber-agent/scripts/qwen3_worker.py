@@ -21,6 +21,8 @@ import json
 import re
 import subprocess
 import sys
+
+import numpy as np
 from pathlib import Path
 
 DEFAULT_MODEL = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
@@ -30,6 +32,37 @@ def _load_model(model_name: str):
     from mlx_audio.tts.utils import load_model
 
     return load_model(model_name)
+
+
+def _split_chunks(text: str, max_chars: int = 180) -> list[str]:
+    """Split long English narration at sentence boundaries."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        if len(sentence) > max_chars:
+            words = sentence.split()
+            part = ""
+            for word in words:
+                candidate = f"{part} {word}".strip()
+                if part and len(candidate) > max_chars:
+                    chunks.append(part)
+                    part = word
+                else:
+                    part = candidate
+            if part:
+                chunks.append(part)
+            current = ""
+            continue
+        candidate = f"{current} {sentence}".strip()
+        if current and len(candidate) > max_chars:
+            chunks.append(current)
+            current = sentence
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return [chunk for chunk in chunks if chunk.strip()]
 
 
 def _token_cap(text: str) -> int:
@@ -76,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0, help="post-process to this English WPM; 0 disables")
+    parser.add_argument("--max-chunk-chars", type=int, default=180)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
     parser.add_argument("--seed", type=int, default=43)
@@ -134,39 +168,69 @@ def main(argv: list[str] | None = None) -> int:
         try:
             # Cap generation at ~1.35x the expected duration so a bad sample
             # cannot loop for minutes. CJK text is measured by characters.
-            max_tokens = args.max_tokens or _token_cap(text)
-            results = list(
-                model.generate(
-                    text=text,
-                    ref_audio=str(reference),
-                    ref_text=ref_text,
-                    speed=args.speed,
-                    temperature=args.temperature,
-                    max_tokens=max_tokens,
-                    stream=False,
-                    verbose=False,
+            chunks = _split_chunks(text, args.max_chunk_chars)
+            pieces = []
+            sample_rate = None
+            for chunk in chunks:
+                max_tokens = args.max_tokens or _token_cap(chunk)
+                results = list(
+                    model.generate(
+                        text=chunk,
+                        ref_audio=str(reference),
+                        ref_text=ref_text,
+                        speed=args.speed,
+                        temperature=args.temperature,
+                        max_tokens=max_tokens,
+                        stream=False,
+                        verbose=False,
+                    )
                 )
-            )
-            if not results:
+                if not results:
+                    raise RuntimeError("model returned no audio")
+                result = results[0]
+                sample_rate = result.sample_rate
+                pieces.append(np.asarray(result.audio).reshape(-1))
+            if sample_rate is None or not pieces:
                 raise RuntimeError("model returned no audio")
-            result = results[0]
-            audio_write(str(out), result.audio, result.sample_rate)
-            duration = result.samples / result.sample_rate
+            if len(pieces) > 1:
+                silence = np.zeros(int(0.12 * sample_rate), dtype=pieces[0].dtype)
+                joined = [pieces[0]]
+                for piece in pieces[1:]:
+                    joined.extend([silence, piece])
+                audio = np.concatenate(joined)
+            else:
+                audio = pieces[0]
+            audio_write(str(out), audio, sample_rate)
+            # Normalize every cue to a common broadcast loudness. This also
+            # prevents one Qwen cue from sitting much hotter than its neighbour.
+            try:
+                loud_tmp = out.with_suffix(".loud.wav")
+                subprocess.run([
+                    "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                    "-af", "loudnorm=I=-16:TP=-1.5:LRA=7",
+                    "-ar", str(sample_rate), "-ac", "1", str(loud_tmp),
+                ], check=True)
+                loud_tmp.replace(out)
+            except Exception as exc:  # noqa: BLE001
+                print(f"warning: loudness normalization failed: {exc}", file=sys.stderr)
+                try: loud_tmp.unlink()
+                except OSError: pass
+            duration = len(audio) / sample_rate
             if args.target_wpm > 0:
                 words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", text))
                 if words >= 8 and duration > 0:
                     current = words / duration * 60.0
                     factor = args.target_wpm / current
-                    if abs(factor - 1.0) >= 0.035:
+                    if abs(factor - 1.0) >= 0.01:
                         tmp = out.with_suffix(".pace.wav")
                         try:
                             subprocess.run([
                                 "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
                                 "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
-                                "-ar", str(result.sample_rate), "-ac", "1", str(tmp),
+                                "-ar", str(sample_rate), "-ac", "1", str(tmp),
                             ], check=True)
                             tmp.replace(out)
-                            duration = result.samples / result.sample_rate / factor
+                            duration = len(audio) / sample_rate / factor
                             print(f"  pace {current:.0f} -> {args.target_wpm:.0f} wpm ({factor:.3f}x)", file=sys.stderr)
                         except Exception as exc:  # noqa: BLE001
                             print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
