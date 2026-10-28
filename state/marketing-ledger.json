@@ -1,0 +1,33 @@
+{
+  "promotions": [
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "lhV2jHrC06w",
+      "url": "https://youtu.be/lhV2jHrC06w",
+      "source_video_id": "tQGSgedwlSE",
+      "title": "Your Dollar Is an Ice Cube — The Inflation Tax #Shorts",
+      "status": "public",
+      "published_at": "2026-10-28T06:48:55+00:00"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "XZX6EYsEDiU",
+      "url": "https://youtu.be/XZX6EYsEDiU",
+      "source_video_id": "e1UHrOc-joQ",
+      "title": "Japan's 3% Yield Is the Real Signal #Shorts",
+      "status": "public",
+      "published_at": "2026-10-28T06:55:00+00:00"
+    }
+  ],
+  "wechat": [
+    {
+      "account": "tagact",
+      "status": "ready-for-manual-upload",
+      "asset": "build/marketing/wechat/tagact/cliff-ai-complement-trap.mp4",
+      "cover": "build/marketing/wechat/tagact/cliff-ai-complement-trap-cover.png",
+      "copy": "build/marketing/wechat/tagact/cliff-ai-complement-trap.md"
+    }
+  ]
+}

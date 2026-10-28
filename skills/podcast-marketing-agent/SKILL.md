@@ -91,6 +91,20 @@ and CTA. Review every clip manually before upload; automated clipping still
 needs editorial judgement. Upload as private first, verify captions/thumbnail,
 then publish with `#Shorts` in the title or description.
 
+```bash
+.venv/bin/python skills/podcast-youtuber-agent/scripts/youtube_upload.py \
+  --video build/marketing/shorts/<clip>.mp4 \
+  --metadata build/marketing/shorts/<clip>.json \
+  --privacy public \
+  --caption-track en=build/marketing/shorts/<clip>.srt'|English' \
+  --receipt build/marketing/shorts/<clip>-upload.json
+```
+
+WeChat Channels (视频号) has no public personal-account upload API. Produce a
+9:16 MP4 and a Chinese title/description/cover pack, then upload manually or
+through an enterprise integration the account owner controls. Do not request or
+store WeChat passwords or QR sessions.
+
 Do not repost source-podcast audio as the main Shorts content. The clip must be
 the creator's commentary, with a distinct argument and a payoff.
 
