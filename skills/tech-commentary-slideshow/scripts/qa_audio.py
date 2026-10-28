@@ -98,7 +98,9 @@ def _repeat_flags(tokens: list[str], language: str) -> list[str]:
                 break
     # Repeated two- or three-token phrase, e.g. "it is it is".
     for size in (2, 3):
-        if zh and size == 2:
+        if zh and size == 2 and all(len(t) == 1 for t in tokens):
+            # Two repeated Chinese characters are common; require a 3-char run
+            # or a longer repeated phrase instead.
             continue
         for i in range(0, len(tokens) - size * 2 + 1):
             first = tokens[i:i + size]
@@ -118,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--out", required=True)
     parser.add_argument("--wer-threshold", type=float, default=0.30)
-    parser.add_argument("--cer-threshold", type=float, default=0.40)
+    parser.add_argument("--cer-threshold", type=float, default=0.15)
     parser.add_argument("--min-wpm", type=float, default=105)
     parser.add_argument("--max-wpm", type=float, default=220)
     parser.add_argument("--min-cps", type=float, default=2.0)
@@ -177,6 +179,14 @@ def main(argv: list[str] | None = None) -> int:
                         errors.append(f"character pace outside range ({cps:.2f} chars/s, {duration:.2f}s)")
                 elif words >= 8 and (wpm < args.min_wpm or wpm > args.max_wpm):
                     errors.append(f"pace outside range ({wpm:.0f} wpm, {duration:.2f}s)")
+            expected_numbers = re.findall(r"\d+(?:\.\d+)?", expected_text)
+            actual_numbers = re.findall(r"\d+(?:\.\d+)?", actual_text)
+            if expected_numbers:
+                # ASR may normalize number words, so only flag clearly missing
+                # numeric anchors rather than every formatting difference.
+                missing_numbers = [n for n in expected_numbers if n not in actual_numbers]
+                if missing_numbers:
+                    errors.append("missing/misread numbers: " + ", ".join(missing_numbers[:6]))
             flags = _repeat_flags(actual, args.language)
             if flags:
                 errors.extend(flags)
