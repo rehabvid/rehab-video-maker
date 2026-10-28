@@ -82,6 +82,7 @@ def _build_english(args, out_en: Path) -> int:
         "--work", str(args.work),
         "--voice-profile", args.voice_profile,
         "--engine", args.engine,
+        "--speed", str(args.speed_en),
         "--preset", args.preset,
         "--crf", str(args.crf),
     ]
@@ -271,7 +272,7 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         "--slides", str(args.slides_zh),
         "--out", str(work_zh),
         "--voice-profile", args.voice_profile,
-        "--engine", args.engine,
+        "--engine", args.engine_zh,
         "--voice-python", args.voice_python,
         "--ref-text-file", args.ref_text_file,
         "--device", args.device,
@@ -622,11 +623,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out-zh")
     p.add_argument("--builder", choices=["tech", "podcast"], default="tech")
     p.add_argument("--voice-profile", default="voices/me")
-    p.add_argument("--engine", default="qwen3", choices=["qwen3", "chatterbox", "edge"])
+    p.add_argument("--engine", default="qwen3", choices=["qwen3", "chatterbox", "edge"], help="English voice engine")
+    p.add_argument("--engine-zh", default="qwen3", choices=["qwen3", "chatterbox", "edge"], help="Mandarin voice engine")
     p.add_argument("--voice-python", default=str(ROOT / ".venv-voice" / "bin" / "python"))
     p.add_argument("--ref-text-file", default=str(ROOT / "skills" / "podcast-youtuber-agent" / "config" / "sample-passage.txt"))
     p.add_argument("--device", default="mps", choices=["mps", "cpu"])
     p.add_argument("--speed-zh", type=float, default=1.0)
+    p.add_argument("--speed-en", type=float, default=1.16, help="English Qwen rate; 1.16 targets ~170 wpm")
     p.add_argument(
         "--reuse-zh-narration", action="store_true",
         help="reuse work-zh/timing.json and master.wav instead of synthesising again",

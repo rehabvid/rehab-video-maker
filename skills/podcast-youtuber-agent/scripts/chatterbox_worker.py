@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -130,6 +131,41 @@ def _generate(model, text: str, reference: Path, exaggeration: float,
         return model.generate(text, audio_prompt_path=str(reference))
 
 
+def _fit_wpm(path: Path, text: str, target_wpm: float, sample_rate: int) -> None:
+    """Slow or speed a generated cue to a target words-per-minute."""
+    if target_wpm <= 0:
+        return
+    words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", text))
+    if words < 8:
+        return
+    try:
+        import torchaudio
+        info = torchaudio.info(str(path))
+        seconds = info.num_frames / max(1, info.sample_rate)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: could not measure {path}: {exc}", file=sys.stderr)
+        return
+    current = words / max(0.1, seconds) * 60.0
+    factor = target_wpm / current
+    if factor > 1.0:
+        factor = max(0.5, min(2.0, factor))
+    if abs(factor - 1.0) < 0.035:
+        return
+    tmp = path.with_suffix(".speed.wav")
+    filters = f"atempo={factor:.6f}"
+    try:
+        subprocess.run([
+            "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(path),
+            "-filter:a", filters, "-ar", str(sample_rate), "-ac", "1", str(tmp),
+        ], check=True)
+        tmp.replace(path)
+        print(f"  pace {current:.0f} -> {target_wpm:.0f} wpm ({factor:.3f}x)", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: pace adjustment failed for {path}: {exc}", file=sys.stderr)
+        try: tmp.unlink()
+        except OSError: pass
+
+
 def check() -> int:
     try:
         import torch
@@ -164,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--seed", type=int, default=43)
     parser.add_argument("--max-chars", type=int, default=280)
+    parser.add_argument("--target-wpm", type=float, default=155.0)
     parser.add_argument("--turbo", action="store_true", help="use the no-CFG turbo inference loop")
     parser.add_argument("--no-cpu-fallback", action="store_true", help="fail instead of retrying a failed MPS chunk on CPU")
     parser.add_argument("--check", action="store_true", help="check imports only")
@@ -265,6 +302,7 @@ def main(argv: list[str] | None = None) -> int:
             if peak > 0.98:
                 wav = wav * (0.95 / peak)
             torchaudio.save(str(out), wav, sample_rate)
+            _fit_wpm(out, text, args.target_wpm, sample_rate)
             print(f"  wrote {out}", file=sys.stderr)
         if device == "mps":
             try:
