@@ -334,6 +334,10 @@ def _chatterbox_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict]
         reusable = (
             not force
             and path.exists()
+            and reuse_audio
+        ) or (
+            not force
+            and path.exists()
             and cached_entry
             and cached_entry.get("fingerprint") == fingerprints[sid]
             and cached_entry.get("file") == path.name
@@ -387,13 +391,17 @@ def _run_chatterbox(args, jobs: list[dict], profile: dict) -> None:
 
 
 def _qwen3_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict],
-                fingerprints: dict[str, str], force: bool) -> list[dict]:
+                fingerprints: dict[str, str], force: bool, reuse_audio: bool = False) -> list[dict]:
     jobs = []
     for shot in shots:
         sid = str(shot["id"])
         path = audio_dir / f"shot-{sid}.wav"
         cached_entry = cached.get(sid)
         reusable = (
+            not force
+            and path.exists()
+            and reuse_audio
+        ) or (
             not force
             and path.exists()
             and cached_entry
@@ -527,7 +535,7 @@ def build(args) -> int:
     }
 
     if engine == "qwen3":
-        jobs = _qwen3_jobs(shots, audio_dir, previous, fingerprints, args.force)
+        jobs = _qwen3_jobs(shots, audio_dir, previous, fingerprints, args.force, args.reuse_audio)
         if args.dry_run:
             print(json.dumps(jobs, indent=2))
             return 0
@@ -729,6 +737,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--voice", default=DEFAULT_EDGE_VOICE, help="edge-tts voice key")
     parser.add_argument("--rate", default=DEFAULT_RATE, help="edge-tts rate, use --rate=-6%%")
     parser.add_argument("--force", action="store_true", help="re-synthesise every cue")
+    parser.add_argument("--reuse-audio", action="store_true", help="reuse any existing cue WAV even without a timing cache")
     parser.add_argument("--dry-run", action="store_true", help="print pending jobs only")
     parser.add_argument(
         "--no-pronunciation", action="store_true",

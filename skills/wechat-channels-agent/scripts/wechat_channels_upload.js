@@ -204,7 +204,7 @@ async function runItem(page, item, args, index) {
   }
 
   fs.mkdirSync(SS_DIR, { recursive: true });
-  const slug = path.basename(item.video).replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 80);
+  const slug = `${index}-${(item.title || path.basename(item.video)).replace(/[^a-zA-Z0-9._-]+/g, '-')}`.slice(0, 90);
   await page.screenshot({ path: path.join(SS_DIR, `${slug}-ready.png`), fullPage: true });
   if (!args.publish) {
     console.log('DRAFT READY: --publish not set; left on the publish page.');

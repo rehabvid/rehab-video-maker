@@ -245,6 +245,16 @@
       "url": "https://youtu.be/wqyE3k55H2k",
       "note": "generated in cooldown; uploaded after quota reset",
       "used_at": "2026-10-28T06:06:28+00:00"
+    },
+    {
+      "source_ids": [
+        "9v42ZOdiBJY"
+      ],
+      "title": "Why OpenAI Is Racing to Make Computer Use Superhuman",
+      "video_id": "pending",
+      "url": "",
+      "note": "generated; awaiting YouTube quota",
+      "used_at": "2026-10-28T07:29:04+00:00"
     }
   ]
 }
