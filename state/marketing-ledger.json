@@ -34,6 +34,14 @@
       "asset": "build/marketing/wechat/linkZag/rickards-gold-thesis.mp4",
       "cover": "build/marketing/wechat/linkZag/rickards-gold-thesis-cover.png",
       "manifest": "build/marketing/wechat/linkZag/manifest.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "巴菲特为何押注日本",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-29T03:13:41+08:00",
+      "asset": "out/autopilot/gm109-why-buffett-finally-went-all-in-on-japan-ft-an/final.zh.mp4"
     }
   ]
 }
