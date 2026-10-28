@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -96,10 +97,10 @@ def _background(source: Path, cover: Path | None, start: float, out: Path) -> No
     image.save(out, "PNG")
 
 
-def _captions_paths(srt: Path, start: float, duration: float, out_dir: Path) -> list[tuple[Path, float, float]]:
+def _captions_paths(srt: Path, start: float, duration: float, out_dir: Path) -> list[tuple[Path, float, float, str]]:
     text = srt.read_text(errors="replace")
     blocks = re.split(r"\n\s*\n", text.strip())
-    result: list[tuple[Path, float, float]] = []
+    result: list[tuple[Path, float, float, str]] = []
     for block in blocks:
         lines = block.splitlines()
         if len(lines) < 3:
@@ -118,7 +119,7 @@ def _captions_paths(srt: Path, start: float, duration: float, out_dir: Path) -> 
         cue_text = " ".join(lines[2:]).replace("\n", " ")
         path = out_dir / f"caption-{len(result):03d}.png"
         _boxed_text(path, cue_text, 42, 1280, 960)
-        result.append((path, a, z))
+        result.append((path, a, z, cue_text))
     return result
 
 
@@ -134,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cta", default="完整拆解在频道里")
     parser.add_argument("--out", required=True)
     parser.add_argument("--crf", type=int, default=20)
+    parser.add_argument("--allow-incomplete", action="store_true", help="allow a final caption without terminal punctuation")
     args = parser.parse_args(argv)
     if args.duration <= 0 or args.duration > 180:
         raise SystemExit("duration must be between 1 and 180 seconds")
@@ -157,6 +159,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.cta:
             _boxed_text(cta, args.cta, 38, 1740)
         captions = _captions_paths(srt, args.start, args.duration, tmp) if srt and srt.exists() else []
+        if captions and not args.allow_incomplete:
+            last_text = captions[-1][3].strip()
+            if not re.search(r'[.!?。？！]["”\']?$', last_text):
+                print(f"warning: last caption does not end a sentence: {last_text}", file=sys.stderr)
+                print("choose a later end time or pass --allow-incomplete", file=sys.stderr)
+                return 2
 
         inputs = ["-loop", "1", "-t", f"{args.duration:.3f}", "-i", str(bg)]
         next_index = 1
@@ -182,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             next_index += 1
             inputs += ["-loop", "1", "-t", f"{args.duration:.3f}", "-i", str(cta)]
         cap_indexes = []
-        for path, _, _ in captions:
+        for path, _, _, _text in captions:
             cap_indexes.append(next_index)
             next_index += 1
             inputs += ["-loop", "1", "-t", f"{args.duration:.3f}", "-i", str(path)]
@@ -199,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         if cta_index is not None:
             filters.append(f"[{current}][{cta_index}:v]overlay=0:0[v3]")
             current = "v3"
-        for index, (_, a, z) in enumerate(captions):
+        for index, (_, a, z, _text) in enumerate(captions):
             nxt = f"v{4 + index}"
             filters.append(f"[{current}][{cap_indexes[index]}:v]overlay=0:0:enable='between(t,{a:.3f},{z:.3f})'[{nxt}]")
             current = nxt

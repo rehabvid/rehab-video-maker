@@ -96,10 +96,24 @@ captions from the source SRT, hook, CTA and the creator's original commentary
 audio. It does **not** simply crop a slide. If no suitable chart exists, omit
 `--visual`; the transcript and background still carry the vertical.
 
+A Short must finish **one complete thesis**, not stop at a fixed 30 seconds.
+Select a 45–75 second arc from the SRT: setup → evidence → conclusion. Start at
+the first sentence of the claim and end at the sentence that resolves it. The
+renderer refuses a final caption without terminal punctuation unless
+`--allow-incomplete` is passed. Do not use a hook that the clip never resolves.
+
 Use the older `make_short.py` only as a fast fallback when no chart/transcript
 asset is available. Review every clip before upload; automated selection still
 needs editorial judgement. Upload privately first, verify audio/captions and
 thumbnail, then publish with `#Shorts` in the title or description.
+
+### Disclosure
+
+Keep the YouTube `containsSyntheticMedia: true` flag and a short AI-voice +
+source-attribution line in the description. An on-screen disclaimer is not
+required for every Short, but do not remove the platform-level synthetic-media
+disclosure or the source credit. The source episode and the original host are
+still credited even when the Short is native vertical.
 
 ```bash
 .venv/bin/python skills/podcast-youtuber-agent/scripts/youtube_upload.py \

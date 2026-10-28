@@ -3,33 +3,36 @@
     {
       "platform": "youtube",
       "format": "short",
-      "video_id": "svvRQzw9KUY",
-      "url": "https://youtu.be/svvRQzw9KUY",
+      "video_id": "Itr48jr2OgE",
+      "url": "https://youtu.be/Itr48jr2OgE",
       "source_video_id": "tQGSgedwlSE",
-      "title": "Your Dollar Is an Ice Cube — The Inflation Tax #Shorts",
+      "title": "Central Banks Flipped in 2010 — The Gold Thesis #Shorts",
       "status": "public",
+      "thesis": "central banks became persistent gold buyers; official sector treats gold as a reserve asset again",
+      "duration_seconds": 56.7,
       "audio": "source commentary",
-      "published_at": "2026-10-28T06:53:48+00:00"
+      "published_at": "2026-10-28T07:05:00+00:00"
     },
     {
       "platform": "youtube",
       "format": "short",
-      "video_id": "nFuskelj-Y0",
-      "url": "https://youtu.be/nFuskelj-Y0",
+      "video_id": "mwUyPOCst-0",
+      "url": "https://youtu.be/mwUyPOCst-0",
       "source_video_id": "e1UHrOc-joQ",
-      "title": "Japan's 3% Yield Is the Real Signal #Shorts",
+      "title": "Japan's Real Story Is Labor, Not the Yield #Shorts",
       "status": "public",
+      "thesis": "Japan's yield signal runs through labor scarcity, bargaining power and margins, not a simple growth call",
+      "duration_seconds": 73.9,
       "audio": "source commentary",
-      "published_at": "2026-10-28T06:53:55+00:00"
+      "published_at": "2026-10-28T07:05:00+00:00"
     }
   ],
   "wechat": [
     {
       "account": "tagact",
       "status": "ready-for-manual-upload",
-      "asset": "build/marketing/wechat/tagact/cliff-ai-complement-trap.mp4",
-      "cover": "build/marketing/wechat/tagact/cliff-ai-complement-trap-cover.png",
-      "copy": "build/marketing/wechat/tagact/cliff-ai-complement-trap.md"
+      "asset": "build/marketing/wechat/tagact/rickards-gold-thesis.mp4",
+      "copy": "build/marketing/wechat/tagact/rickards-gold-thesis.md"
     }
   ]
 }
