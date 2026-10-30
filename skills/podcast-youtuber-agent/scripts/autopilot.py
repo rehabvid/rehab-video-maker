@@ -641,6 +641,12 @@ def main(argv: list[str] | None = None) -> int:
                 bilingual_cmd += ["--thumbnail-zh", str(cover_path)]
             if cover_path_en.exists():
                 bilingual_cmd += ["--thumbnail", str(cover_path_en)]
+            us_profile = ROOT / "voices" / "me-us"
+            if (us_profile / "reference.wav").exists():
+                bilingual_cmd += ["--voice-profile-en", str(us_profile)]
+                us_text = us_profile / "reference.txt"
+                if us_text.exists():
+                    bilingual_cmd += ["--ref-text-file-en", str(us_text)]
             if args.no_scene_backgrounds:
                 bilingual_cmd += ["--no-scene-backgrounds"]
             build_code = run(bilingual_cmd)

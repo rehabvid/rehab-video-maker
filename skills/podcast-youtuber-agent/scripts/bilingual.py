@@ -75,12 +75,14 @@ def run(cmd: list[str]) -> int:
 
 def _build_english(args, out_en: Path) -> int:
     builder = TECH_BUILD if args.builder == "tech" else PODCAST_BUILD
+    voice_profile = args.voice_profile_en or args.voice_profile
+    ref_text = args.ref_text_file_en or args.ref_text_file
     cmd = [
         sys.executable, str(builder),
         "--slides", str(args.slides),
         "--out", str(out_en),
         "--work", str(args.work),
-        "--voice-profile", args.voice_profile,
+        "--voice-profile", voice_profile,
         "--engine", args.engine,
         "--speed", str(args.speed_en),
         "--target-wpm", str(args.target_wpm_en),
@@ -89,7 +91,7 @@ def _build_english(args, out_en: Path) -> int:
         "--crf", str(args.crf),
     ]
     if args.builder == "tech":
-        cmd += ["--ref-text-file", args.ref_text_file, "--voice-python", args.voice_python]
+        cmd += ["--ref-text-file", ref_text, "--voice-python", args.voice_python]
     if args.reuse_en_narration and (args.work / "timing.json").exists():
         cmd += ["--timing", str(args.work / "timing.json")]
     if args.max_seconds:
@@ -699,6 +701,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out-zh")
     p.add_argument("--builder", choices=["tech", "podcast"], default="tech")
     p.add_argument("--voice-profile", default="voices/me")
+    p.add_argument("--voice-profile-en", help="optional English-only profile, e.g. a US-accent reference")
+    p.add_argument("--ref-text-file-en", help="exact transcript for the English-only reference")
     p.add_argument("--engine", default="qwen3", choices=["qwen3", "chatterbox", "edge"], help="English voice engine")
     p.add_argument("--engine-zh", default="qwen3", choices=["qwen3", "chatterbox", "edge"], help="Mandarin voice engine")
     p.add_argument("--voice-python", default=str(ROOT / ".venv-voice" / "bin" / "python"))

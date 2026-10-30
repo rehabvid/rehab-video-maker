@@ -235,9 +235,11 @@ timbre and accent. `instruct` is supported by the VoiceDesign/CustomVoice model
 variants, not by Base with a reference clip, so it cannot be used to add a US
 accent while preserving your own timbre. For English with a native US accent
 and your timbre, record a second 45–90 second reference in that accent and use a
-separate voice profile (for example `voices/me-us`). VoiceDesign can create a
-US-accented voice from text, but it does not accept `reference.wav`, so its
-timbre will not be yours.
+separate voice profile (for example `voices/me-us`). The autopilot detects
+`voices/me-us/reference.wav` and uses it for English only; place the exact
+transcript in `voices/me-us/reference.txt`. VoiceDesign can create a US-accented
+voice from text, but it does not accept `reference.wav`, so its timbre will not
+be yours.
 
 `setuptools<81` keeps `pkg_resources`, which `resemble-perth` (Chatterbox's
 watermarker) still imports. Without it, the model loads but fails at
