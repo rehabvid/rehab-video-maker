@@ -161,6 +161,19 @@
       "source_ids": [
         "6adf1a5da23809d7f65dc360"
       ]
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "霍尔木兹的账单",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-31T07:29:46+08:00",
+      "asset": "out/autopilot/macrovoices-556-luke-gromen-us-midterms-beyond/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/macrovoices-556-luke-gromen-us-midterms-beyond-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-macrovoices-556-luke-gromen-us-midterms-beyond-final.json",
+      "source_ids": [
+        "rss:feed.podbean.com:macrovoices.podbean.com/454c9124-7b94-34ef-9205-b84b1ef4cc6f"
+      ]
     }
   ]
 }
