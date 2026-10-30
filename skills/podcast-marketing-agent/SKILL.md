@@ -75,6 +75,18 @@ Diagnose in this order:
 
 ## Shorts workflow
 
+**Use `make_consistent_short.py` for every Short.** It derives the approved
+cover plate and a real LinkZag chart/DAG/diagram from the same English build,
+selects a 45–75 second finite thesis window, and calls `make_promo_short.py`.
+This prevents a Short from falling back to a video frame or a background-only
+card.
+
+```bash
+.venv/bin/python skills/podcast-marketing-agent/scripts/make_consistent_short.py \
+  --slug <episode-slug> \
+  --out build/marketing/shorts/<episode-slug>-short.mp4
+```
+
 Create a **native vertical** clip with chart/visual, transcript captions and a
 background, rather than cropping the 16:9 video:
 

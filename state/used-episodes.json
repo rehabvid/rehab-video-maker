@@ -44,7 +44,7 @@
       "source_ids": [
         "6ac759b03b4c857afa724591"
       ],
-      "title": "Jim Rickards: Washington Needs Inflation, Here\u2019s Who Pays",
+      "title": "Jim Rickards: Washington Needs Inflation, Here’s Who Pays",
       "video_id": "tQGSgedwlSE",
       "url": "https://youtu.be/tQGSgedwlSE",
       "note": "15:09 macro technical slideshow; uploaded 2026-10-24 (currently public)",
@@ -64,7 +64,7 @@
       "source_ids": [
         "6ab3d5da048fb56597d002d3"
       ],
-      "title": "How to Ace System Design at AI Frontier Labs and FAANG: The Mental Models Behind Every Interview \u2014 Understand the Question, Pick the Right Building Blocks, Go Deep, and Course-Correct",
+      "title": "How to Ace System Design at AI Frontier Labs and FAANG: The Mental Models Behind Every Interview — Understand the Question, Pick the Right Building Blocks, Go Deep, and Course-Correct",
       "video_id": "bk-WSQsBAGU",
       "url": "https://youtu.be/bk-WSQsBAGU",
       "note": "16:04 system-design commentary; re-uploaded private after channel verification 2026-10-25",
@@ -140,7 +140,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:4bab0140-c690-11f1-ba93-9ff1cc3f5ef5"
       ],
-      "title": "David V\u00e9lez - Building Nubank and the Future of Global Banking - [Invest Like the Best, EP.495]",
+      "title": "David Vélez - Building Nubank and the Future of Global Banking - [Invest Like the Best, EP.495]",
       "video_id": "Mm0IFtRr-44",
       "url": "https://youtu.be/Mm0IFtRr-44",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -150,7 +150,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:cbc65564-c276-11f1-811b-8f4772221d6a"
       ],
-      "title": "An Economy So Good No One Can Live In It with Jill Schlesinger\u2060",
+      "title": "An Economy So Good No One Can Live In It with Jill Schlesinger⁠",
       "video_id": "UaFQ7cCItzw",
       "url": "https://youtu.be/UaFQ7cCItzw",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -220,7 +220,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:75aabc6c-d20f-11f1-ad42-f36d9cbe53b7"
       ],
-      "title": "Dirty Dozen Charts, Anthropic\u2019s S-1, Amazon Earnings Preview, Cost of Capital Hits AI",
+      "title": "Dirty Dozen Charts, Anthropic’s S-1, Amazon Earnings Preview, Cost of Capital Hits AI",
       "video_id": "xLglulP7vDM",
       "url": "https://youtu.be/xLglulP7vDM",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -283,6 +283,15 @@
       "url": "https://youtu.be/CEO6fdEc-N4",
       "note": "English YouTube private; autopilot bilingual; English cover/background LinkZag",
       "used_at": "2026-10-30T08:32:07+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feed.podbean.com:macrovoices.podbean.com/454c9124-7b94-34ef-9205-b84b1ef4cc6f"
+      ],
+      "title": "MacroVoices #556 Luke Gromen: US Midterms & Beyond",
+      "video_id": "pending",
+      "url": "",
+      "note": "generated; English YouTube awaiting quota; Mandarin awaiting WeChat login"
     }
   ]
 }

@@ -343,7 +343,12 @@ def _chatterbox_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict]
             and cached_entry.get("file") == path.name
         )
         if not reusable:
-            jobs.append({"id": sid, "text": _tts_text(shot), "out": str(path)})
+            jobs.append({
+                "id": sid,
+                "text": _tts_text(shot),
+                "expected": str(shot.get("narration") or ""),
+                "out": str(path),
+            })
     return jobs
 
 
@@ -409,7 +414,12 @@ def _qwen3_jobs(shots: list[dict], audio_dir: Path, cached: dict[str, dict],
             and cached_entry.get("file") == path.name
         )
         if not reusable:
-            jobs.append({"id": sid, "text": _tts_text(shot), "out": str(path)})
+            jobs.append({
+                "id": sid,
+                "text": _tts_text(shot),
+                "expected": str(shot.get("narration") or ""),
+                "out": str(path),
+            })
     return jobs
 
 
@@ -444,6 +454,20 @@ def _run_qwen3(args, jobs: list[dict], profile: dict, ref_text: str) -> None:
         "--seed", str(args.seed),
     ]
     print(f"synthesising {len(jobs)} cues with Qwen3-TTS on MLX")
+    if args.per_cue_process:
+        # A fresh process gives every cue a fresh model/RNG state. This is
+        # slower than batching, but it avoids the state-dependent bad samples
+        # that show up after the first few cues in a long batch.
+        for index, job in enumerate(jobs, start=1):
+            job_path.write_text(json.dumps([job], indent=2) + "\n")
+            print(f"[{index}/{len(jobs)}] {job.get('id')} (fresh process)", file=sys.stderr)
+            result = subprocess.run(cmd)
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"Qwen3-TTS synthesis failed for cue {job.get('id')}; "
+                    "see the worker output above."
+                )
+        return
     result = subprocess.run(cmd)
     if result.returncode != 0:
         raise RuntimeError(
@@ -738,6 +762,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rate", default=DEFAULT_RATE, help="edge-tts rate, use --rate=-6%%")
     parser.add_argument("--force", action="store_true", help="re-synthesise every cue")
     parser.add_argument("--reuse-audio", action="store_true", help="reuse any existing cue WAV even without a timing cache")
+    parser.add_argument("--per-cue-process", action=argparse.BooleanOptionalAction, default=True, help="run each cue in a fresh worker process")
     parser.add_argument("--dry-run", action="store_true", help="print pending jobs only")
     parser.add_argument(
         "--no-pronunciation", action="store_true",

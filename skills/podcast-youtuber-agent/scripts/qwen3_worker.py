@@ -21,6 +21,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 
 import numpy as np
 from pathlib import Path
@@ -212,6 +213,64 @@ def _speech_seconds(path: Path) -> float:
         return duration
 
 
+def _per_shot_qa(path: Path, expected: str, voice_python: Path) -> tuple[bool, str]:
+    """ASR-check one cue immediately after synthesis.
+
+    The batch-level gate remains the final authority, but this catches a bad
+    sample while its text is still in hand and before the worker moves on.
+    """
+    try:
+        tech = Path(__file__).resolve().parents[3] / "skills" / "tech-commentary-slideshow" / "scripts"
+        if str(tech) not in sys.path:
+            sys.path.insert(0, str(tech))
+        import qa_audio  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001
+        return True, f"qa import skipped: {exc}"
+    language = "zh" if any("\u3400" <= char <= "\u9fff" for char in expected) else "en"
+    try:
+        with tempfile.TemporaryDirectory(prefix="shot-qa-") as tmp:
+            actual = qa_audio._asr(path, voice_python, language, qa_audio.DEFAULT_MODEL, Path(tmp))
+        expected_norm = qa_audio._normalise(expected, language)
+        actual_norm = qa_audio._normalise(actual, language)
+        if not actual_norm:
+            return False, "ASR returned no speech"
+        rate = qa_audio._distance(expected_norm, actual_norm) / max(1, len(expected_norm))
+        threshold = 0.15 if language == "zh" else 0.30
+        if rate > threshold:
+            return False, f"ASR mismatch {rate:.1%}: {actual[:120]}"
+        expected_digits = re.findall(r"\d+(?:\.\d+)?", "".join(expected_norm))
+        actual_digits = re.findall(r"\d+(?:\.\d+)?", "".join(actual_norm))
+        missing = [n for n in expected_digits if n not in actual_digits]
+        if missing:
+            return False, "missing/misread numbers: " + ", ".join(missing[:6])
+        repeated = qa_audio._repeat_flags(actual_norm, language)
+        if repeated:
+            return False, repeated[0]
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - QA must not crash synthesis
+        return True, f"qa unavailable: {exc}"
+
+
+def _trim_edges(audio: np.ndarray, sample_rate: int) -> np.ndarray:
+    """Remove leading/trailing model silence before pace measurement.
+
+    Qwen occasionally pads a short cue with several seconds of near-silence.
+    Measuring WPM over that padding rejects an otherwise good cue as 47 wpm.
+    """
+    if audio.size == 0 or sample_rate <= 0:
+        return audio
+    peak = float(np.max(np.abs(audio)))
+    if peak <= 0:
+        return audio
+    threshold = max(0.002, peak * 0.015)
+    active = np.flatnonzero(np.abs(audio) > threshold)
+    if active.size == 0:
+        return audio
+    start = max(0, int(active[0]) - int(0.04 * sample_rate))
+    end = min(audio.size, int(active[-1]) + int(0.10 * sample_rate))
+    return audio[start:end]
+
+
 def _token_cap(text: str) -> int:
     """Estimate a safe generation cap for English or CJK text.
 
@@ -261,8 +320,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
     parser.add_argument("--seed", type=int, default=44)
+    parser.add_argument("--no-shot-qa", action="store_true", help="skip the per-cue ASR gate")
+    parser.add_argument("--shot-qa-attempts", type=int, default=3, help="extra regenerations per failed cue")
+    parser.add_argument("--fallback-model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16", help="model used only after the primary model fails a cue")
     parser.add_argument("--check", action="store_true", help="check imports only")
     args = parser.parse_args(argv)
+    args.shot_qa = not args.no_shot_qa
 
     if args.check:
         return check()
@@ -303,133 +366,182 @@ def main(argv: list[str] | None = None) -> int:
     mx.random.seed(args.seed)
     failures: list[str] = []
 
+    def synthesize(current_text: str, out: Path, seed: int, model_obj=None) -> float:
+        mx.random.seed(seed)
+        # Cap generation at ~1.35x the expected duration so a bad sample
+        # cannot loop for minutes. CJK text is measured by characters.
+        chunks = _split_chunks(current_text, args.max_chunk_chars)
+        pieces = []
+        sample_rate = None
+        last_result = None
+        for chunk in chunks:
+            max_tokens = args.max_tokens or _token_cap(chunk)
+            results = list(
+                (model_obj or model).generate(
+                    text=chunk,
+                    ref_audio=str(reference),
+                    ref_text=ref_text,
+                    speed=args.speed,
+                    temperature=args.temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                    verbose=False,
+                )
+            )
+            if not results:
+                raise RuntimeError("model returned no audio")
+            last_result = results[0]
+            sample_rate = last_result.sample_rate
+            pieces.append(np.asarray(last_result.audio).reshape(-1))
+        if sample_rate is None or not pieces:
+            raise RuntimeError("model returned no audio")
+        if len(pieces) > 1:
+            silence = np.zeros(int(0.12 * sample_rate), dtype=pieces[0].dtype)
+            joined = [pieces[0]]
+            for piece in pieces[1:]:
+                joined.extend([silence, piece])
+            audio = np.concatenate(joined)
+        else:
+            audio = pieces[0]
+        audio = _trim_edges(audio, sample_rate)
+        audio_write(str(out), audio, sample_rate)
+        # Normalize every cue to a common broadcast loudness.
+        try:
+            loud_tmp = out.with_suffix(".loud.wav")
+            subprocess.run([
+                "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                "-af", "loudnorm=I=-16:TP=-1.5:LRA=7",
+                "-ar", str(sample_rate), "-ac", "1", str(loud_tmp),
+            ], check=True)
+            loud_tmp.replace(out)
+        except Exception as exc:  # noqa: BLE001
+            print(f"warning: loudness normalization failed: {exc}", file=sys.stderr)
+            try: loud_tmp.unlink()
+            except OSError: pass
+        duration = _audio_duration(out)
+        if args.target_wpm > 0:
+            words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", current_text))
+            for pass_index in range(2):
+                if words < 8 or duration <= 0:
+                    break
+                current = words / duration * 60.0
+                if current > 260 or current < 80:
+                    raise RuntimeError(f"invalid TTS pace ({current:.0f} wpm); refusing extreme stretch")
+                factor = args.target_wpm / current
+                if factor < 0.5 or factor > 2.0:
+                    raise RuntimeError(f"invalid TTS pace correction {factor:.2f}x")
+                if abs(factor - 1.0) < 0.01:
+                    break
+                tmp = out.with_suffix(f".pace{pass_index}.wav")
+                try:
+                    subprocess.run([
+                        "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                        "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
+                        "-ar", str(sample_rate), "-ac", "1", str(tmp),
+                    ], check=True)
+                    tmp.replace(out)
+                    duration = _audio_duration(out)
+                    print(f"  pace {current:.1f} -> {args.target_wpm:.1f} wpm ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
+                    try: tmp.unlink()
+                    except OSError: pass
+                    break
+        if args.target_syllables_per_sec > 0:
+            syllables = _syllables(current_text)
+            for pass_index in range(2):
+                speech = _speech_seconds(out)
+                if syllables < 8 or speech <= 0:
+                    break
+                current = syllables / speech
+                if current > 7.8 or current < 3.0:
+                    raise RuntimeError(f"invalid syllable rate ({current:.2f}/s); refusing extreme stretch")
+                factor = args.target_syllables_per_sec / current
+                if factor < 0.5 or factor > 2.0:
+                    raise RuntimeError(f"invalid syllable correction {factor:.2f}x")
+                if abs(factor - 1.0) < 0.01:
+                    break
+                tmp = out.with_suffix(f".syl{pass_index}.wav")
+                try:
+                    subprocess.run([
+                        "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
+                        "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
+                        "-ar", str(sample_rate), "-ac", "1", str(tmp),
+                    ], check=True)
+                    tmp.replace(out)
+                    duration = _audio_duration(out)
+                    print(f"  syllables {current:.2f} -> {args.target_syllables_per_sec:.2f}/s ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"warning: syllable pacing failed: {exc}", file=sys.stderr)
+                    try: tmp.unlink()
+                    except OSError: pass
+                    break
+        elapsed = duration / max(getattr(last_result, "processing_time_seconds", 1e-6), 1e-6)
+        print(f"  wrote {out} ({duration:.2f}s, {elapsed:.2f}x realtime)", file=sys.stderr)
+        return duration
+
+    fallback_model = None
     for index, job in enumerate(jobs, start=1):
         job_id = str(job.get("id") or index)
-        text = (job.get("text") or "").strip()
-        text = re.sub(r"\ba16z\b", "Andreessen Horowitz", text, flags=re.IGNORECASE)
+        raw_text = (job.get("text") or "").strip()
+        text = re.sub(r"\ba16z\b", "Andreessen Horowitz", raw_text, flags=re.IGNORECASE)
         text = verbalize_numbers(text)
+        expected = (job.get("expected") or raw_text).strip() or text
         out = Path(job.get("out") or "")
         if not text or not out:
             failures.append(f"{job_id}: missing text or out")
             continue
         out.parent.mkdir(parents=True, exist_ok=True)
         print(f"[{index}/{len(jobs)}] {job_id}", file=sys.stderr)
-        try:
-            # Cap generation at ~1.35x the expected duration so a bad sample
-            # cannot loop for minutes. CJK text is measured by characters.
-            chunks = _split_chunks(text, args.max_chunk_chars)
-            pieces = []
-            sample_rate = None
-            for chunk in chunks:
-                max_tokens = args.max_tokens or _token_cap(chunk)
-                results = list(
-                    model.generate(
-                        text=chunk,
-                        ref_audio=str(reference),
-                        ref_text=ref_text,
-                        speed=args.speed,
-                        temperature=args.temperature,
-                        max_tokens=max_tokens,
-                        stream=False,
-                        verbose=False,
-                    )
-                )
-                if not results:
-                    raise RuntimeError("model returned no audio")
-                result = results[0]
-                sample_rate = result.sample_rate
-                pieces.append(np.asarray(result.audio).reshape(-1))
-            if sample_rate is None or not pieces:
-                raise RuntimeError("model returned no audio")
-            if len(pieces) > 1:
-                silence = np.zeros(int(0.12 * sample_rate), dtype=pieces[0].dtype)
-                joined = [pieces[0]]
-                for piece in pieces[1:]:
-                    joined.extend([silence, piece])
-                audio = np.concatenate(joined)
-            else:
-                audio = pieces[0]
-            audio_write(str(out), audio, sample_rate)
-            # Normalize every cue to a common broadcast loudness. This also
-            # prevents one Qwen cue from sitting much hotter than its neighbour.
+        accepted = False
+        reason = ""
+        for attempt in range(args.shot_qa_attempts + 1):
             try:
-                loud_tmp = out.with_suffix(".loud.wav")
-                subprocess.run([
-                    "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
-                    "-af", "loudnorm=I=-16:TP=-1.5:LRA=7",
-                    "-ar", str(sample_rate), "-ac", "1", str(loud_tmp),
-                ], check=True)
-                loud_tmp.replace(out)
-            except Exception as exc:  # noqa: BLE001
-                print(f"warning: loudness normalization failed: {exc}", file=sys.stderr)
-                try: loud_tmp.unlink()
-                except OSError: pass
-            duration = _audio_duration(out)
-            if args.target_wpm > 0:
-                words = len(re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)?", text))
-                for pass_index in range(2):
-                    if words < 8 or duration <= 0:
-                        break
-                    current = words / duration * 60.0
-                    if current > 260 or current < 80:
-                        raise RuntimeError(f"invalid TTS pace ({current:.0f} wpm); refusing extreme stretch")
-                    factor = args.target_wpm / current
-                    if factor < 0.5 or factor > 2.0:
-                        raise RuntimeError(f"invalid TTS pace correction {factor:.2f}x")
-                    if abs(factor - 1.0) < 0.01:
-                        break
-                    tmp = out.with_suffix(f".pace{pass_index}.wav")
-                    try:
-                        subprocess.run([
-                            "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
-                            "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
-                            "-ar", str(sample_rate), "-ac", "1", str(tmp),
-                        ], check=True)
-                        tmp.replace(out)
-                        duration = _audio_duration(out)
-                        print(f"  pace {current:.1f} -> {args.target_wpm:.1f} wpm ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
-                    except Exception as exc:  # noqa: BLE001
-                        print(f"warning: pace adjustment failed: {exc}", file=sys.stderr)
-                        try: tmp.unlink()
-                        except OSError: pass
-                        break
-            if args.target_syllables_per_sec > 0:
-                syllables = _syllables(text)
-                for pass_index in range(2):
-                    speech = _speech_seconds(out)
-                    if syllables < 8 or speech <= 0:
-                        break
-                    current = syllables / speech
-                    if current > 7.8 or current < 3.0:
-                        raise RuntimeError(f"invalid syllable rate ({current:.2f}/s); refusing extreme stretch")
-                    factor = args.target_syllables_per_sec / current
-                    if factor < 0.5 or factor > 2.0:
-                        raise RuntimeError(f"invalid syllable correction {factor:.2f}x")
-                    if abs(factor - 1.0) < 0.01:
-                        break
-                    tmp = out.with_suffix(f".syl{pass_index}.wav")
-                    try:
-                        subprocess.run([
-                            "ffmpeg", "-hide_banner", "-v", "error", "-y", "-i", str(out),
-                            "-filter:a", f"atempo={max(0.5, min(2.0, factor)):.6f}",
-                            "-ar", str(sample_rate), "-ac", "1", str(tmp),
-                        ], check=True)
-                        tmp.replace(out)
-                        duration = _audio_duration(out)
-                        print(f"  syllables {current:.2f} -> {args.target_syllables_per_sec:.2f}/s ({factor:.3f}x, pass {pass_index + 1})", file=sys.stderr)
-                    except Exception as exc:  # noqa: BLE001
-                        print(f"warning: syllable pacing failed: {exc}", file=sys.stderr)
-                        try: tmp.unlink()
-                        except OSError: pass
-                        break
+                synthesize(text, out, args.seed + attempt)
+            except Exception as exc:  # noqa: BLE001 - model/runtime errors vary
+                reason = str(exc)
+                print(f"error: {job_id} attempt {attempt + 1}: {exc}", file=sys.stderr)
+                continue
+            if not args.shot_qa:
+                accepted = True
+                break
+            ok, reason = _per_shot_qa(out, expected, Path(sys.executable))
+            if ok:
+                accepted = True
+                break
             print(
-                f"  wrote {out} ({duration:.2f}s, "
-                f"{duration / max(result.processing_time_seconds, 1e-6):.2f}x realtime)",
+                f"  per-shot QA failed for {job_id} attempt {attempt + 1}: {reason}; regenerating",
                 file=sys.stderr,
             )
-        except Exception as exc:  # noqa: BLE001 - model/runtime errors vary
-            failures.append(f"{job_id}: {exc}")
-            print(f"error: {job_id}: {exc}", file=sys.stderr)
+            try: out.unlink()
+            except OSError: pass
+        if not accepted and args.fallback_model and args.fallback_model != args.model:
+            if fallback_model is None:
+                print(f"loading fallback {args.fallback_model}", file=sys.stderr)
+                fallback_model = _load_model(args.fallback_model)
+            for attempt in range(args.shot_qa_attempts + 1):
+                try:
+                    synthesize(text, out, args.seed + attempt, fallback_model)
+                except Exception as exc:  # noqa: BLE001
+                    reason = str(exc)
+                    print(f"error: {job_id} fallback attempt {attempt + 1}: {exc}", file=sys.stderr)
+                    continue
+                if not args.shot_qa:
+                    accepted = True
+                    break
+                ok, reason = _per_shot_qa(out, expected, Path(sys.executable))
+                if ok:
+                    accepted = True
+                    break
+                print(
+                    f"  fallback per-shot QA failed for {job_id} attempt {attempt + 1}: {reason}; regenerating",
+                    file=sys.stderr,
+                )
+                try: out.unlink()
+                except OSError: pass
+        if not accepted:
+            failures.append(f"{job_id}: {reason or 'shot QA failed'}")
+            print(f"error: {job_id}: {reason or 'shot QA failed'}", file=sys.stderr)
 
     if failures:
         print(json.dumps({"ok": False, "failures": failures}, indent=2))

@@ -47,7 +47,7 @@ def _zh_compact(value: str) -> str:
     for unit in ("亿", "万"):
         if unit in value:
             left, right = value.split(unit, 1)
-            head = str(_zh_int(left)) if left else "1"
+            head = _zh_compact(left) if left else "1"
             return head + unit + (_zh_compact(right) if right else "")
     return str(_zh_int(value))
 

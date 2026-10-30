@@ -25,6 +25,105 @@
       "duration_seconds": 73.9,
       "audio": "source commentary",
       "published_at": "2026-10-28T07:05:00+00:00"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "N9WzdlF8jvE",
+      "url": "https://youtu.be/N9WzdlF8jvE",
+      "title": "ai-agents-are-already-changing-the-price-of-goods",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:25+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "oRGH_2DVnaw",
+      "url": "https://youtu.be/oRGH_2DVnaw",
+      "title": "dirty-dozen-charts-anthropic-s-s-1-amazon-earnings-p",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:00+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "80fZLTwyoIw",
+      "url": "https://youtu.be/80fZLTwyoIw",
+      "title": "doubt-but-no-fear-spacex-reports-netflix-cleans-hous",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:04+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "AeaBsLirOsA",
+      "url": "https://youtu.be/AeaBsLirOsA",
+      "title": "gm109-why-buffett-finally-went-all-in-on-japan-ft-an",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:14+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "F7DpZkROF5w",
+      "url": "https://youtu.be/F7DpZkROF5w",
+      "title": "how-crowdstrike-could-double-arr-by-2030-with-george",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:07+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "0M0MUZP7JK8",
+      "url": "https://youtu.be/0M0MUZP7JK8",
+      "title": "interview-eric-seufert-on-whether-ai-will-destroy-go",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:32:57+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "mlGm4hWChPM",
+      "url": "https://youtu.be/mlGm4hWChPM",
+      "title": "macrovoices-554-yasir-arafat-mass-manufacturing-nucl",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:18+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "Q-nzhuYqbVo",
+      "url": "https://youtu.be/Q-nzhuYqbVo",
+      "title": "satya-nadella-on-open-vs-closed-models-who-wins-why-",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:11+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
+    },
+    {
+      "platform": "youtube",
+      "format": "short",
+      "video_id": "tz4KJS4XhZI",
+      "url": "https://youtu.be/tz4KJS4XhZI",
+      "title": "the-changing-physics-of-cybersecurity-and-drug-devel",
+      "status": "public",
+      "audio": "commentary audio",
+      "published_at": "2026-10-30T13:33:21+00:00",
+      "note": "consistent cover plate + LinkZag visual Short"
     }
   ],
   "wechat": [

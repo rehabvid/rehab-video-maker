@@ -44,13 +44,28 @@ def _font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, width: int) -> list[str]:
-    lines: list[str] = []
+    text = text.replace("\n", " ").strip()
+    if " " not in text:
+        # CJK has no inter-word spaces; keep character wrapping.
+        lines: list[str] = []
+        current = ""
+        for char in text:
+            candidate = current + char
+            if current and draw.textlength(candidate, font=font) > width:
+                lines.append(current)
+                current = char
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+        return lines
+    lines = []
     current = ""
-    for char in text.replace("\n", " "):
-        candidate = current + char
+    for word in text.split():
+        candidate = f"{current} {word}".strip()
         if current and draw.textlength(candidate, font=font) > width:
             lines.append(current)
-            current = char
+            current = word
         else:
             current = candidate
     if current:
