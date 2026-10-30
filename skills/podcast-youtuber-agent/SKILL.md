@@ -63,8 +63,8 @@ write or perform as if the creator was part of the original recording.
   each cue with `atempo`). English cues are generated in one pass per shot
   (`--max-chunk-chars 10000`); sentence chunking caused Qwen voice drift and
   female-timbre glitches in later chunks. Every cue is normalised with
-  `loudnorm=I=-16:TP=-1.5:LRA=7`. Qwen3-TTS 0.6B Base is the default English model; the 1.7B local
-  checkpoint produced extreme short-audio artifacts during these tests.
+  `loudnorm=I=-16:TP=-1.5:LRA=7`. Qwen3-TTS 1.7B Base is the default model. The 0.6B model remains a
+  fallback for machines that cannot hold the larger model.
   English shots are also paced by **speech-only syllable rate** (target 5.15
   syllables/second), because WPM alone masks differences in pauses and long
   proper nouns. Long English cues are sentence-chunked before synthesis so
@@ -113,7 +113,7 @@ production layer:
 - One 1920×1080 MP4, 30 fps (or 25), H.264 + AAC 48 kHz stereo.
 - **Default 10–15 minutes** (target 12–15), roughly **one quarter of the
   source audio** (25%, with a 10-minute floor and a 15-minute cap).
-- **30–45 slides.** Qwen3-TTS Base 0.6B measured about **145–155 wpm** on
+- **30–45 slides.** Qwen3-TTS Base 1.7B measured about **145–155 wpm** on
   slide-by-slide narration. Plan with **150 wpm**: a 10–15 minute commentary
   needs about **1,500–2,250 words**. Use `slides.py --wpm 150` and the measured
   `timing.json` runtime for the final check. A 100-word calibration sample is
@@ -223,12 +223,21 @@ uv pip install --python .venv-voice/bin/python mlx-audio
   skills/podcast-youtuber-agent/scripts/qwen3_worker.py --check
 ```
 
-Qwen3-TTS Base 0.6B is the default now. It uses MLX and the
-`mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16` model. The first run downloads the
+Qwen3-TTS Base 1.7B is the default now. It uses MLX and the
+`mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16` model. The first run downloads the
 model; later loads are a few seconds. Chatterbox remains the fallback/alternate.
 Qwen3 voice cloning needs the **exact transcript** of the reference recording;
 the default is `config/sample-passage.txt`, which is what the sample passage is
 for. Pass `--ref-text-file` if your reference uses different text.
+
+**Accent vs timbre.** Qwen3-TTS **Base** cloning keeps the reference speaker's
+timbre and accent. `instruct` is supported by the VoiceDesign/CustomVoice model
+variants, not by Base with a reference clip, so it cannot be used to add a US
+accent while preserving your own timbre. For English with a native US accent
+and your timbre, record a second 45–90 second reference in that accent and use a
+separate voice profile (for example `voices/me-us`). VoiceDesign can create a
+US-accented voice from text, but it does not accept `reference.wav`, so its
+timbre will not be yours.
 
 `setuptools<81` keeps `pkg_resources`, which `resemble-perth` (Chatterbox's
 watermarker) still imports. Without it, the model loads but fails at
@@ -242,8 +251,8 @@ the upstream Chatterbox issues. See
 **Licence note.** Chatterbox is MIT. F5-TTS and XTTS-v2 pretrained weights have
 non-commercial terms; do not use them for a monetised channel without checking
 the current licence. OpenVoice is MIT but its tone-colour clone is a different
-quality trade-off. The pipeline now defaults to Qwen3-TTS Base 0.6B on MLX for
-near-realtime generation; Chatterbox remains an alternate if its voice matches
+quality trade-off. The pipeline now defaults to Qwen3-TTS Base 1.7B on MLX for
+higher-fidelity generation; Chatterbox remains an alternate if its voice matches
 better.
 
 If the voice environment is somewhere else, pass

@@ -44,7 +44,7 @@
       "source_ids": [
         "6ac759b03b4c857afa724591"
       ],
-      "title": "Jim Rickards: Washington Needs Inflation, Here’s Who Pays",
+      "title": "Jim Rickards: Washington Needs Inflation, Here\u2019s Who Pays",
       "video_id": "tQGSgedwlSE",
       "url": "https://youtu.be/tQGSgedwlSE",
       "note": "15:09 macro technical slideshow; uploaded 2026-10-24 (currently public)",
@@ -64,7 +64,7 @@
       "source_ids": [
         "6ab3d5da048fb56597d002d3"
       ],
-      "title": "How to Ace System Design at AI Frontier Labs and FAANG: The Mental Models Behind Every Interview — Understand the Question, Pick the Right Building Blocks, Go Deep, and Course-Correct",
+      "title": "How to Ace System Design at AI Frontier Labs and FAANG: The Mental Models Behind Every Interview \u2014 Understand the Question, Pick the Right Building Blocks, Go Deep, and Course-Correct",
       "video_id": "bk-WSQsBAGU",
       "url": "https://youtu.be/bk-WSQsBAGU",
       "note": "16:04 system-design commentary; re-uploaded private after channel verification 2026-10-25",
@@ -140,7 +140,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:4bab0140-c690-11f1-ba93-9ff1cc3f5ef5"
       ],
-      "title": "David Vélez - Building Nubank and the Future of Global Banking - [Invest Like the Best, EP.495]",
+      "title": "David V\u00e9lez - Building Nubank and the Future of Global Banking - [Invest Like the Best, EP.495]",
       "video_id": "Mm0IFtRr-44",
       "url": "https://youtu.be/Mm0IFtRr-44",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -150,7 +150,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:cbc65564-c276-11f1-811b-8f4772221d6a"
       ],
-      "title": "An Economy So Good No One Can Live In It with Jill Schlesinger⁠",
+      "title": "An Economy So Good No One Can Live In It with Jill Schlesinger\u2060",
       "video_id": "UaFQ7cCItzw",
       "url": "https://youtu.be/UaFQ7cCItzw",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -220,7 +220,7 @@
       "source_ids": [
         "rss:feeds.megaphone.fm:75aabc6c-d20f-11f1-ad42-f36d9cbe53b7"
       ],
-      "title": "Dirty Dozen Charts, Anthropic’s S-1, Amazon Earnings Preview, Cost of Capital Hits AI",
+      "title": "Dirty Dozen Charts, Anthropic\u2019s S-1, Amazon Earnings Preview, Cost of Capital Hits AI",
       "video_id": "xLglulP7vDM",
       "url": "https://youtu.be/xLglulP7vDM",
       "note": "generated in cooldown; uploaded after quota reset",
@@ -251,10 +251,38 @@
         "9v42ZOdiBJY"
       ],
       "title": "Why OpenAI Is Racing to Make Computer Use Superhuman",
-      "video_id": "pending",
-      "url": "",
-      "note": "generated; awaiting YouTube quota",
+      "video_id": "isxTtWaHI3Q",
+      "url": "https://youtu.be/isxTtWaHI3Q",
+      "note": "generated in cooldown; uploaded after quota reset",
       "used_at": "2026-10-28T07:29:04+00:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.captivate.fm:06fe282a-858d-482f-96a8-a539053f0ebe"
+      ],
+      "title": "Buffett Didn't Discover Japan. He Could Afford to Wait. | GM109 Commentary",
+      "video_id": "bX61bIvRhN4",
+      "url": "https://youtu.be/bX61bIvRhN4",
+      "note": "generated in cooldown; uploaded after quota reset"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:da9b69b6-cb1e-11f1-9aa5-972226d68029"
+      ],
+      "title": "AI's $252 Billion Bill: Why the Bond Market Is the Real Bubble Test",
+      "video_id": "yuZYXYhB-Es",
+      "url": "https://youtu.be/yuZYXYhB-Es",
+      "note": "generated in cooldown; uploaded after quota reset"
+    },
+    {
+      "source_ids": [
+        "6adf1a5da23809d7f65dc360"
+      ],
+      "title": "Interview. Eric Seufert on Whether AI Will Destroy Google's Search Monopoly",
+      "video_id": "CEO6fdEc-N4",
+      "url": "https://youtu.be/CEO6fdEc-N4",
+      "note": "English YouTube private; autopilot bilingual; English cover/background LinkZag",
+      "used_at": "2026-10-30T08:32:07+00:00"
     }
   ]
 }

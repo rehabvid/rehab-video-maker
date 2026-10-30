@@ -2,7 +2,7 @@
 """Qwen3-TTS Base voice cloning worker for Apple Silicon (MLX).
 
 This is the faster alternative to Chatterbox. It uses ``mlx-audio`` and the
-0.6B Base model, which supports zero-shot cloning from ``ref_audio`` plus the
+1.7B Base model, which supports zero-shot cloning from ``ref_audio`` plus the
 exact ``ref_text`` transcript.
 
 Run inside the voice environment (``.venv-voice``)::
@@ -25,7 +25,7 @@ import sys
 import numpy as np
 from pathlib import Path
 
-DEFAULT_MODEL = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+DEFAULT_MODEL = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16"
 
 
 def _load_model(model_name: str):
@@ -260,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-chunk-chars", type=int, default=180)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-tokens", type=int, help="override per-job token cap")
-    parser.add_argument("--seed", type=int, default=43)
+    parser.add_argument("--seed", type=int, default=44)
     parser.add_argument("--check", action="store_true", help="check imports only")
     args = parser.parse_args(argv)
 

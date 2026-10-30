@@ -23,9 +23,49 @@ def _load(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
+_ZH_DIGITS = {
+    "零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+    "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
+}
+_ZH_UNITS = {"十": 10, "百": 100, "千": 1000}
+
+
+def _zh_int(value: str) -> int:
+    total = 0
+    number = 0
+    for char in value:
+        if char in _ZH_DIGITS:
+            number = _ZH_DIGITS[char]
+        else:
+            total += (number or 1) * _ZH_UNITS[char]
+            number = 0
+    return total + number
+
+
+def _zh_compact(value: str) -> str:
+    """Keep magnitudes compact so both sides normalize to e.g. 25亿, not 2500000000."""
+    for unit in ("亿", "万"):
+        if unit in value:
+            left, right = value.split(unit, 1)
+            head = str(_zh_int(left)) if left else "1"
+            return head + unit + (_zh_compact(right) if right else "")
+    return str(_zh_int(value))
+
+
 def _normalise(text: str, language: str) -> list[str]:
     text = text.lower()
     if language.lower().startswith(("zh", "cmn", "mandarin")):
+        # Whisper usually writes Arabic digits while the deck uses Chinese
+        # numerals. Normalize both sides so a correct "二十五亿" is not scored
+        # as three substitutions against "25亿". Keep the magnitude suffix
+        # compact; expanding it produces long runs of zeros that look like a
+        # repeated-word artifact to the stutter check.
+        text = text.replace("百分之", "")
+        text = re.sub(
+            r"(?<!\d)[零〇一二两三四五六七八九十百千万亿]+",
+            lambda match: _zh_compact(match.group(0)),
+            text,
+        )
         return list(re.sub(r"[^\u3400-\u9fffA-Za-z0-9]", "", text))
     return re.findall(r"[a-z0-9]+(?:['’][a-z0-9]+)?", text)
 
@@ -105,6 +145,8 @@ def _repeat_flags(tokens: list[str], language: str) -> list[str]:
         for i in range(0, len(tokens) - size * 2 + 1):
             first = tokens[i:i + size]
             second = tokens[i + size:i + size * 2]
+            if all(token.isdigit() for token in first):
+                continue
             if first == second:
                 flags.append("repeated phrase: " + " ".join(first))
                 return flags

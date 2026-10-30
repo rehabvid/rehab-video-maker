@@ -585,21 +585,33 @@ def main(argv: list[str] | None = None) -> int:
                 log(f"Mandarin slides failed validation for {slug}; stopping")
                 break
             cover_path = out_dir / "cover.zh.png"
-            if not cover_path.exists():
+            cover_path_en = out_dir / "cover.en.png"
+
+            def _cover(metadata: Path, out: Path, label: str) -> bool:
+                if out.exists():
+                    return True
                 try:
                     urllib.request.urlopen(
                         "http://127.0.0.1:8188/system_stats", timeout=2
                     )
-                    cover_code = run([
-                        sys.executable, str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
-                        "--metadata", str(work / "youtube.zh.json"),
-                        "--out", str(cover_path),
-                        "--candidates", "1",
-                    ])
-                    if cover_code:
-                        log("cover generation failed; continuing without cover art")
                 except OSError:
-                    log("ComfyUI not running; skipping cover art")
+                    log(f"ComfyUI not running; cannot generate {label} cover")
+                    return False
+                code = run([
+                    sys.executable,
+                    str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
+                    "--metadata", str(metadata),
+                    "--out", str(out),
+                    "--candidates", "1",
+                ])
+                if code:
+                    log(f"{label} cover generation failed")
+                return code == 0
+
+            _cover(work / "youtube.zh.json", cover_path, "Mandarin")
+            if not _cover(work / "youtube.json", cover_path_en, "English"):
+                log("English cover is required for the YouTube variant; stopping")
+                break
             bilingual_cmd = [
                 sys.executable, str(HERE / "bilingual.py"), "build",
                 "--slides", str(work / "slides.json"),
@@ -627,6 +639,8 @@ def main(argv: list[str] | None = None) -> int:
                 ]
             if cover_path.exists():
                 bilingual_cmd += ["--thumbnail-zh", str(cover_path)]
+            if cover_path_en.exists():
+                bilingual_cmd += ["--thumbnail", str(cover_path_en)]
             if args.no_scene_backgrounds:
                 bilingual_cmd += ["--no-scene-backgrounds"]
             build_code = run(bilingual_cmd)

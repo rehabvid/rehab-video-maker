@@ -49,6 +49,19 @@
       "title": "AI交易的真正账单",
       "platform_family": "wechat-channels",
       "asset": "out/autopilot/doubt-but-no-fear-spacex-reports-netflix-cleans-hous/final.zh.mp4"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "谷歌的AI搜索收费站",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-30T17:38:09+08:00",
+      "asset": "out/autopilot/interview-eric-seufert-on-whether-ai-will-destroy-go/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/interview-eric-seufert-on-whether-ai-will-destroy-go-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-interview-eric-seufert-on-whether-ai-will-destroy-go-final.json",
+      "source_ids": [
+        "6adf1a5da23809d7f65dc360"
+      ]
     }
   ]
 }

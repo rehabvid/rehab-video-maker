@@ -90,8 +90,16 @@ def _build_english(args, out_en: Path) -> int:
     ]
     if args.builder == "tech":
         cmd += ["--ref-text-file", args.ref_text_file, "--voice-python", args.voice_python]
+    if args.reuse_en_narration and (args.work / "timing.json").exists():
+        cmd += ["--timing", str(args.work / "timing.json")]
     if args.max_seconds:
         cmd += ["--max-seconds", str(args.max_seconds)]
+    # The English master needs its own cover art too. The finished cover is the
+    # YouTube thumbnail; build.py derives the untexted plate for card and
+    # LinkZag scene backgrounds.
+    if args.thumbnail:
+        cover_en = str(Path(args.thumbnail).expanduser())
+        cmd += ["--cover", cover_en, "--thumbnail", cover_en]
     return run(cmd)
 
 
@@ -289,6 +297,27 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
         log(f"reusing Mandarin narration in {work_zh}")
     elif run(narrate):
         return 1
+
+    # Gate Mandarin audio before rendering any LinkZag scenes. This is the
+    # second half of the same bad-seed guard used for English: never spend
+    # render time on a deck whose TTS output cannot pass ASR.
+    if args.engine_zh == "qwen3" and not args.reuse_zh_narration:
+        preflight = work_zh / "audio-qa-preflight-zh.json"
+        if run([
+            sys.executable, str(TECH_SCRIPTS / "retry_audio.py"),
+            "--slides", str(args.slides_zh),
+            "--audio-dir", str(work_zh / "audio"),
+            "--language", "zh",
+            "--reference", str(Path(args.voice_profile) / "reference.wav"),
+            "--ref-text", str(args.ref_text_file),
+            "--voice-python", args.voice_python,
+            "--attempts", "2",
+            "--qa-out", str(preflight),
+        ]):
+            log("Mandarin audio preflight failed; not rendering")
+            return 1
+        if run(narrate + ["--reuse-audio"]):
+            return 1
 
     en_timing_path = args.work / "timing-visuals.json"
     if not en_timing_path.exists():
@@ -565,12 +594,39 @@ def build(args) -> int:
         )
         return 1
 
-    thumb_en = args.thumbnail or (args.out_dir / "thumbnail.en.png")
+    if args.thumbnail is None:
+        default_en_cover = args.out_dir / "cover.en.png"
+        if default_en_cover.exists():
+            args.thumbnail = str(default_en_cover)
+    thumb_en = Path(args.thumbnail).expanduser() if args.thumbnail else (args.out_dir / "thumbnail.en.png")
     if not thumb_en.exists():
         _thumbnail(args.slides, thumb_en)
     thumb_zh = Path(args.thumbnail_zh).expanduser() if args.thumbnail_zh else args.out_dir / "thumbnail.zh.png"
     if not thumb_zh.exists():
         _thumbnail(args.slides_zh, thumb_zh)
+
+    # The English video must use the same LinkZag cover plate as its YouTube
+    # thumbnail. Catch a failed story-background pass before upload rather than
+    # silently publishing dark/legacy cards.
+    if args.builder == "tech" and not args.no_scene_backgrounds and args.thumbnail:
+        en_story = args.work / "timing-story.json"
+        en_scenes = args.work / "scenes.json"
+        en_cover = Path(args.thumbnail).expanduser()
+        en_plate = en_cover.with_name(en_cover.stem + ".plate.png")
+        if not en_plate.exists():
+            en_plate = en_cover
+        if not en_story.exists() or not en_scenes.exists():
+            print("error: English story backgrounds are missing", file=sys.stderr)
+            return 1
+        if run([
+            sys.executable, str(TECH_SCRIPTS / "qa_backgrounds.py"),
+            "--timing", str(en_story),
+            "--scenes", str(en_scenes),
+            "--cover", str(en_plate),
+            "--out", str(args.work / "background-qa-en.json"),
+        ]):
+            log("English background QA failed; blocking upload")
+            return 1
 
     manifest = {
         "english": {
@@ -653,10 +709,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--target-wpm-en", type=float, default=170.0, help="English Qwen post-speed target")
     p.add_argument("--target-syllables-en", type=float, default=5.15, help="English speech-only syllables/sec")
     p.add_argument(
+        "--reuse-en-narration", action="store_true",
+        help="use the existing English timing.json/master.wav instead of synthesising again",
+    )
+    p.add_argument(
         "--reuse-zh-narration", action="store_true",
         help="reuse work-zh/timing.json and master.wav instead of synthesising again",
     )
-    p.add_argument("--seed", type=int, default=43)
+    p.add_argument("--seed", type=int, default=44)
     p.add_argument("--preset", default="veryfast")
     p.add_argument("--crf", type=int, default=20)
     p.add_argument("--max-seconds", type=float, default=895.0)

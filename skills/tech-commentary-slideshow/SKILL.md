@@ -84,8 +84,9 @@ exhausted; a failed gate blocks upload.
 `qa_audio.py` checks each generated cue with Whisper ASR and compares it to the
 expected narration. It flags truncated/looping audio, repeated words/phrases,
 large WER/CER, missing speech, extreme pace, near-clipping and very quiet cues.
-Both English and Mandarin are checked; the build fails and blocks upload when a
-cue is flagged. This catches stutters and broken words that a waveform-only
+Both English and Mandarin are checked; the build runs this gate **before**
+rendering scene files and assembly, and it blocks upload when a cue is
+flagged. This catches stutters and broken words that a waveform-only
 check misses, but it is not a substitute for listening: accent, timbre and
 naturalness still require human review. Reports are written to
 `build/<episode>/audio-qa-en.json` and `build/<episode>/zh/audio-qa-zh.json`.
@@ -299,7 +300,7 @@ uv run python skills/tech-commentary-slideshow/scripts/build.py \
   --ref-text-file skills/podcast-youtuber-agent/config/sample-passage.txt
 ```
 
-`build.py` defaults to Qwen3-TTS Base 0.6B on MLX. `--engine chatterbox`
+`build.py` defaults to Qwen3-TTS Base 1.7B on MLX. Audio QA now runs as a preflight gate before scene rendering. `--engine chatterbox`
 remains available when its voice matches better. `build.py`:
 
 1. runs `narrate.py` if `timing.json` is missing (shared content/voice layer);

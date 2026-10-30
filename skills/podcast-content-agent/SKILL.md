@@ -132,7 +132,7 @@ as 重定价 (chóng), 行业/央行/行长 (háng), 利差 (chā), 杠杆率 (g
   around one thesis. Do not pad.
 - If the episode is over ~60 minutes, keep the strongest through-line and stop
   at 15 minutes.
-- `slides.json` should contain **30–45 beats**. Qwen3-TTS Base 0.6B reads at
+- `slides.json` should contain **30–45 beats**. Qwen3-TTS Base 1.7B reads at
   roughly **150 wpm**; a 10–15 minute commentary needs about **1,500–2,250
   words**. Use `slides.py --wpm 150`, then verify with measured timing. Fewer,
   longer-held slides read better than a card every ten seconds.

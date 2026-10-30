@@ -55,13 +55,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default="mps", choices=["mps", "cpu"])
     parser.add_argument("--turbo", action="store_true")
     parser.add_argument("--ref-text-file", default="skills/podcast-youtuber-agent/config/sample-passage.txt")
-    parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
+    parser.add_argument("--qwen3-model", default="mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16")
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--target-wpm", type=float, default=0.0)
     parser.add_argument("--target-syllables-per-sec", type=float, default=0.0)
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)
-    parser.add_argument("--seed", type=int, default=43)
+    parser.add_argument("--seed", type=int, default=44)
     parser.add_argument("--voice-python", default=str(REPO / ".venv-voice" / "bin" / "python"))
     parser.add_argument("--module", default=str(LINKZAG_MODULE))
     parser.add_argument("--base-url", help="reuse a running LinkZag renderer")
@@ -114,6 +114,29 @@ def main(argv: list[str] | None = None) -> int:
             ]
             if _run(narrate):
                 return 1
+            # Gate audio before spending time on LinkZag scenes and assembly.
+            # A bad TTS seed can make every cue unintelligible; catching it here
+            # is much cheaper than producing a complete broken video.
+            if args.engine == "qwen3":
+                qa_preflight = work / "audio-qa-preflight-en.json"
+                if _run([
+                    sys.executable, str(HERE / "retry_audio.py"),
+                    "--slides", str(slides_path),
+                    "--audio-dir", str(work / "audio"),
+                    "--language", "en",
+                    "--model", args.qwen3_model,
+                    "--reference", str(Path(args.voice_profile) / "reference.wav"),
+                    "--ref-text", str(args.ref_text_file),
+                    "--voice-python", args.voice_python,
+                    "--target-wpm", str(args.target_wpm),
+                    "--target-syllables", str(args.target_syllables_per_sec),
+                    "--attempts", "2",
+                    "--qa-out", str(qa_preflight),
+                ]):
+                    print("error: English audio preflight failed; not rendering", file=sys.stderr)
+                    return 1
+                if _run(narrate + ["--reuse-audio"]):
+                    return 1
             timing_path = work / "timing.json"
 
         plan_path = work / "visual-plan.json"

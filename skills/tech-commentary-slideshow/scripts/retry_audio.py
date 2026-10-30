@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--slides", required=True)
     p.add_argument("--audio-dir", required=True)
     p.add_argument("--language", required=True)
-    p.add_argument("--model", default="mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
+    p.add_argument("--model", default="mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16")
     p.add_argument("--voice-python", default=str(ROOT / ".venv-voice" / "bin" / "python"))
     p.add_argument("--reference", default=str(ROOT / "voices" / "me" / "reference.wav"))
     p.add_argument("--ref-text", default=str(ROOT / "voices" / "me" / "reference.txt"))
@@ -76,6 +76,16 @@ def main(argv: list[str] | None = None) -> int:
         ]
         subprocess.run(cmd)
         job_file.unlink(missing_ok=True)
+    # The last attempt still needs a verdict; otherwise a good final sample is
+    # reported as failed simply because the loop ended.
+    qa_code = subprocess.run([
+        sys.executable, str(QA), "--audio-dir", str(audio_dir),
+        "--slides", args.slides, "--language", args.language,
+        "--voice-python", str(voice_python), "--out", str(qa_out),
+    ]).returncode
+    if qa_code == 0:
+        print(f"QA PASS on final attempt {args.attempts + 1}")
+        return 0
     print("QA did not pass after retries", file=sys.stderr)
     return 1
 

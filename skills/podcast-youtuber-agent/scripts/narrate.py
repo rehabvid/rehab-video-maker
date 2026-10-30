@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise b-roll-slide narration with a personal voice and measured timing.
 
-The default engine is Qwen3-TTS Base 0.6B on MLX (voice cloning, faster than
+The default engine is Qwen3-TTS Base 1.7B on MLX (voice cloning, faster than
 realtime on Apple Silicon). ``--engine chatterbox`` remains available, and
 ``--engine edge`` is a no-clone fallback for drafts.
 
@@ -68,7 +68,7 @@ EDGE_VOICES = {
 DEFAULT_EDGE_VOICE = "andrew"
 DEFAULT_RATE = "-6%"
 DEFAULT_VOICE_PROFILE = "voices/me"
-QWEN3_MODEL = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+QWEN3_MODEL = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16"
 DEFAULT_REF_TEXT = Path("skills/podcast-youtuber-agent/config/sample-passage.txt")
 
 
@@ -731,7 +731,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ref-text-file", help="exact transcript of the reference recording")
     parser.add_argument("--exaggeration", type=float, default=0.5)
     parser.add_argument("--cfg-weight", type=float, default=0.5)
-    parser.add_argument("--seed", type=int, default=43)
+    parser.add_argument("--seed", type=int, default=44)
     parser.add_argument("--max-chars", type=int, default=280)
     parser.add_argument("--turbo", action="store_true", help="use Chatterbox no-CFG turbo inference")
     parser.add_argument("--voice", default=DEFAULT_EDGE_VOICE, help="edge-tts voice key")
