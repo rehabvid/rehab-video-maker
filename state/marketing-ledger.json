@@ -174,6 +174,39 @@
       "source_ids": [
         "rss:feed.podbean.com:macrovoices.podbean.com/454c9124-7b94-34ef-9205-b84b1ef4cc6f"
       ]
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "多头被困的真相",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-31T11:07:50+08:00",
+      "asset": "out/autopilot/the-bulls-are-trapped-with-alex-altmann/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-bulls-are-trapped-with-alex-altmann-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-bulls-are-trapped-with-alex-altmann-final.json",
+      "source_ids": [
+        "rss:feeds.megaphone.fm:e1837a58-c276-11f1-9c37-a358a8f7ddc7"
+      ]
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "谁在为你的AI购物智能体买单答",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-31T03:14:24.515Z",
+      "asset": "out/autopilot/ai-agents-are-already-changing-the-price-of-goods/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ai-agents-are-already-changing-the-price-of-goods-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ai-agents-are-already-changing-the-price-of-goods-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "Vanta自己吞下AI账单这是",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-31T03:18:30.000Z",
+      "asset": "out/autopilot/christina-cacioppo-building-an-enduring-software-com/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/christina-cacioppo-building-an-enduring-software-com-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-christina-cacioppo-building-an-enduring-software-com-final.json"
     }
   ]
 }

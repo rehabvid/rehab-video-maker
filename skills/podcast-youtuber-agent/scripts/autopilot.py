@@ -550,6 +550,19 @@ def main(argv: list[str] | None = None) -> int:
             log(f"writer transient failure (attempt {attempt}); retrying in {attempt * 60}s")
             time.sleep(attempt * 60)
         if write_code:
+            # OpenCode can lose its transport after the writer has already
+            # written a complete, valid package. Prefer verified artifacts over
+            # the transport exit code.
+            required = [work / "script.txt", work / "slides.json", work / "youtube.json"]
+            if all(path.exists() for path in required):
+                check = run([
+                    sys.executable, str(CONTENT_SCRIPTS / "slides.py"),
+                    "validate", str(work / "slides.json"), "--root", ".", "--wpm", "150",
+                ], quiet=True)
+                if check == 0:
+                    log("writer transport exited nonzero, but the artifacts validate; continuing")
+                    write_code = 0
+        if write_code:
             log(f"writer failed for {slug}; stopping")
             break
         if not (work / "script.txt").exists() or not (work / "slides.json").exists():

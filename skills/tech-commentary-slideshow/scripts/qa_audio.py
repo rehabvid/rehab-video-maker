@@ -221,8 +221,8 @@ def main(argv: list[str] | None = None) -> int:
                         errors.append(f"character pace outside range ({cps:.2f} chars/s, {duration:.2f}s)")
                 elif words >= 8 and (wpm < args.min_wpm or wpm > args.max_wpm):
                     errors.append(f"pace outside range ({wpm:.0f} wpm, {duration:.2f}s)")
-            expected_numbers = re.findall(r"\d+(?:\.\d+)?", expected_text)
-            actual_numbers = re.findall(r"\d+(?:\.\d+)?", actual_text)
+            expected_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(expected))
+            actual_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(actual))
             if expected_numbers:
                 # ASR may normalize number words, so only flag clearly missing
                 # numeric anchors rather than every formatting difference.
