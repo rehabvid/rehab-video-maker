@@ -301,6 +301,15 @@
       "video_id": "pending",
       "url": "",
       "note": "autonomous commentary; Mandarin WeChat published; English YouTube queued"
+    },
+    {
+      "source_ids": [
+        "rss:www.omnycontent.com:cbaad2bb-14e3-4e9e-98cf-b4f2015679b2"
+      ],
+      "title": "PHP2Shell Won't Be the Last Big AI Cybersecurity Risk",
+      "video_id": "failed",
+      "url": "",
+      "note": "generation failed audio QA; skipped to avoid repeating"
     }
   ]
 }
