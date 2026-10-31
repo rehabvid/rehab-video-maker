@@ -292,6 +292,15 @@
       "video_id": "pending",
       "url": "",
       "note": "generated; English YouTube awaiting quota; Mandarin awaiting WeChat login"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:e1837a58-c276-11f1-9c37-a358a8f7ddc7"
+      ],
+      "title": "The Bulls Are Trapped with Alex Altmann",
+      "video_id": "pending",
+      "url": "",
+      "note": "autonomous commentary; Mandarin WeChat published; English YouTube queued"
     }
   ]
 }

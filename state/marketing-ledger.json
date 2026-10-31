@@ -207,6 +207,16 @@
       "asset": "out/autopilot/christina-cacioppo-building-an-enduring-software-com/final.zh.mp4",
       "cover": "build/marketing/wechat/linkZag/covers/christina-cacioppo-building-an-enduring-software-com-final.png",
       "manifest": "build/marketing/wechat/linkZag/manifest-christina-cacioppo-building-an-enduring-software-com-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "Aalo真正的瓶颈是230家供",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-10-31T03:22:40.681Z",
+      "asset": "out/autopilot/macrovoices-554-yasir-arafat-mass-manufacturing-nucl/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/macrovoices-554-yasir-arafat-mass-manufacturing-nucl-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-macrovoices-554-yasir-arafat-mass-manufacturing-nucl-final.json"
     }
   ]
 }
