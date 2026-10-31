@@ -58,6 +58,12 @@ def _hashtags(metadata: dict) -> str:
 
 def publish_wechat(only_slug: str | None = None) -> int:
     published = _published_wechat()
+    ledger_data = _load(LEDGER) if LEDGER.exists() else {}
+    published_titles = {
+        str(item.get("title"))
+        for item in ledger_data.get("wechat", [])
+        if item.get("status") == "published" and item.get("title")
+    }
     candidates = []
     for video in (ROOT / "out" / "autopilot").glob("*/final.zh.mp4"):
         slug = video.parent.name
@@ -79,6 +85,9 @@ def publish_wechat(only_slug: str | None = None) -> int:
     slug = video.parent.name
     metadata = _load(meta_path)
     title = _clean_title(str(metadata.get("title") or slug))
+    if title in published_titles:
+        print(f"wechat: title already published, skipping: {title}")
+        return 0
     description = " ".join(str(metadata.get("description") or "").split())
     description = description[:900].rstrip(" ,.;，。；") + " " + _hashtags(metadata)
     cover_out = ROOT / "build" / "marketing" / "wechat" / "linkZag" / "covers" / f"{slug}-final.png"

@@ -310,6 +310,15 @@
       "video_id": "failed",
       "url": "",
       "note": "generation failed audio QA; skipped to avoid repeating"
+    },
+    {
+      "source_ids": [
+        "rss:www.omnycontent.com:a830f773-b13e-4ffb-8e2b-b4f10170ca4e"
+      ],
+      "title": "What Wall Street Really Thinks About the AI Trade Now",
+      "video_id": "failed",
+      "url": "",
+      "note": "autonomous generation failed verification; skipped"
     }
   ]
 }

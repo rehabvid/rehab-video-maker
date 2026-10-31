@@ -146,15 +146,27 @@ def main() -> int:
             "--language", "both", "--generate-only",
         ], cwd=ROOT).returncode
         log(f"generation exit={code}")
-        if code == 0:
-            # One Mandarin publication per generated episode, explicitly bound
-            # to this slug so the publisher cannot walk older backlog posts.
-            subprocess.run([sys.executable, str(PUBLISH), "--wechat", "--slug", slug], cwd=ROOT)
+        out = ROOT / "out" / "autopilot" / slug
+        complete = (out / "final.zh.mp4").exists() and (out / "final.en.mp4").exists()
+        if code == 0 and complete:
+            # Do not auto-publish WeChat. The creator UI can double-submit a
+            # single click, so the safe autonomous boundary is: generate, QA,
+            # queue English, and leave a one-command Mandarin publish.
+            if os.environ.get("AUTO_WECHAT") == "1":
+                subprocess.run([sys.executable, str(PUBLISH), "--wechat", "--slug", slug], cwd=ROOT)
+            else:
+                log(f"Mandarin ready for explicit publish: {slug}")
             subprocess.run([sys.executable, str(PUBLISH), "--queue"], cwd=ROOT)
             subprocess.run([sys.executable, str(UPLOAD_PENDING), "--limit", "1"], cwd=ROOT)
             _release(source_id)
         else:
-            log("generation failed; reserving source for manual review")
+            log("generation did not produce both verified masters; marking source as failed")
+            used = _load(USED) if USED.exists() else {"used": []}
+            used.setdefault("used", []).append({
+                "source_ids": [source_id], "title": title, "video_id": "failed",
+                "url": "", "note": "autonomous generation failed verification; skipped",
+            })
+            USED.write_text(json.dumps(used, ensure_ascii=False, indent=2) + "\n")
             _release(source_id)
         time.sleep(900)
     log("STOP file detected; autonomous cycle exiting")
