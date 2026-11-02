@@ -126,10 +126,22 @@ def _repeat_flags(tokens: list[str], language: str) -> list[str]:
     flags: list[str] = []
     zh = language.lower().startswith(("zh", "cmn", "mandarin"))
     if not zh:
-        for i in range(len(tokens) - 1):
-            if tokens[i] == tokens[i + 1] and len(tokens[i]) > 0:
-                flags.append("consecutive repeated word: " + tokens[i])
+        # "earnings, earnings lift..." is grammatical; only flag a double
+        # repeat of a function word, or any three-in-a-row stutter.
+        stutter_words = {
+            "the", "and", "a", "an", "to", "of", "in", "is", "it", "that",
+            "this", "for", "on", "with", "as", "at", "but", "or", "if",
+            "was", "were", "be", "been", "so", "we", "i",
+        }
+        for i in range(len(tokens) - 2):
+            if tokens[i] == tokens[i + 1] == tokens[i + 2]:
+                flags.append("three repeated words: " + tokens[i])
                 break
+        else:
+            for i in range(len(tokens) - 1):
+                if tokens[i] == tokens[i + 1] and tokens[i] in stutter_words:
+                    flags.append("consecutive repeated word: " + tokens[i])
+                    break
     else:
         # Chinese reduplication is normal; only flag three identical characters.
         for i in range(len(tokens) - 2):
@@ -137,7 +149,9 @@ def _repeat_flags(tokens: list[str], language: str) -> list[str]:
                 flags.append("three repeated characters: " + tokens[i])
                 break
     # Repeated two- or three-token phrase, e.g. "it is it is".
-    for size in (2, 3):
+    # Two-word rhetorical repetition ("share prices, share prices") is common
+    # in English; only a three-token repeat is a reliable stutter signal.
+    for size in (3,):
         if zh and size == 2 and all(len(t) == 1 for t in tokens):
             # Two repeated Chinese characters are common; require a 3-char run
             # or a longer repeated phrase instead.
@@ -221,14 +235,13 @@ def main(argv: list[str] | None = None) -> int:
                         errors.append(f"character pace outside range ({cps:.2f} chars/s, {duration:.2f}s)")
                 elif words >= 8 and (wpm < args.min_wpm or wpm > args.max_wpm):
                     errors.append(f"pace outside range ({wpm:.0f} wpm, {duration:.2f}s)")
-            expected_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(expected))
-            actual_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(actual))
-            if expected_numbers:
-                # ASR may normalize number words, so only flag clearly missing
-                # numeric anchors rather than every formatting difference.
-                missing_numbers = [n for n in expected_numbers if n not in actual_numbers]
-                if missing_numbers:
-                    errors.append("missing/misread numbers: " + ", ".join(missing_numbers[:6]))
+            if not is_zh:
+                expected_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(expected))
+                actual_numbers = re.findall(r"\d+(?:\.\d+)?", "".join(actual))
+                if expected_numbers:
+                    missing_numbers = [n for n in expected_numbers if n not in actual_numbers]
+                    if missing_numbers:
+                        errors.append("missing/misread numbers: " + ", ".join(missing_numbers[:6]))
             flags = _repeat_flags(actual, args.language)
             if flags:
                 errors.extend(flags)

@@ -217,6 +217,106 @@
       "asset": "out/autopilot/macrovoices-554-yasir-arafat-mass-manufacturing-nucl/final.zh.mp4",
       "cover": "build/marketing/wechat/linkZag/covers/macrovoices-554-yasir-arafat-mass-manufacturing-nucl-final.png",
       "manifest": "build/marketing/wechat/linkZag/manifest-macrovoices-554-yasir-arafat-mass-manufacturing-nucl-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "GM108独立评论",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T05:58:05.046Z",
+      "asset": "out/autopilot/gm108-maybe-japan-is-finally-changing-for-real-ft-je/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/gm108-maybe-japan-is-finally-changing-for-real-ft-je-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-gm108-maybe-japan-is-finally-changing-for-real-ft-je-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "si423mandarinv2",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T05:59:49.722Z",
+      "asset": "out/autopilot/si423-mandarin-v2/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/si423-mandarin-v2-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-si423-mandarin-v2-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "柴油瓶颈与法国的账单",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:01:26.248Z",
+      "asset": "out/autopilot/macrovoices-554-dr-anas-alhajji-louis-vincent-gave-d/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/macrovoices-554-dr-anas-alhajji-louis-vincent-gave-d-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-macrovoices-554-dr-anas-alhajji-louis-vincent-gave-d-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "Nubank的3成本优势迎来首",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:03:04.209Z",
+      "asset": "out/autopilot/david-v-lez-building-nubank-and-the-future-of-global/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/david-v-lez-building-nubank-and-the-future-of-global-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-david-v-lez-building-nubank-and-the-future-of-global-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "经济很好独立评论",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:04:43.381Z",
+      "asset": "out/autopilot/an-economy-so-good-no-one-can-live-in-it-with-jill-s/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/an-economy-so-good-no-one-can-live-in-it-with-jill-s-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-an-economy-so-good-no-one-can-live-in-it-with-jill-s-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "NorthPond撑过近三十年",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:06:20.654Z",
+      "asset": "out/autopilot/how-a-chicago-restaurant-has-stayed-open-for-nearly-/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/how-a-chicago-restaurant-has-stayed-open-for-nearly--final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-how-a-chicago-restaurant-has-stayed-open-for-nearly--final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "石油最后的减震器已消失而衰退就",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:07:56.891Z",
+      "asset": "out/autopilot/the-only-way-out-is-through-weekly-roundup/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-only-way-out-is-through-weekly-roundup-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-only-way-out-is-through-weekly-roundup-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "开源模型的差距没有缩小",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T06:09:32.840Z",
+      "asset": "out/autopilot/can-open-models-keep-up-with-openai-and-anthropic-na/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/can-open-models-keep-up-with-openai-and-anthropic-na-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-can-open-models-keep-up-with-openai-and-anthropic-na-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "AI宿醉独立评论",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-01T08:48:10.402Z",
+      "asset": "out/autopilot/si424-can-your-portfolio-survive-the-ai-hangover-ft-/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/si424-can-your-portfolio-survive-the-ai-hangover-ft--final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-si424-can-your-portfolio-survive-the-ai-hangover-ft--final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "AI能证明独立评论",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-02T01:44:04.809Z",
+      "asset": "out/autopilot/ai-crisis-in-math-navier-stokes-riemann-hypothesis-c/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ai-crisis-in-math-navier-stokes-riemann-hypothesis-c-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ai-crisis-in-math-navier-stokes-riemann-hypothesis-c-final.json"
     }
   ]
 }

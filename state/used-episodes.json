@@ -289,18 +289,18 @@
         "rss:feed.podbean.com:macrovoices.podbean.com/454c9124-7b94-34ef-9205-b84b1ef4cc6f"
       ],
       "title": "MacroVoices #556 Luke Gromen: US Midterms & Beyond",
-      "video_id": "pending",
-      "url": "",
-      "note": "generated; English YouTube awaiting quota; Mandarin awaiting WeChat login"
+      "video_id": "DF0Dq-fZ_wc",
+      "url": "https://youtu.be/DF0Dq-fZ_wc",
+      "note": "generated in cooldown; uploaded after quota reset"
     },
     {
       "source_ids": [
         "rss:feeds.megaphone.fm:e1837a58-c276-11f1-9c37-a358a8f7ddc7"
       ],
       "title": "The Bulls Are Trapped with Alex Altmann",
-      "video_id": "pending",
-      "url": "",
-      "note": "autonomous commentary; Mandarin WeChat published; English YouTube queued"
+      "video_id": "wFOUjQoHZjY",
+      "url": "https://youtu.be/wFOUjQoHZjY",
+      "note": "generated in cooldown; uploaded after quota reset"
     },
     {
       "source_ids": [
@@ -319,6 +319,43 @@
       "video_id": "failed",
       "url": "",
       "note": "autonomous generation failed verification; skipped"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:4deb3398-c8e9-11f1-a693-0bd61fa2ddce"
+      ],
+      "title": "The Bond Market Is Pricing In Something Worse Than Inflation | Weekly Roundup",
+      "video_id": "failed",
+      "url": "",
+      "note": "autonomous generation failed verification; skipped"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:ec837b56-d4b4-11f1-adcd-1f4a9d216a43"
+      ],
+      "title": "The Fed Is A Sideshow While The AI Trade Implodes | Weekly Roundup",
+      "video_id": "ZmspBphsS1s",
+      "url": "https://youtu.be/ZmspBphsS1s",
+      "note": "generated in cooldown; uploaded after quota reset"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.captivate.fm:976434fd-0687-47cc-abcb-16199857903b"
+      ],
+      "title": "SI424: Can Your Portfolio Survive the AI Hangover? ft. Alan Dunne",
+      "video_id": "pending",
+      "url": "",
+      "note": "Mandarin WeChat published; English pending"
+    },
+    {
+      "source_ids": [
+        "ZAzWPE9CItg"
+      ],
+      "title": "AI Crisis in Math: Navier-Stokes, Riemann Hypothesis & Complexity Theory | Lex Fridman Podcast #503",
+      "video_id": "Jt-9Sk4WPDk",
+      "url": "https://youtu.be/Jt-9Sk4WPDk",
+      "note": "English YouTube private; Mandarin WeChat published",
+      "used_at": "2026-11-02T01:46:48+00:00"
     }
   ]
 }

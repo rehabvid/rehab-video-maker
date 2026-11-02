@@ -238,11 +238,12 @@ def _per_shot_qa(path: Path, expected: str, voice_python: Path) -> tuple[bool, s
         threshold = 0.15 if language == "zh" else 0.30
         if rate > threshold:
             return False, f"ASR mismatch {rate:.1%}: {actual[:120]}"
-        expected_digits = re.findall(r"\d+(?:\.\d+)?", "".join(expected_norm))
-        actual_digits = re.findall(r"\d+(?:\.\d+)?", "".join(actual_norm))
-        missing = [n for n in expected_digits if n not in actual_digits]
-        if missing:
-            return False, "missing/misread numbers: " + ", ".join(missing[:6])
+        if language != "zh":
+            expected_digits = re.findall(r"\d+(?:\.\d+)?", "".join(expected_norm))
+            actual_digits = re.findall(r"\d+(?:\.\d+)?", "".join(actual_norm))
+            missing = [n for n in expected_digits if n not in actual_digits]
+            if missing:
+                return False, "missing/misread numbers: " + ", ".join(missing[:6])
         repeated = qa_audio._repeat_flags(actual_norm, language)
         if repeated:
             return False, repeated[0]

@@ -110,17 +110,16 @@ def publish_wechat(only_slug: str | None = None) -> int:
         "node", str(UPLOADER), "--manifest", str(manifest),
         "--publish", "--limit", "1",
     ], cwd=ROOT).returncode
-    if code:
-        print("wechat: publish failed; login may need a QR scan", file=sys.stderr)
-        return code
     receipt = ROOT / "build" / "marketing" / "wechat" / "linkZag" / "upload-receipt.json"
-    published_at = datetime.now().astimezone().isoformat(timespec="seconds")
+    result = {}
     try:
         result = _load(receipt).get("results", [{}])[0]
-        if result.get("status") == "published":
-            published_at = str(_load(receipt).get("at") or published_at)
     except Exception:
         pass
+    if code or result.get("status") != "published":
+        print("wechat: publish failed; login may need a QR scan", file=sys.stderr)
+        return code or 2
+    published_at = str(_load(receipt).get("at") or datetime.now().astimezone().isoformat(timespec="seconds"))
     ledger = _load(LEDGER) if LEDGER.exists() else {"promotions": [], "wechat": []}
     ledger.setdefault("wechat", []).append({
         "account": "linkZag", "status": "published", "title": title,
