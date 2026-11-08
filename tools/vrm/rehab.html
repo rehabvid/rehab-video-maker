@@ -133,6 +133,7 @@ function inspect() {
   vrm.scene.updateMatrixWorld(true);
   const probe = new THREE.Vector3();
   bones.head.getWorldPosition(probe);
+  window.__vrm = vrm;
   window.__info = {
     height: new THREE.Box3().setFromObject(vrm.scene).getSize(new THREE.Vector3()).y,
     head: probe.toArray(),
@@ -201,13 +202,34 @@ function solveArm(s, target) {
   const qNeeded = new THREE.Quaternion().setFromUnitVectors(restDir, foreDir);
   lo.quaternion.copy(qUp.clone().invert().multiply(qNeeded));
   lo.updateMatrixWorld(true);
-  // hand: fingers up, palm toward the wall
+  // Hand orientation is a full basis, not a single "point the fingers"
+  // rotation: the twist is what decides whether the palm faces the wall or
+  // the camera. Rest pose is a T-pose with palms down.
   const hand = bones[`${s}Hand`];
   if (hand) {
-    const qHand = new THREE.Quaternion().setFromUnitVectors(restDir, new THREE.Vector3(0, 1, 0));
-    hand.quaternion.copy(qUp.clone().multiply(lo.quaternion).invert().multiply(qHand));
+    const onWall = !(target && target.dir);
+    const fingers = onWall ? new THREE.Vector3(0, 1, 0) : foreDir.clone();
+    const palm = onWall
+      ? new THREE.Vector3(0, 0, 1)                       // palm flat on the wall
+      : new THREE.Vector3(s === 'right' ? 1 : -1, 0, 0); // palm toward the thigh
+    const restPalm = new THREE.Vector3(0, -1, 0);
+    const qHandWorld = basisQuat(restDir, restPalm, fingers, palm);
+    hand.quaternion.copy(qNeeded.clone().invert().multiply(qHandWorld));
     hand.updateMatrixWorld(true);
   }
+}
+
+// Rotation that maps the rest frame (fingers, palm) onto a target frame.
+function basisQuat(f0, n0, f1, n1) {
+  const a0 = f0.clone().normalize();
+  const b0 = n0.clone().sub(a0.clone().multiplyScalar(n0.dot(a0))).normalize();
+  const c0 = new THREE.Vector3().crossVectors(a0, b0).normalize();
+  const a1 = f1.clone().normalize();
+  const b1 = n1.clone().sub(a1.clone().multiplyScalar(n1.dot(a1))).normalize();
+  const c1 = new THREE.Vector3().crossVectors(a1, b1).normalize();
+  const m0 = new THREE.Matrix4().makeBasis(a0, b0, c0);
+  const m1 = new THREE.Matrix4().makeBasis(a1, b1, c1);
+  return new THREE.Quaternion().setFromRotationMatrix(m1.multiply(m0.transpose()));
 }
 
 let pose = null;

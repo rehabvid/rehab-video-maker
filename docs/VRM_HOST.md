@@ -185,6 +185,17 @@ the elbow angle follows, so the hand stays on the wall at every step instead of
 floating. The upper bound (`HIGH_Y = 1.50 m`) sits inside the 0.426 m reach, so
 the elbow is never hyperextended to fake contact.
 
+The hand is oriented with a full basis (finger direction + palm normal), not a
+single "point the fingers" rotation. That twist is what decides whether you see
+the back of the hand or the palm: on the wall the fingers point up and the palm
+normal is +Z (flat on the wall); with the arm down the fingers follow the
+forearm and the palm normal turns to the thigh. The rest basis is the VRoid
+T-pose with palms down.
+
+The Ken Burns pan/zoom is disabled when a patient layer is present: the figure
+is already moving, and a camera pan on top would slide it against the fixed text
+panel.
+
 Poses come only from the storyboard names (`intro`, `stance`, `hands`, `climb`,
 `high`, `hold`, `lower`, `close`); the track times the transitions and adds the
 finger-walk steps. It does not invent a movement the clinical script does not

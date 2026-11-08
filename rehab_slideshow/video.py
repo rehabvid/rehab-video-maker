@@ -126,13 +126,18 @@ def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
             base.alpha_composite(patient_layer)
             return base.convert("RGB")
 
+        def _cam(i: int, progress: float) -> tuple[float, float, float]:
+            # an animated patient already supplies motion; a Ken Burns pan on
+            # top of it slides the figure against the fixed text panel
+            return (1.0, 0.0, 0.0) if patient_frames else _camera(i, progress)
+
         for n in range(total_frames):
             t = n / FPS
             index = min(bisect_right(starts, t) - 1, len(timeline) - 1)
             index = max(index, 0)
             cue = timeline[index]
             progress = (t - cue.frame_start) / cue.frame_duration
-            zoom, px, py = _camera(index, progress)
+            zoom, px, py = _cam(index, progress)
             current = _render(_composited(index, t), zoom, px, py)
 
             overlay_index = index
@@ -140,7 +145,7 @@ def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
                 alpha = (t - cue.frame_start) / TRANSITION
                 prev = timeline[index - 1]
                 prev_progress = (t - prev.frame_start) / prev.frame_duration
-                p_zoom, p_px, p_py = _camera(index - 1, prev_progress)
+                p_zoom, p_px, p_py = _cam(index - 1, prev_progress)
                 previous = _render(_composited(index - 1, t), p_zoom, p_px, p_py)
                 current = Image.blend(previous, current, alpha)
                 # text stays crisp: it swaps at the midpoint instead of ghosting

@@ -263,6 +263,9 @@ storyboard pose ──► tools/gen/vrm_pose.py ──► pose-track.json (absol
 - Poses are only the storyboard's own (`intro`, `stance`, `hands`, `climb`,
   `high`, `hold`, `lower`, `close`); the track times transitions and the
   finger-walk steps, it does not add movements the script did not ask for.
+- The hand orientation uses a finger/palm basis: palm flat on the wall while
+  climbing, palm to the thigh when the arm is down. The camera pan is off, so
+  the figure does not drift against the text panel.
 - Render cost: about 1 s per 15 frames at 720p, ~2-3 minutes for a 90 s video.
 
 Limits: the VRM is a stylised VRoid figure (3D cartoon, not photoreal), the far
