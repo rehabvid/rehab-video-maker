@@ -56,6 +56,12 @@
       "theme": "dark",
       "prefix": "cinematic editorial photograph of Singapore Marina Bay skyline at blue hour, dramatic side light, shallow depth of field, muted teal and amber palette, photorealistic, 35mm editorial photography, premium financial magazine cover, one focal point, no people, no text, no logos, 16:9",
       "negative_extra": "illustration, cartoon, anime, painting, sketch, 3d render"
+    },
+    "sketch_dark": {
+      "label": "Night ink and watercolour sketch",
+      "theme": "dark",
+      "prefix": "architectural ink and watercolour sketch of the Singapore Marina Bay skyline at night, crisp fine black ink linework, precise cross-hatching, deep indigo and midnight-blue watercolour washes, warm amber window lights, restrained teal reflections on the water, dark navy textured paper, high-detail editorial magazine cover, strong contrast, one focal point, no people, no text, no logos",
+      "negative_extra": "daylight, cream paper, washed out, low contrast, flat lighting, muddy, blurry, noisy, photograph, photorealistic, 3d render, oversaturated, glossy, neon pink, magenta, rainbow palette, colorful, cluttered, text, watermark, logo, people, faces"
     }
   },
   "topics": {
@@ -243,9 +249,77 @@
     "candidates": 3,
     "width": 1216,
     "height": 704,
-    "steps": 28,
-    "cfg": 5.5,
+    "steps": 30,
+    "cfg": 6.0,
     "seed_base": 700,
-    "negative": "text, letters, typography, watermark, logo, signature, caption, deformed, distorted, extra fingers, bad anatomy, low quality, blurry, oversaturated, cartoon, anime, 3d render, cluttered, hud, infographic, chart, graph, people, faces"
+    "negative": "text, letters, typography, watermark, logo, signature, caption, deformed, distorted, extra fingers, bad anatomy, low quality, blurry, oversaturated, cartoon, anime, 3d render, cluttered, hud, infographic, chart, graph, people, faces",
+    "overlay": "trading"
+  },
+  "references": {
+    "source_dir": "/Users/zhaoli/Downloads/bg",
+    "landscape": [
+      "landscape1.jpg",
+      "landscape2.jpg",
+      "landscape3.jpg"
+    ],
+    "portrait": [
+      "portrait1.jpg",
+      "portrait2.jpg",
+      "portrait3.jpg",
+      "portrait4.jpg"
+    ],
+    "note": "Bird's-eye night views of Marina Bay used as img2img references for the dark sketch."
+  },
+  "sizes": {
+    "landscape": {
+      "cover": [
+        1216,
+        704
+      ],
+      "background": [
+        1920,
+        1080
+      ]
+    },
+    "portrait": {
+      "cover": [
+        1080,
+        1440
+      ],
+      "background": [
+        1080,
+        1920
+      ]
+    }
+  },
+  "overlays": {
+    "trading": {
+      "prompt": "faint candlestick chart traces, a yield curve line and order-book tick marks etched into the sky",
+      "topics": [
+        "macro",
+        "energy",
+        "investor"
+      ]
+    },
+    "venture": {
+      "prompt": "subtle term-sheet and cap-table line diagrams, a rising valuation staircase and a small constellation of startup nodes",
+      "topics": [
+        "investor",
+        "default"
+      ]
+    },
+    "ai": {
+      "prompt": "a faint neural lattice, GPU rack silhouettes and interconnected agent nodes glowing teal above the skyline",
+      "topics": [
+        "ai_power",
+        "ai_advances"
+      ]
+    },
+    "markets": {
+      "prompt": "a translucent grid of index levels and a thin amber trend line arcing over the bay",
+      "topics": [
+        "macro"
+      ]
+    }
   }
 }

@@ -317,6 +317,170 @@
       "asset": "out/autopilot/ai-crisis-in-math-navier-stokes-riemann-hypothesis-c/final.zh.mp4",
       "cover": "build/marketing/wechat/linkZag/covers/ai-crisis-in-math-navier-stokes-riemann-hypothesis-c-final.png",
       "manifest": "build/marketing/wechat/linkZag/manifest-ai-crisis-in-math-navier-stokes-riemann-hypothesis-c-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "AI交易先断裂在信贷",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-02T03:22:25.519Z",
+      "asset": "out/autopilot/the-fed-is-a-sideshow-while-the-ai-trade-implodes-we/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-fed-is-a-sideshow-while-the-ai-trade-implodes-we-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-fed-is-a-sideshow-while-the-ai-trade-implodes-we-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "债市定价的是放缓",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-02T04:40:05.574Z",
+      "format": "long-horizontal",
+      "asset": "out/autopilot/the-bond-market-is-pricing-in-something-worse-than-i/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-bond-market-is-pricing-in-something-worse-than-i-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-bond-market-is-pricing-in-something-worse-than-i-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "检验标准是商家是否获得增量需求",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-02T12:00:06.774Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/dialogue-google-s-ai-threat-meta-s-98b-raise-and-axo.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/dialogue-google-s-ai-threat-meta-s-98b-raise-and-axo-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-dialogue-google-s-ai-threat-meta-s-98b-raise-and-axo-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "十个AI系统设计问题一句话决定",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-03T09:52:16.804Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/the-10-ai-system-design-questions-you-ll-actually-ge.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-10-ai-system-design-questions-you-ll-actually-ge-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-10-ai-system-design-questions-you-ll-actually-ge-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "800亿美元的亏损是假的账单是",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-04T05:48:49.610Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/anthropic-opens-the-kimono-bubble-questions-and-fron.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/anthropic-opens-the-kimono-bubble-questions-and-fron-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-anthropic-opens-the-kimono-bubble-questions-and-fron-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "800亿美元的亏损是假的账单是",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-04T06:02:40.562Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/anthropic-opens-the-kimono-bubble-questions-and-fron.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/anthropic-opens-the-kimono-bubble-questions-and-fron-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-anthropic-opens-the-kimono-bubble-questions-and-fron-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "给GPU乱世卖保险",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-04T14:37:00.366Z",
+      "format": "portrait-full",
+      "asset": "out/autopilot/ep-95-modal-ceo-on-the-future-of-inference-the-chaos/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ep-95-modal-ceo-on-the-future-of-inference-the-chaos-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ep-95-modal-ceo-on-the-future-of-inference-the-chaos-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "美联储给AI兜底",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-05T00:05:36.573Z",
+      "format": "portrait-full",
+      "asset": "out/autopilot/the-fed-better-have-ai-s-back-or-there-will-be-probl/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/the-fed-better-have-ai-s-back-or-there-will-be-probl-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-fed-better-have-ai-s-back-or-there-will-be-probl-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "Casado的资本论三个月过期",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-05T17:58:10.667Z",
+      "format": "portrait-full",
+      "asset": "build/marketing/wechat/linkZag/clips/martin-casado-on-frontier-model-economics-ai-s-slowd.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/martin-casado-on-frontier-model-economics-ai-s-slowd-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-martin-casado-on-frontier-model-economics-ai-s-slowd-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "Nebius真正的对手是时间",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-05T22:48:04.614Z",
+      "format": "portrait-full",
+      "asset": "build/marketing/wechat/linkZag/clips/ep-96-nebius-cto-on-racing-the-hyperscalers-before-a.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ep-96-nebius-cto-on-racing-the-hyperscalers-before-a-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ep-96-nebius-cto-on-racing-the-hyperscalers-before-a-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "AI泡沫为什么不做空",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-06T14:56:00Z",
+      "format": "portrait-full",
+      "asset": "out/autopilot/why-this-short-seller-doesn-t-want-to-short-the-ai-b/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/why-this-short-seller-doesn-t-want-to-short-the-ai-b-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-why-this-short-seller-doesn-t-want-to-short-the-ai-b-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "AI账单从内存来",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-07T02:24:27.866Z",
+      "format": "portrait-full",
+      "asset": "out/autopilot/the-hidden-supply-chain-costs-of-the-ai-boom/final.zh.mp4",
+      "cover": "out/autopilot/the-hidden-supply-chain-costs-of-the-ai-boom/cover.zh.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-the-hidden-supply-chain-costs-of-the-ai-boom-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "你写的奖励不是AI优化的奖励",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-07T05:52:10.854Z",
+      "format": "portrait-full",
+      "asset": "build/marketing/wechat/linkZag/clips/why-ai-goes-rogue-turing-award-winner-explains-rewar.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/why-ai-goes-rogue-turing-award-winner-explains-rewar-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-why-ai-goes-rogue-turing-award-winner-explains-rewar-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "尺子只量对了尾部",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-08T00:41:54.778Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/ramtin-naimi-the-state-of-venture-invest-like-the-be.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ramtin-naimi-the-state-of-venture-invest-like-the-be-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ramtin-naimi-the-state-of-venture-invest-like-the-be-final.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "十分的机会六分半的泡沫",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-08T06:58:00.389Z",
+      "format": "portrait-full",
+      "asset": "out/autopilot/ramtin-naimi-the-state-of-venture-invest-like-the-be/final.zh.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/ramtin-naimi-the-state-of-venture-invest-like-the-be-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-ramtin-full.json"
     }
   ]
 }

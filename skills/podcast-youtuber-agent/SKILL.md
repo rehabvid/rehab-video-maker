@@ -5,6 +5,8 @@ description: Turn current popular Business and Technology podcasts into independ
 
 # Podcast YouTuber Agent (legacy all-in-one)
 
+> **Preflight:** before generating or publishing, follow `skills/video-preflight/SKILL.md` — daily readiness gate, promotion strategy brief, and a stated YouTube/WeChat split.
+
 > **Skill split.** For new productions use
 > [`../podcast-content-agent/SKILL.md`](../podcast-content-agent/SKILL.md) for
 > selection and the slide-by-slide transcript, then
@@ -14,9 +16,11 @@ description: Turn current popular Business and Technology podcasts into independ
 > and upload scripts.
 
 Turn one or more current popular podcast episodes into a **10–15 minute,
-b-roll-only YouTube commentary video** narrated in your own cloned voice. There is no talking
-avatar in this skill. The visual track is a paced sequence of title, chart,
-quote, image and video slides with burned-in captions.
+b-roll YouTube commentary video** narrated in your own cloned voice. There is
+no full-frame talking avatar in this skill. The visual track is a paced
+sequence of title, chart, quote, image and video slides with burned-in
+captions, plus the default LinkZag **VRM host** in the bottom-right corner
+(landscape: 1/3 of the video height; portrait: 1/3 of the video width).
 
 ## Editorial role and point of view
 
@@ -130,9 +134,11 @@ production layer:
 
 ## Non-goals
 
-- No avatar, no face, no lip-sync render in this skill. Use
+- No full-frame talking-head render in this skill. The default corner host is
+  the VRM model (`AVATAR_ENGINE=svg` for the 2D fallback, `AVATAR_SVG=0` to
+  disable). Use
   [`../podcast-avatar-commentary/SKILL.md`](../podcast-avatar-commentary/SKILL.md)
-  if you want a talking presenter.
+  if you want a full talking presenter.
 - Do not clone a voice without consent. Use only your own voice, or a voice
   with a signed release kept outside the repository.
 - Do not present invented quotes, numbers or episode claims. Trace every claim

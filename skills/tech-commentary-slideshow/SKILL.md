@@ -5,6 +5,8 @@ description: Turn slide-by-slide podcast commentary transcripts into determinist
 
 # Tech Commentary Slideshow
 
+> **Preflight:** before generating or publishing, follow `skills/video-preflight/SKILL.md` — daily readiness gate, promotion strategy brief, and a stated YouTube/WeChat split.
+
 This is the **preferred visual layer** for podcast commentary. It consumes the
 content skill's slide-by-slide transcript and builds a technical slideshow with
 charts, diagrams, SVG explainers, XYFlow DAGs and Petri nets.
@@ -18,8 +20,11 @@ Animation is optional per slide. The default is deliberately mixed:
 | DAG / PetriNet / Mermaid | short MP4 | edge drawing explains process |
 | timeline / SVG | still PNG | a static explainer is enough |
 
-No avatar, no generated video model, no cloud renderer. LinkZag.Show produces
-deterministic pixels locally; FFmpeg assembles the final video.
+No full-frame avatar, no generated video model, no cloud renderer. LinkZag.Show
+produces deterministic pixels locally; FFmpeg assembles the final video. The
+default composite then overlays the LinkZag **VRM host** in the bottom-right
+corner: 1/3 of the video height in landscape, 1/3 of the video width in portrait
+(`AVATAR_ENGINE=svg` for the 2D fallback, `AVATAR_SVG=0` to disable).
 
 ## Language and pronunciation
 

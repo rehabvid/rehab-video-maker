@@ -356,6 +356,120 @@
       "url": "https://youtu.be/Jt-9Sk4WPDk",
       "note": "English YouTube private; Mandarin WeChat published",
       "used_at": "2026-11-02T01:46:48+00:00"
+    },
+    {
+      "source_ids": [
+        "6ae4976d101a61ebc031f19a"
+      ],
+      "title": "Dialogue. Google's AI Threat, Meta's $98B Raise, and Axon's 50% Crash",
+      "video_id": "BTzO88SP9Zc",
+      "url": "https://youtu.be/BTzO88SP9Zc",
+      "note": "English uploaded private 2026-11-02; Mandarin portrait published on WeChat 2026-11-03"
+    },
+    {
+      "source_ids": [
+        "rss:sharptech.fm:https://sharptech.fm/member/episode/anthropic-opens-the-kimono-bubble-questions-and-fron"
+      ],
+      "title": "Anthropic Opens the Kimono, Bubble Questions and Frontier Costs",
+      "video_id": "BarZ0tIzHLM",
+      "url": "https://youtu.be/barz0tizhlm",
+      "note": "English YouTube private 2026-11-04; full Mandarin portrait on WeChat"
+    },
+    {
+      "source_ids": [
+        "6ab3d5c7048fb56597d002c5"
+      ],
+      "title": "The 10 AI System Design Questions",
+      "video_id": "PofIOwvdmR4",
+      "url": "https://youtu.be/PofIOwvdmR4",
+      "note": "English YouTube 2026-11-03; full Mandarin portrait on WeChat"
+    },
+    {
+      "source_ids": [
+        "6abbf6977005f79ef9ff54c1"
+      ],
+      "title": "BREAKING: YouTube Just Announced 12 Huge Changes",
+      "video_id": "skipped",
+      "url": "",
+      "note": "skipped by owner: wants investment/AI deep dives"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.simplecast.com:899611ab-5215-4e00-b177-4be18b8bdb5f"
+      ],
+      "title": "Ep 95: Modal CEO on the Future of Inference, the Chaos of the GPU Market & Origins of the Sandbox Bet",
+      "video_id": "Fi_s5Rwv7vc",
+      "url": "https://youtu.be/Fi_s5Rwv7vc",
+      "note": "English YouTube private 2026-11-04; full Mandarin portrait on WeChat"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:b5e4fd76-d618-11f1-a85a-afe698c2f0ec"
+      ],
+      "title": "The Fed Better Have AI's Back Or There Will Be Problems | Dan Krausz on “Liquidity Trap Door” In AI Infrastructure and Why Policymakers Are Inclined to Support Financial Conditions",
+      "video_id": "lTIlcz2IymU",
+      "url": "https://youtu.be/lTIlcz2IymU",
+      "note": "English YouTube private 2026-11-05; full Mandarin portrait on WeChat"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:49530156-d7dc-11f1-b21c-fbd5cb900e1d"
+      ],
+      "title": "Martin Casado on Frontier Model Economics, AI's Slowdown, and the Cursor Deal - [Invest Like the Best, EP.498]",
+      "video_id": "ke35ryjA6Vo",
+      "url": "https://youtu.be/ke35ryjA6Vo",
+      "note": "English commentary uploaded private 2026-11-06; native Mandarin full portrait published to WeChat 视频号 as Casado的资本论三个月过期",
+      "used_at": "2026-11-06T01:58:10+08:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.simplecast.com:4248d1df-1156-4e68-b67a-5f3cfd063aea"
+      ],
+      "title": "Ep 96: Nebius CTO on Racing the Hyperscalers Before AWS Wakes Up",
+      "video_id": "mbstDMBROts",
+      "url": "https://youtu.be/mbstDMBROts",
+      "note": "English commentary uploaded private 2026-11-06; native Mandarin full portrait published to WeChat 视频号 as Nebius真正的对手是时间",
+      "used_at": "2026-11-06T06:48:04+08:00"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:322eda50-d934-11f1-9e0d-b7a1e8ed2c2b"
+      ],
+      "title": "Why This Short Seller Doesn’t Want to Short the AI Bubble | Russell Clark",
+      "video_id": "MrkJE2aibC0",
+      "url": "https://youtu.be/MrkJE2aibC0",
+      "note": "English private YouTube + native Mandarin full portrait on 视频号 (AI泡沫为什么不做空), 2026-11-06",
+      "used_at": "2026-11-06T14:56:00Z"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:f1f35564-cfc6-11f0-83c5-a7f2be8f1462"
+      ],
+      "title": "The hidden supply chain costs of the AI boom",
+      "video_id": "QPt7kPgNSWU",
+      "url": "https://youtu.be/QPt7kPgNSWU",
+      "note": "English private YouTube + native Mandarin full portrait on 视频号 (AI账单从内存来), 2026-11-07; WeChat cut uploaded without VRM per owner request",
+      "used_at": "2026-11-07T02:24:27Z"
+    },
+    {
+      "source_ids": [
+        "rss:rss.libsyn.com:d81c1976-52ef-497f-b6a1-d113c61ad53e"
+      ],
+      "title": "Why AI Goes Rogue: Turing Award Winner Explains Reward Failure | Andrew Barto",
+      "video_id": "FtN98VIgvPk",
+      "url": "https://youtu.be/FtN98VIgvPk",
+      "note": "English private YouTube + native Mandarin full portrait on 视频号 (你写的奖励不是AI优化的奖励), 2026-11-07; WeChat light-panel compositor path",
+      "used_at": "2026-11-07T05:52:10Z"
+    },
+    {
+      "source_ids": [
+        "rss:feeds.megaphone.fm:3fb5f28e-d96c-11f1-b641-ef1269edfae6"
+      ],
+      "title": "Ramtin Naimi - The State of Venture - [Invest Like the Best, EP.499]",
+      "video_id": "y4tRrmEHERM",
+      "url": "https://youtu.be/y4tRrmEHERM",
+      "note": "English long private on YouTube; Mandarin 70s portrait clip on WeChat 2026-11-08",
+      "used_at": "2026-11-08T03:29:08+00:00"
     }
   ]
 }

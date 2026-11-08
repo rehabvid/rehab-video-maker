@@ -245,14 +245,37 @@ def _render_zh_visuals(args, work_zh: Path, zh_timing: dict, background: Path | 
         *(["--background", str(background)] if background and background.exists() else []),
     ]):
         return 1
-    if run([
-        sys.executable, str(TECH_SCRIPTS / "render_scenes.py"),
-        "--manifest", str(scenes_path),
-        "--visuals", str(visuals_dir),
-        "--module", str(LINKZAG_MODULE),
-        "--keep-scenes",
-    ]):
-        return 1
+    if os.environ.get("VIDEO_ORIENTATION") != "portrait":
+        if run([
+            sys.executable, str(TECH_SCRIPTS / "render_scenes.py"),
+            "--manifest", str(scenes_path),
+            "--visuals", str(visuals_dir),
+            "--module", str(LINKZAG_MODULE),
+            "--keep-scenes",
+        ]):
+            return 1
+
+    if os.environ.get("VIDEO_ORIENTATION") == "portrait":
+        import tempfile
+        sys.path.insert(0, str(ROOT / "skills" / "podcast-marketing-agent" / "scripts"))
+        import wechat_portrait as wp
+        # Remove stale landscape visuals so the directory is unambiguous.
+        if visuals_dir.exists():
+            for stale in visuals_dir.iterdir():
+                if stale.is_file():
+                    stale.unlink()
+        ids = [str(scene.get("id")) for scene in load_json(scenes_path).get("scenes", [])]
+        with tempfile.TemporaryDirectory(prefix="zh-portrait-") as tmp:
+            rendered = wp._portrait_scenes(ids, scenes_path, Path(tmp), out_dir=visuals_dir)
+        by_id = {}
+        for shot in zh_timing.get("shots", []):
+            sid = str(shot.get("id"))
+            visual = rendered.get(sid)
+            if visual and visual.exists():
+                shot["kind"] = "broll"
+                shot["visual"] = os.path.relpath(visual, ROOT).replace(os.sep, "/")
+                shot["visual_type"] = "portrait"
+        return 0
 
     scenes = load_json(scenes_path)
     by_id = {str(scene.get("id")): scene for scene in scenes.get("scenes", [])}
@@ -376,7 +399,7 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
                 "--language", "zh-Hans",
                 "--render-style", "sketch",
                 "--max-scenes", "6",
-            ])
+            ] + (["--orientation", "portrait"] if os.environ.get("VIDEO_ORIENTATION") == "portrait" else []))
             if story_code == 0:
                 timing_path = story_timing
             else:
@@ -388,21 +411,30 @@ def _make_chinese_assets(args, out_zh: Path) -> int:
                 "--scenes", str(work_zh / "scenes.json"),
                 "--cover", str(cover_plate),
                 "--out", str(qa_path),
-            ])
+            ] + (["--allow-custom-no-backdrop"]
+                 if os.environ.get("STORY_NO_GENERATE") == "1" else []))
             if qa_code:
                 log("background QA failed; see background-qa.json")
                 return 1
         else:
             log(f"no cover art at {cover}; keeping dark cards")
-    if run([
+    assemble_code = run([
         sys.executable, str(ASSEMBLE),
         "--timing", str(timing_path),
         "--out", str(out_zh),
         "--root", str(ROOT),
         "--preset", args.preset,
         "--crf", str(args.crf),
-    ]):
+    ])
+    if assemble_code:
         return 1
+    avatar_svg = os.environ.get("AVATAR_SVG", "/Users/zhaoli/Downloads/lee.svg")
+    audio = work_zh / "master.wav"
+    if avatar_svg not in {"", "0", "false", "off"} and audio.exists():
+        if run([sys.executable, str(ROOT / "tools" / "gen" / "apply_avatar.py"),
+                "--video", str(out_zh), "--audio", str(audio), "--svg", avatar_svg,
+                "--slides", str(args.slides_zh), "--timing", str(work_zh / "timing.json")]):
+            return 1
 
     # Speech QA is deliberately after assembly so it sees the actual cue files
     # used by the video. A failure blocks upload; a human still reviews accent.
@@ -545,8 +577,8 @@ def _upload(args, video: Path, metadata: Path, thumbnail: Path, captions: list[t
         en_chapters = load_json(args.metadata).get("chapters") or []
         zh_chapters = load_json(args.metadata_zh).get("chapters") or []
         if video == args.out_en:
-            source, language = args.metadata_zh, "zh-Hans"
-            localized_chapters = _align_chapter_starts(zh_chapters, en_chapters)
+            # No localized Mandarin metadata on the English YouTube upload.
+            source, language, localized_chapters = None, "", None
         elif video == args.out_zh:
             source, language = args.metadata, "en"
             localized_chapters = _align_chapter_starts(en_chapters, zh_chapters)
@@ -586,7 +618,12 @@ def build(args) -> int:
     if not args.out_en.exists():
         print(f"error: English video not found: {args.out_en}", file=sys.stderr)
         return 1
-    if _make_chinese_assets(args, args.out_zh):
+    os.environ["VIDEO_ORIENTATION"] = "portrait"
+    try:
+        zh_code = _make_chinese_assets(args, args.out_zh)
+    finally:
+        os.environ.pop("VIDEO_ORIENTATION", None)
+    if zh_code:
         return 1
     zh_duration = ffprobe_duration(args.out_zh)
     if args.max_seconds and zh_duration > args.max_seconds:
@@ -626,7 +663,8 @@ def build(args) -> int:
             "--scenes", str(en_scenes),
             "--cover", str(en_plate),
             "--out", str(args.work / "background-qa-en.json"),
-        ]):
+        ] + (["--allow-custom-no-backdrop"]
+             if os.environ.get("STORY_NO_GENERATE") == "1" else [])):
             log("English background QA failed; blocking upload")
             return 1
 
@@ -667,10 +705,8 @@ def build(args) -> int:
             print("error: --upload requires --metadata-zh for the Mandarin upload", file=sys.stderr)
             return 1
         if upload_en:
-            en_captions = [
-                ("en", args.work / "captions.srt", "English"),
-                ("zh-Hans", args.work_zh / "captions-for-english.srt", "中文（普通话）"),
-            ]
+            # YouTube is English-only: no Mandarin captions on the English cut.
+            en_captions = [("en", args.work / "captions.srt", "English")]
             if _upload(args, args.out_en, args.metadata, thumb_en, en_captions, args.out_dir / "youtube-en.json"):
                 return 1
         if upload_zh:

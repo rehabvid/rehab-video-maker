@@ -56,7 +56,8 @@ def _hashtags(metadata: dict) -> str:
     return " ".join("#" + re.sub(r"[^\w\u4e00-\u9fff]", "", t) for t in picked if t)
 
 
-def publish_wechat(only_slug: str | None = None) -> int:
+def publish_wechat(only_slug: str | None = None, vertical: bool = True,
+                   dry_run: bool = False, short: bool = False) -> int:
     published = _published_wechat()
     ledger_data = _load(LEDGER) if LEDGER.exists() else {}
     published_titles = {
@@ -92,9 +93,81 @@ def publish_wechat(only_slug: str | None = None) -> int:
     description = description[:900].rstrip(" ,.;，。；") + " " + _hashtags(metadata)
     cover_out = ROOT / "build" / "marketing" / "wechat" / "linkZag" / "covers" / f"{slug}-final.png"
     cover_out.parent.mkdir(parents=True, exist_ok=True)
-    if subprocess.run([sys.executable, str(PREPARE_COVER), "--cover", str(cover), "--out", str(cover_out)], cwd=ROOT).returncode:
-        print(f"wechat: cover preparation failed for {slug}", file=sys.stderr)
-        return 1
+    format_name = "long-horizontal"
+    slides_zh = build / "slides.zh.json"
+    zh_timing = build / "zh" / "timing.json"
+    zh_captions = build / "zh" / "captions.srt"
+    if vertical and slides_zh.exists() and zh_timing.exists() and zh_captions.exists():
+        clip = ROOT / "build" / "marketing" / "wechat" / "linkZag" / "clips" / f"{slug}.mp4"
+        clip.parent.mkdir(parents=True, exist_ok=True)
+        print(f"wechat: composing native portrait clip for {slug}", flush=True)
+        plate = cover.with_name(cover.stem + ".plate.png")
+        if not plate.exists():
+            plate = cover
+        zh_audio = build / "zh" / "dub"
+        if not zh_audio.exists():
+            zh_audio = build / "zh" / "audio"
+        code = subprocess.run([
+            sys.executable, str(ROOT / "skills" / "podcast-marketing-agent" / "scripts" / "wechat_portrait.py"),
+            "--slides-zh", str(slides_zh),
+            "--timing", str(zh_timing),
+            "--audio-dir", str(zh_audio),
+            "--visuals", str(build / "zh" / "visuals"),
+            "--captions", str(zh_captions),
+            "--cover", str(plate),
+            "--out", str(clip),
+        ] + ([] if short else ["--full"]), cwd=ROOT).returncode
+        if code:
+            print("wechat: portrait compositor failed; falling back to the 16:9 cut", file=sys.stderr)
+            code = subprocess.run([
+                sys.executable, str(ROOT / "skills" / "podcast-marketing-agent" / "scripts" / "wechat_clip.py"),
+                "--video", str(video),
+                "--slides-zh", str(slides_zh),
+                "--timing", str(zh_timing),
+                "--captions", str(zh_captions),
+                "--out", str(clip),
+                "--cover", str(cover),
+                "--cover-out", str(cover_out),
+            ], cwd=ROOT).returncode
+        if code == 0 and clip.exists():
+            sidecar_path = clip.with_suffix(".json")
+            sidecar = {}
+            try:
+                sidecar = _load(sidecar_path)
+            except Exception:  # noqa: BLE001
+                pass
+            video = clip
+            format_name = "vertical-short"
+            candidate_title = str(sidecar.get("title") or "")
+            candidate_title = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", candidate_title)[:15]
+            if len(candidate_title) >= 6:
+                title = candidate_title
+        else:
+            print("wechat: vertical cut failed; falling back to the horizontal master", file=sys.stderr)
+    if not cover_out.exists():
+        # A 3:4 cover is already native for WeChat; only normalize landscape art.
+        try:
+            from PIL import Image as _Image
+            with _Image.open(cover) as _img:
+                _portrait = _img.height >= _img.width
+        except Exception:  # noqa: BLE001
+            _portrait = False
+        if _portrait:
+            plate = cover.with_name(cover.stem + ".plate.png")
+            src = plate if plate.exists() else cover
+            short_title = _clean_title(str(metadata.get("title") or slug))
+            code = subprocess.run([
+                sys.executable, str(ROOT / "tools" / "gen" / "wechat_cover.py"),
+                "--plate", str(src), "--out", str(cover_out),
+                "--title", short_title, "--kicker", "独立评论",
+            ], cwd=ROOT).returncode
+            if code:
+                cover_out.parent.mkdir(parents=True, exist_ok=True)
+                cover_out.write_bytes(Path(cover).read_bytes())
+        elif subprocess.run([sys.executable, str(PREPARE_COVER), "--cover", str(cover),
+                             "--out", str(cover_out)], cwd=ROOT).returncode:
+            print(f"wechat: cover preparation failed for {slug}", file=sys.stderr)
+            return 1
     manifest = ROOT / "build" / "marketing" / "wechat" / "linkZag" / f"manifest-{slug}-final.json"
     manifest.write_text(json.dumps({
         "account": "linkZag",
@@ -105,6 +178,14 @@ def publish_wechat(only_slug: str | None = None) -> int:
             "description": description,
         }],
     }, ensure_ascii=False, indent=2) + "\n")
+    if dry_run:
+        print(f"wechat: dry-run {slug} as {title} ({format_name})")
+        print(json.dumps({"video": str(video.relative_to(ROOT)),
+                          "cover": str(cover_out.relative_to(ROOT)),
+                          "format": format_name, "title": title,
+                          "manifest": str(manifest.relative_to(ROOT))},
+                         ensure_ascii=False, indent=2))
+        return 0
     print(f"wechat: publishing {slug} as {title}", flush=True)
     code = subprocess.run([
         "node", str(UPLOADER), "--manifest", str(manifest),
@@ -124,11 +205,17 @@ def publish_wechat(only_slug: str | None = None) -> int:
     ledger.setdefault("wechat", []).append({
         "account": "linkZag", "status": "published", "title": title,
         "platform_family": "wechat-channels", "published_at": published_at,
+        "format": format_name,
         "asset": str(video.relative_to(ROOT)),
         "cover": str(cover_out.relative_to(ROOT)),
         "manifest": str(manifest.relative_to(ROOT)),
     })
     LEDGER.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n")
+    subprocess.run([
+        sys.executable,
+        str(ROOT / "skills" / "podcast-youtuber-agent" / "scripts" / "daily_ready.py"),
+        "mark", "wechat", "--status", "done", "--note", title,
+    ], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f"wechat: published {title}", flush=True)
     return 0
 
@@ -169,12 +256,19 @@ def main() -> int:
     parser.add_argument("--wechat", action="store_true", help="publish one Mandarin master to WeChat")
     parser.add_argument("--queue", action="store_true", help="queue English YouTube uploads")
     parser.add_argument("--slug", help="restrict WeChat publishing to one episode slug")
+    parser.add_argument("--horizontal", action="store_true",
+                        help="publish the long horizontal master instead of a 9:16 clip")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="prepare the clip and manifest without publishing")
+    parser.add_argument("--short", action="store_true",
+                        help="publish the 60-90s portrait clip instead of the full episode")
     args = parser.parse_args()
     if not args.wechat and not args.queue:
         args.wechat = args.queue = True
     code = 0
     if args.wechat:
-        code = publish_wechat(args.slug) or code
+        code = publish_wechat(args.slug, vertical=not args.horizontal,
+                              dry_run=args.dry_run, short=args.short) or code
     if args.queue:
         code = queue_english() or code
     return code

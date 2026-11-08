@@ -3,10 +3,10 @@
 
 This is intentionally a thin coordinator. It uses OpenCode itself as the
 editorial writer, then hands the result to the existing content and slideshow
-skills. The default published narration is Mandarin (``zh-Hans``); the English
-deck is the working visual/timing track and is not uploaded unless English is
-explicitly requested. English audiences can use YouTube auto-dubbing from the
-Mandarin primary audio. Every upload is private by default.
+skills. The default published narration for YouTube is English (``en``); use
+``--language both`` when a native Mandarin master is also needed for WeChat.
+Mandarin is never uploaded to YouTube unless ``--allow-mandarin-youtube`` is
+passed explicitly. Every upload is private by default.
 
 Run from the repository root::
 
@@ -42,7 +42,11 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 CONTENT_SCRIPTS = ROOT / "skills" / "podcast-content-agent" / "scripts"
 TECH_SCRIPTS = ROOT / "skills" / "tech-commentary-slideshow" / "scripts"
-REF_TEXT = ROOT / "skills" / "podcast-youtuber-agent" / "config" / "sample-passage.txt"
+_REF_SAMPLE = ROOT / "skills" / "podcast-youtuber-agent" / "config" / "sample-passage.txt"
+_REF_PROFILE = ROOT / "voices" / "me" / "reference.txt"
+# The reference transcript must match voices/me/reference.wav; the generic
+# sample passage produces gibberish Qwen3 clones with this profile.
+REF_TEXT = _REF_PROFILE if _REF_PROFILE.exists() else _REF_SAMPLE
 AUTOPILOT = ROOT / "build" / "autopilot"
 STOP = AUTOPILOT / "STOP"
 DEFAULT_MODEL = "opencode-go/deepseek-v4.1-flash"
@@ -51,6 +55,19 @@ DEFAULT_MODEL = "opencode-go/deepseek-v4.1-flash"
 def log(message: str) -> None:
     stamp = datetime.now().astimezone().isoformat(timespec="seconds")
     print(f"[{stamp}] {message}", flush=True)
+
+
+def _mark_daily(task: str, note: str) -> None:
+    """Best-effort daily-ledger update; never block a render on bookkeeping."""
+    try:
+        subprocess.run([
+            sys.executable,
+            str(HERE / "daily_ready.py"),
+            "mark", task, "--status", "done", "--note", note[:160],
+        ], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=60, check=False)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def run(cmd: list[str], *, quiet: bool = False) -> int:
@@ -124,7 +141,7 @@ def select_investment_candidate() -> dict | None:
     out = AUTOPILOT / "investment.json"
     code = run([
         sys.executable, str(CONTENT_SCRIPTS / "investment_sources.py"),
-        "list", "--per-feed", "2", "--out", str(out),
+        "list", "--per-feed", "10", "--out", str(out),
     ], quiet=True)
     if code:
         return None
@@ -345,7 +362,7 @@ after the files validate. Work efficiently; read the transcript in chunks.
 def _queue_pending(work: Path, out_dir: Path, source_id: str, title: str, language: str) -> Path | None:
     """Write a pending-upload manifest and reserve the source in the ledger."""
     if language == "en":
-        video = out_dir / "final.mp4"
+        video = out_dir / "final.en.mp4"
         metadata = work / "youtube.json"
         thumbnail = out_dir / "thumbnail.png"
         captions = [["en", str(work / "captions.srt"), "English"]]
@@ -415,7 +432,8 @@ def _resolve_language(parser: argparse.ArgumentParser, args) -> None:
     if args.bilingual:
         args.language = "both"
     if args.primary_language is None:
-        args.primary_language = "en" if args.language == "en" else "zh-Hans"
+        # YouTube is the English library; only a Mandarin-only build is primary zh.
+        args.primary_language = "zh-Hans" if args.language == "zh-Hans" else "en"
     if args.language == "en" and args.primary_language != "en":
         parser.error("--language en requires --primary-language en")
     if args.language == "zh-Hans" and args.primary_language != "zh-Hans":
@@ -431,11 +449,11 @@ def main(argv: list[str] | None = None) -> int:
         help="explicit candidate JSON (for editorial selection); one episode",
     )
     parser.add_argument(
-        "--language", choices=["zh-Hans", "en", "both"], default="zh-Hans",
+        "--language", choices=["zh-Hans", "en", "both"], default="en",
         help=(
-            "published narration language; default zh-Hans (Mandarin). "
-            "Use en only when the user explicitly asks for English narration, "
-            "or both to publish Mandarin and English"
+            "published narration language; default en. Use both to also build "
+            "a native Mandarin master for WeChat; Mandarin is not uploaded to "
+            "YouTube without --allow-mandarin-youtube"
         ),
     )
     parser.add_argument(
@@ -466,12 +484,28 @@ def main(argv: list[str] | None = None) -> int:
         help="build and queue for later upload; do not spend YouTube quota",
     )
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--no-daily-check", action="store_true",
+                        help="skip the daily readiness scan (not recommended)")
+    parser.add_argument("--mandarin-mode", choices=["native", "translate"], default="native",
+                        help="native = compose Mandarin from the source transcript (default); "
+                             "translate = legacy literal translation")
+    parser.add_argument("--allow-mandarin-youtube", action="store_true",
+                        help="opt in to publishing Mandarin on YouTube (off by default; "
+                             "Mandarin belongs on WeChat)")
     args = parser.parse_args(argv)
     _resolve_language(parser, args)
     AUTOPILOT.mkdir(parents=True, exist_ok=True)
     if STOP.exists():
         log(f"stop file exists: {STOP}")
         return 0
+
+    if not args.no_daily_check:
+        code = run([
+            sys.executable, str(HERE / "daily_ready.py"),
+            "ensure", "--tasks", "scan", "--budget-min", "8",
+        ])
+        if code:
+            log("daily readiness scan degraded; continuing with the episode")
 
     completed = 0
     while completed < args.episodes:
@@ -499,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
         work = AUTOPILOT / slug
         work.mkdir(parents=True, exist_ok=True)
         log(f"selected {source_id}: {title} ({work})")
+        _mark_daily("pick", f"{slug} | {title}")
         prompt = writer_prompt(candidate, work)
         (work / "writer-prompt.txt").write_text(prompt + "\n")
         if args.dry_run:
@@ -580,15 +615,26 @@ def main(argv: list[str] | None = None) -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
         out_note = ""
         if args.language in {"zh-Hans", "both"}:
-            translate_code = run([
-                sys.executable, str(HERE / "translate.py"),
-                "--slides", str(work / "slides.json"),
-                "--youtube", str(work / "youtube.json"),
-                "--out-dir", str(work),
-                "--model", args.model,
-            ])
+            if args.mandarin_mode == "native":
+                write_cmd = [
+                    sys.executable, str(HERE / "mandarin.py"),
+                    "--slides", str(work / "slides.json"),
+                    "--youtube", str(work / "youtube.json"),
+                    "--source", str(work / "source.json"),
+                    "--out-dir", str(work),
+                    "--model", args.model,
+                ]
+            else:
+                write_cmd = [
+                    sys.executable, str(HERE / "translate.py"),
+                    "--slides", str(work / "slides.json"),
+                    "--youtube", str(work / "youtube.json"),
+                    "--out-dir", str(work),
+                    "--model", args.model,
+                ]
+            translate_code = run(write_cmd)
             if translate_code:
-                log(f"Mandarin translation failed for {slug}; stopping")
+                log(f"Mandarin writing failed for {slug}; stopping")
                 break
             zh_validate = run([
                 sys.executable, str(CONTENT_SCRIPTS / "slides.py"),
@@ -610,13 +656,17 @@ def main(argv: list[str] | None = None) -> int:
                 except OSError:
                     log(f"ComfyUI not running; cannot generate {label} cover")
                     return False
-                code = run([
+                cmd = [
                     sys.executable,
                     str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
                     "--metadata", str(metadata),
                     "--out", str(out),
                     "--candidates", "1",
-                ])
+                ]
+                if label.lower().startswith("mandarin"):
+                    # WeChat cover is a native 3:4 design, not a landscape crop.
+                    cmd += ["--orientation", "portrait"]
+                code = run(cmd)
                 if code:
                     log(f"{label} cover generation failed")
                 return code == 0
@@ -646,10 +696,11 @@ def main(argv: list[str] | None = None) -> int:
                 "--preset", "veryfast",
             ]
             if not args.generate_only:
-                bilingual_cmd += [
-                    "--upload",
-                    "--upload-languages", "both" if args.language == "both" else "zh",
-                ]
+                if args.language == "en" or args.language == "both":
+                    langs = "both" if (args.language == "both" and args.allow_mandarin_youtube) else "en"
+                    bilingual_cmd += ["--upload", "--upload-languages", langs]
+                elif args.allow_mandarin_youtube:
+                    bilingual_cmd += ["--upload", "--upload-languages", "zh"]
             if cover_path.exists():
                 bilingual_cmd += ["--thumbnail-zh", str(cover_path)]
             if cover_path_en.exists():
@@ -664,9 +715,10 @@ def main(argv: list[str] | None = None) -> int:
                 bilingual_cmd += ["--no-scene-backgrounds"]
             build_code = run(bilingual_cmd)
             if args.language == "both":
+                youtube_note = "uploaded both" if args.allow_mandarin_youtube else "uploaded English only"
                 out_note = (
                     f"English {out_dir / 'final.en.mp4'}; "
-                    f"Mandarin {out_dir / 'final.zh.mp4'}; uploaded both"
+                    f"Mandarin {out_dir / 'final.zh.mp4'} for WeChat; {youtube_note}"
                 )
             else:
                 out_note = (
@@ -704,16 +756,22 @@ def main(argv: list[str] | None = None) -> int:
         if build_code:
             log(f"build/upload failed for {slug}; stopping")
             break
+        if (out_dir / "final.zh.mp4").exists():
+            _mark_daily("long_zh", title)
+        if (out_dir / "final.en.mp4").exists():
+            _mark_daily("long_en", title)
         if args.generate_only:
-            pending = _queue_pending(
-                work, out_dir, source_id, title,
-                "en" if args.language == "en" else "zh-Hans",
-            )
-            if pending is None:
-                log(f"could not queue {slug}; stopping")
-                break
-            completed += 1
-            log(f"generated {completed}/{args.episodes}: {title} -> {pending}")
+            if args.language in ("en", "both"):
+                pending = _queue_pending(work, out_dir, source_id, title, "en")
+                if pending is None:
+                    log(f"could not queue {slug}; stopping")
+                    break
+                completed += 1
+                log(f"generated {completed}/{args.episodes}: {title} -> {pending}")
+            else:
+                completed += 1
+                log(f"generated {completed}/{args.episodes}: {title} "
+                    "(Mandarin is for WeChat; not queued for YouTube)")
             if completed < args.episodes:
                 time.sleep(max(0, args.sleep))
             continue

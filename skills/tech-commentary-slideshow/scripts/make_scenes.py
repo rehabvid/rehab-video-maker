@@ -432,7 +432,7 @@ def _scene(
         "duration": max(3.0, float(shot.get("duration") or 8.0)),
         "width": 1920,
         "height": 1080,
-        "theme": theme or "dark",
+        "theme": theme or "light",
         "background": background or "theme",
         "variant": "slide",
         "padding": 96,
@@ -453,7 +453,7 @@ def _scene(
         "animated": animated,
         "duration": scene["duration"],
         "background": background,
-        "theme": theme or "dark",
+        "theme": theme or "light",
     }
 
 
@@ -496,7 +496,8 @@ def main(argv: list[str] | None = None) -> int:
                     child.rmdir()
 
     background_value = None
-    background_theme = args.background_theme
+    # One channel-wide theme. LinkZag must match covers, cards and captions.
+    background_theme = args.background_theme or os.environ.get("LINKZAG_THEME", "light")
     if args.background:
         source = Path(args.background).expanduser()
         if not source.stem.endswith(".plate"):
@@ -507,11 +508,6 @@ def main(argv: list[str] | None = None) -> int:
             generated_asset_dir.mkdir(parents=True, exist_ok=True)
             dest = generated_asset_dir / "background.png"
             shutil.copyfile(source, dest)
-            if background_theme is None:
-                with Image.open(source) as image:
-                    gray = image.convert("L").resize((64, 64))
-                    average = sum(gray.getdata()) / 4096.0
-                background_theme = "light" if average > 145 else "dark"
             rel = _rel(dest, module)
             from urllib.parse import quote
             background_value = "image:/__linkzag/asset?path=" + quote(rel, safe="")

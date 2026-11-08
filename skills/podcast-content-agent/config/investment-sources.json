@@ -5,6 +5,17 @@
     {"name": "Invest Like the Best", "feed": "https://feeds.megaphone.fm/CLS2859450455", "tier": 1, "topics": ["investing", "business", "technology"]},
     {"name": "The Compound and Friends", "feed": "https://feeds.megaphone.fm/TCP4771071679", "tier": 2, "topics": ["markets", "investing"]},
     {"name": "Odd Lots", "feed": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss", "tier": 1, "topics": ["markets", "business", "technology"]},
-    {"name": "Forward Guidance", "feed": "https://feeds.megaphone.fm/forwardguidance", "tier": 1, "topics": ["markets", "macro", "crypto"]}
+    {"name": "Forward Guidance", "feed": "https://feeds.megaphone.fm/forwardguidance", "tier": 1, "topics": ["markets", "macro", "crypto"]},
+    {"name": "Sharp Tech with Ben Thompson", "feed": "https://sharptech.fm/feed/podcast", "tier": 1, "topics": ["technology", "ai", "markets"]},
+    {"name": "Hard Fork", "feed": "https://feeds.simplecast.com/6HKOhNgS", "tier": 1, "topics": ["ai", "technology", "business"]},
+    {"name": "Eye On A.I.", "feed": "https://rss.libsyn.com/shows/123267/destinations/727317.xml", "tier": 1, "topics": ["ai", "technology"]},
+    {"name": "Training Data", "feed": "https://feeds.megaphone.fm/trainingdata", "tier": 1, "topics": ["ai", "startups", "technology"]},
+    {"name": "Unsupervised Learning", "feed": "https://feeds.simplecast.com/dOSE_bdP", "tier": 1, "topics": ["ai", "startups", "technology"]},
+    {"name": "Decoder with Nilay Patel", "feed": "https://feeds.megaphone.fm/recodedecode", "tier": 1, "topics": ["technology", "ai", "business"]},
+    {"name": "The MAD Podcast", "feed": "https://anchor.fm/s/f2ee4948/podcast/rss", "tier": 1, "topics": ["ai", "startups", "technology"]},
+    {"name": "Cheeky Pint", "feed": "https://feeds.transistor.fm/cheeky-pint-with-john-collison", "tier": 2, "topics": ["ai", "technology", "business"]},
+    {"name": "The Peel", "feed": "https://anchor.fm/s/e231a4ec/podcast/rss", "tier": 2, "topics": ["venture", "startups", "ai"]},
+    {"name": "Lenny's Podcast", "feed": "https://api.substack.com/feed/podcast/10845.rss", "tier": 2, "topics": ["product", "ai", "startups"]},
+    {"name": "Monetary Matters with Jack Farley", "feed": "https://feeds.megaphone.fm/EWWMN1909747317", "tier": 2, "topics": ["macro", "markets", "liquidity"]}
   ]
 }

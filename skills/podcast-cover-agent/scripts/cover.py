@@ -125,15 +125,42 @@ def _stat(metadata: dict, cover: dict, override: str | None) -> str:
     return match.group(0).replace(" ", "") if match else ""
 
 
-def _prompt(topic: dict, angle: dict, render_style: dict, subject: str | None = None) -> str:
+def _overlay(config: dict, topic_id: str, override: str | None) -> str:
+    overlays = config.get("overlays") or {}
+    if override in (None, "auto"):
+        for name, item in overlays.items():
+            if topic_id in (item.get("topics") or []):
+                return str(item.get("prompt") or "")
+        name = config.get("defaults", {}).get("overlay")
+    else:
+        name = override
+    if not name or name == "none":
+        return ""
+    return str((overlays.get(name) or {}).get("prompt") or "")
+
+
+def _prompt(topic: dict, angle: dict, render_style: dict, subject: str | None,
+            overlay: str = "", aspect: str = "16:9") -> str:
     foreground = str(subject or topic.get("foreground") or "").strip()
     parts = [
-        render_style["prefix"],
+        str(render_style["prefix"]).replace("16:9", aspect),
         angle["prompt"],
         foreground,
-        "premium financial magazine cover, one focal point, no people, no text, no logos, 16:9",
+        overlay,
+        f"premium financial magazine cover, one focal point, no people, no text, no logos, {aspect}",
     ]
     return ", ".join(part for part in parts if part)
+
+
+def _reference(config: dict, metadata: dict, orientation: str) -> str | None:
+    refs = config.get("references") or {}
+    names = refs.get(orientation) or refs.get("landscape") or []
+    if not names:
+        return None
+    seed = str(metadata.get("title") or "cover")
+    index = int(hashlib.sha1(seed.encode("utf-8")).hexdigest()[:8], 16) % len(names)
+    path = Path(refs.get("source_dir") or "") / names[index]
+    return str(path) if path.exists() else None
 
 
 def _contact_sheet(paths: list[Path], out: Path, labels: list[str]) -> Path:
@@ -167,7 +194,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--subtitle")
     parser.add_argument("--kicker")
     parser.add_argument("--topic", help="topic id from cover-styles.json")
-    parser.add_argument("--render-style", choices=["sketch", "photo"], default=None)
+    parser.add_argument("--render-style", default=None,
+                        help="style id from cover-styles.json (default: sketch_dark)")
+    parser.add_argument("--orientation", choices=["landscape", "portrait"], default="landscape")
+    parser.add_argument("--overlay", default="auto",
+                        help="trading|venture|ai|markets|none|auto (topic-driven)")
+    parser.add_argument("--engine", choices=["photo", "night", "minimal", "sdxl"], default="sdxl",
+                        help="night = light sketch graded to night (default); minimal; sdxl")
     parser.add_argument("--angle", help="angle id from cover-styles.json")
     parser.add_argument("--candidates", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
@@ -177,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-generate", action="store_true", help="require --background")
     parser.add_argument("--reference", help="optional IPAdapter style reference")
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188")
+    parser.add_argument("--width", type=int, default=None)
+    parser.add_argument("--height", type=int, default=None)
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--contact-sheet", action="store_true", default=True)
@@ -201,7 +236,13 @@ def main(argv: list[str] | None = None) -> int:
     render_id = args.render_style or cover.get("render_style") or config["defaults"]["render_style"]
     if render_id not in config["render_styles"]:
         parser.error(f"unknown render style {render_id!r}")
+    if args.engine == "night":
+        # Keep the proven light sketch, then grade its plate to night.
+        render_id = "sketch"
     render_style = config["render_styles"][render_id]
+    if args.engine == "photo":
+        # The photo plate is dark; text must be cream, not ink.
+        render_style = {**render_style, "theme": "dark"}
     angle = _angle(metadata, config, args.angle)
     title = args.title or cover.get("title") or metadata.get("title") or "Independent commentary"
     title = str(title).split("|")[0].strip()
@@ -210,8 +251,18 @@ def main(argv: list[str] | None = None) -> int:
     subtitle = args.subtitle or cover.get("subtitle") or ("独立评论" if language.startswith("zh") else "Independent commentary")
     stat = _stat(metadata, cover, args.stat)
     subject = args.subject or cover.get("subject")
-    prompt = _prompt(topic, angle, render_style, subject)
-    defaults = config["defaults"]
+    aspect = "3:4" if args.orientation == "portrait" else "16:9"
+    prompt = _prompt(topic, angle, render_style, subject,
+                     _overlay(config, topic_id, args.overlay), aspect)
+    # References are opt-in only: img2img on night photos muddies the linework.
+    defaults = dict(config["defaults"])
+    size = config.get("sizes", {}).get(args.orientation, {}).get("cover")
+    if size:
+        defaults["width"], defaults["height"] = size
+    if args.width:
+        defaults["width"] = args.width
+    if args.height:
+        defaults["height"] = args.height
     candidates = max(1, int(args.candidates or cover.get("candidates") or defaults["candidates"]))
     seed = int(args.seed if args.seed is not None else cover.get("seed") or defaults["seed_base"])
     steps = int(args.steps or cover.get("steps") or defaults["steps"])
@@ -241,6 +292,36 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out).expanduser()
     out.parent.mkdir(parents=True, exist_ok=True)
+    minimal_background = None
+    if args.engine == "photo":
+        refs = (config.get("references") or {}).get("landscape") or []
+        source = Path(config.get("references", {}).get("source_dir", "")) / (refs[1] if len(refs) > 1 else refs[0])
+        minimal_background = out.with_suffix(".plate.png")
+        if subprocess.run([
+            sys.executable, str(ROOT / "tools" / "gen" / "photo_night.py"),
+            "--source", str(source), "--out", str(minimal_background),
+            "--orientation", args.orientation,
+        ]).returncode:
+            minimal_background = None
+    elif args.engine == "minimal":
+        overlay_name = args.overlay
+        if overlay_name not in ("trading", "venture", "ai", "markets", "none"):
+            overlay_name = {
+                "ai_power": "ai", "ai_advances": "ai", "investor": "venture",
+                "energy": "trading", "europe": "trading", "macro": "trading",
+                "default": "venture",
+            }.get(topic_id, "trading")
+        refs = (config.get("references") or {}).get("landscape") or []
+        source = Path(config.get("references", {}).get("source_dir", "")) / (refs[1] if len(refs) > 1 else refs[0])
+        minimal_background = out.with_suffix(".plate.png")
+        code = subprocess.run([
+            sys.executable, str(ROOT / "tools" / "gen" / "minimal_skyline.py"),
+            "--source", str(source), "--out", str(minimal_background),
+            "--orientation", args.orientation, "--overlay", overlay_name,
+        ]).returncode
+        if code:
+            print("minimal skyline failed; falling back to SDXL", file=sys.stderr)
+            minimal_background = None
     outputs: list[Path] = []
     for index in range(candidates):
         candidate_seed = seed + index * 37
@@ -263,7 +344,9 @@ def main(argv: list[str] | None = None) -> int:
             "--comfy-url", args.comfy_url,
             "--timeout", str(args.timeout),
         ]
-        if args.background:
+        if minimal_background:
+            cmd += ["--background", str(minimal_background)]
+        elif args.background:
             cmd += ["--background", str(Path(args.background).expanduser())]
         if args.reference:
             cmd += ["--reference", str(Path(args.reference).expanduser())]
@@ -271,6 +354,22 @@ def main(argv: list[str] | None = None) -> int:
         result = subprocess.run(cmd, cwd=ROOT)
         if result.returncode:
             return result.returncode
+        if args.engine == "night":
+            plate = candidate_out.with_suffix(".plate.png")
+            if not plate.exists():
+                return 1
+            graded = candidate_out.with_suffix(".night.png")
+            code = subprocess.run([
+                sys.executable, str(ROOT / "tools" / "gen" / "night_grade.py"),
+                "--in", str(plate), "--out", str(graded),
+                "--warmth", "0.4", "--accent", "0.3", "--teal", "0.55",
+            ]).returncode
+            if code:
+                return code
+            recmd = cmd + ["--background", str(graded)]
+            result = subprocess.run(recmd, cwd=ROOT)
+            if result.returncode:
+                return result.returncode
         outputs.append(candidate_out)
 
     manifest = {

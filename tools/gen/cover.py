@@ -122,6 +122,18 @@ def _fit(path: Path) -> Image.Image:
 
 
 def _left_gradient(image: Image.Image, theme: str = "dark") -> Image.Image:
+    if H > W:
+        # Portrait: a bottom-weighted veil; cream for the light theme.
+        y = np.arange(H, dtype=np.float32)[:, None]
+        if theme == "light":
+            alpha = np.clip(30.0 + 70.0 * (y / H), 0, 105).astype(np.uint8)
+        else:
+            alpha = np.clip(172.0 + 74.0 * (y / H), 0, 242).astype(np.uint8)
+        alpha = np.repeat(alpha, W, axis=1)
+        color = (247, 243, 234) if theme == "light" else (4, 7, 12)
+        overlay = Image.new("RGBA", (W, H), color + (0,))
+        overlay.putalpha(Image.fromarray(alpha, mode="L"))
+        return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
     x = np.arange(W, dtype=np.float32)[None, :]
     if theme == "light":
         # A cream paper panel across the text safe zone, with a soft right edge.
@@ -140,6 +152,25 @@ def _left_gradient(image: Image.Image, theme: str = "dark") -> Image.Image:
     overlay = Image.new("RGBA", (W, H), color)
     overlay.putalpha(Image.fromarray(alpha, mode="L"))
     return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+
+
+def _wrap_chars(draw: ImageDraw.ImageDraw, text: str, font, max_width: int) -> list[str]:
+    lines: list[str] = []
+    current = ""
+    for char in text:
+        if char == "\n":
+            lines.append(current)
+            current = ""
+            continue
+        candidate = current + char
+        if current and draw.textlength(candidate, font=font) > max_width:
+            lines.append(current)
+            current = char
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines
 
 
 def _balanced_title(text: str, font, max_width: int) -> list[str]:
@@ -179,11 +210,38 @@ def _cover_text(
 ) -> Image.Image:
     image = _left_gradient(image, theme)
     draw = ImageDraw.Draw(image)
-    margin = 72
+    margin = max(48, int(W * 0.056))
     if theme == "light":
         text_color, muted, accent, accent2 = (18, 20, 24), (78, 80, 84), (178, 92, 48), (24, 116, 112)
     else:
         text_color, muted, accent, accent2 = PAPER, MUTED, ACCENT, ACCENT_2
+    if H > W:
+        safe = W - 2 * margin - 40
+        title_size = 62 if len(title) <= 14 else 56 if len(title) <= 22 else 50
+        title_font = find_font(title_size, bold=True, text=title)
+        kicker_font = find_font(30, bold=True, text=kicker)
+        stat_font = find_font(96, bold=True)
+        subtitle_font = find_font(34, text=subtitle)
+        small_font = find_font(24, text=subtitle)
+        draw.rectangle([margin, 150, margin + 10, 420], fill=accent)
+        draw.text((margin + 28, 146), kicker.upper(), font=kicker_font, fill=accent)
+        title_y = 230
+        for line in _wrap_chars(draw, title, title_font, safe)[:5]:
+            draw.text((margin + 28, title_y), line, font=title_font, fill=text_color)
+            title_y += int(title_size * 1.24) + 10
+        if stat:
+            draw.text((margin + 28, H - 560), stat, font=stat_font, fill=accent2)
+        if subtitle:
+            draw_paragraph(draw, subtitle, subtitle_font,
+                           (margin + 28, H - 430), safe, muted, 8, 2)
+        disclosure = (
+            "AI 生成语音 · 独立评论"
+            if language.lower().startswith("zh")
+            else "AI-generated voice · independent commentary"
+        )
+        draw.text((margin, H - 70), disclosure, font=small_font, fill=muted)
+        draw.text((W - 210, H - 70), "LINKZAG.SHOW", font=small_font, fill=muted)
+        return image
     title_size = 78 if len(title) <= 12 else 70 if len(title) <= 18 else 60
     title_font = find_font(title_size, bold=True, text=title)
     kicker_font = find_font(28, bold=True, text=kicker)
@@ -217,15 +275,16 @@ def _generate(args) -> Path:
     _check_server(args.comfy_url)
     comfy.SERVER = args.comfy_url.rstrip("/")
     prompt = args.prompt or STYLES[args.style]
-    ipadapter = None
+    init = None
     if args.reference:
         source = Path(args.reference).expanduser().resolve()
         if not source.exists():
             raise FileNotFoundError(source)
         COMFY_INPUT.mkdir(parents=True, exist_ok=True)
-        name = f"cover-reference-{source.stem}{source.suffix.lower()}"
-        shutil.copyfile(source, COMFY_INPUT / name)
-        ipadapter = name
+        name = f"cover-init-{source.stem}{source.suffix.lower()}"
+        if not (COMFY_INPUT / name).exists():
+            shutil.copyfile(source, COMFY_INPUT / name)
+        init = name
     graph = comfy.graph(
         prompt,
         args.negative or NEGATIVE,
@@ -235,8 +294,8 @@ def _generate(args) -> Path:
         cfg=args.cfg,
         seed=args.seed,
         ckpt=args.checkpoint,
-        ipadapter_image=ipadapter,
-        ipadapter_weight=args.reference_weight,
+        init_image=init,
+        denoise=args.denoise,
     )
     return comfy.generate(
         graph, Path(args.out).with_suffix(".plate.png"), timeout=args.timeout
@@ -255,7 +314,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prompt", help="override the style prompt")
     parser.add_argument("--negative", help="override the negative prompt")
     parser.add_argument("--reference", help="optional IPAdapter style reference image")
-    parser.add_argument("--reference-weight", type=float, default=0.65)
+    parser.add_argument("--denoise", type=float, default=0.72,
+                        help="img2img strength when --reference is used")
     parser.add_argument("--background", help="skip generation and use this image")
     parser.add_argument("--out", required=True)
     parser.add_argument("--width", type=int, default=1216)
@@ -268,6 +328,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=600)
     parser.add_argument("--metadata", help="read title/subtitle from youtube metadata")
     args = parser.parse_args(argv)
+    global W, H
+    W, H = args.width, args.height
 
     if args.metadata:
         data = json.loads(Path(args.metadata).read_text())

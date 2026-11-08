@@ -5,6 +5,8 @@ description: Upload vertical commentary videos to a WeChat Channels (视频号) 
 
 # WeChat Channels Upload (视频号)
 
+> **Preflight:** before generating or publishing, follow `skills/video-preflight/SKILL.md` — daily readiness gate, promotion strategy brief, and a stated YouTube/WeChat split.
+
 This skill adapts `wangzhaobo168/wechat-channels-upload` (MIT) to this repo. It
 uses Playwright against `channels.weixin.qq.com`; it is **not** an official API
 and is not the Mini Program short-drama VOD API.
@@ -29,6 +31,31 @@ store a WeChat password, phone code, or QR session.
 
 On the first run, omit `--publish` and complete the QR login manually. Close the
 browser when the draft is ready. Later runs reuse the profile.
+
+### Remote TUI / SSH login
+
+The embedded WeChat QR panel sometimes returns `加载失败` even though the
+session is valid. The uploader now extracts the QR from the login iframe and
+saves it to:
+
+```
+build/marketing/wechat/linkZag/screenshots/login-qr.png
+```
+
+It also prints a compact **2×2-module** QR block to stdout, sized for a remote
+TUI (23×23 characters). Scan that block, or open the PNG if the terminal cannot
+render Unicode blocks. The QR is tied to the uploader’s own browser session, so
+keep the uploader running while scanning.
+
+To print a saved QR independently:
+
+```bash
+.venv/bin/python skills/wechat-channels-agent/scripts/tui_qr.py \
+  build/marketing/wechat/linkZag/screenshots/login-qr.png
+```
+
+Disable the TUI block with `WECHAT_TUI_QR=0` for local/headed runs. QR codes
+expire; rerun the uploader to get a fresh image instead of reusing an old PNG.
 
 ## Manifest
 

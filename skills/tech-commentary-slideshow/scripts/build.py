@@ -230,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
             "--language", str(_load(slides_path).get("language") or "en"),
             "--render-style", "sketch",
             "--max-scenes", "6",
-        ])
+        ] + (["--no-generate"] if os.environ.get("STORY_NO_GENERATE") == "1" else []))
         if story_code == 0:
             timing_path = story_path
         else:
@@ -246,6 +246,12 @@ def main(argv: list[str] | None = None) -> int:
         "--crf", str(args.crf),
     ]):
         return 1
+    avatar_svg = os.environ.get("AVATAR_SVG", "/Users/zhaoli/Downloads/lee.svg")
+    audio = (Path(args.work) / "master.wav") if args.work else None
+    if avatar_svg not in {"", "0", "false", "off"} and audio and audio.exists():
+        _run([sys.executable, str(REPO / "tools" / "gen" / "apply_avatar.py"),
+              "--video", str(out), "--audio", str(audio), "--svg", avatar_svg,
+              "--slides", str(slides_path), "--timing", str(Path(args.work) / "timing.json")])
 
     thumbnail = Path(args.thumbnail).expanduser() if args.thumbnail else out.parent / "thumbnail.png"
     if not args.no_thumbnail and not args.thumbnail:

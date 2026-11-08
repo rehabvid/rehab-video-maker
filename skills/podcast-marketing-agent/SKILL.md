@@ -5,10 +5,45 @@ description: Audit a YouTube commentary channel and run a free, policy-safe grow
 
 # Podcast Marketing Agent
 
+> **Preflight:** before generating or publishing, follow `skills/video-preflight/SKILL.md` — daily readiness gate, promotion strategy brief, and a stated YouTube/WeChat split.
+
 Turn a library of finished commentary videos into a measurement-driven
 distribution system. This skill is for **free, policy-safe marketing**. It does
 not buy engagement, create fake accounts, mass-DM, auto-comment, or post
 unsolicited links.
+
+## Daily readiness and strategy brief
+
+Two scripts run before any production:
+
+```bash
+# converge the business day (Asia/Shanghai, 06:00 boundary)
+.venv/bin/python skills/podcast-youtuber-agent/scripts/daily_ready.py ensure --budget-min 15
+
+# evidence -> recommendation, written to build/autopilot/strategy-brief.md
+.venv/bin/python skills/podcast-marketing-agent/scripts/strategy_brief.py --days 7
+```
+
+`ensure` is idempotent and lock-protected; a missed day is caught up once, not
+replayed. It never starts a long render. `strategy_brief.py` reads upload
+receipts, the marketing ledger and follower snapshots (`state/channel-metrics.json`)
+and states a mix (`wechat_primary`, `youtube_primary`, `balanced`) with a
+confidence level. WeChat has no public follower API — pass
+`--wechat-followers N` to record a snapshot.
+
+## WeChat vertical path
+
+`publish_next.py` now cuts a **9:16, 60–90s** Mandarin clip with burned captions
+from the long master before publishing:
+
+```bash
+.venv/bin/python skills/podcast-marketing-agent/scripts/publish_next.py \
+  --wechat --slug <episode> --dry-run     # prepare clip + manifest only
+```
+
+Use `--horizontal` to publish the old long master. The standalone cutter is
+`scripts/wechat_clip.py`; it picks the strongest shot from `slides.zh.json`,
+renders via `make_short.py`, and normalizes the cover to 1080×1440.
 
 ## What is actually plausible
 

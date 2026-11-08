@@ -110,6 +110,18 @@
       "id": "UCjNRVMBVI30Sak_p6HRWhIA",
       "tier": 2,
       "topics": ["ai", "technology", "startups"]
+    },
+    {
+      "name": "Dwarkesh Patel",
+      "id": "UCXl4i9dYBrFOabk0xGmbkRA",
+      "tier": 1,
+      "topics": ["ai", "technology", "science"]
+    },
+    {
+      "name": "SemiAnalysis",
+      "id": "UCf_KhBXw5TIV0A7butjgFhg",
+      "tier": 1,
+      "topics": ["ai", "technology", "markets"]
     }
   ]
 }

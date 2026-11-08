@@ -1,0 +1,46 @@
+{
+  "snapshots": [
+    {
+      "platform": "wechat",
+      "date": "2026-11-02",
+      "followers": 14,
+      "plays": null,
+      "at": "2026-11-02T08:47:07+00:00"
+    },
+    {
+      "platform": "youtube",
+      "date": "2026-11-02",
+      "followers": 4,
+      "plays": 833,
+      "at": "2026-11-02T08:47:07+00:00"
+    },
+    {
+      "platform": "youtube",
+      "date": "2026-11-04",
+      "followers": 5,
+      "plays": 1079,
+      "at": "2026-11-04T17:25:04+00:00"
+    },
+    {
+      "platform": "youtube",
+      "date": "2026-11-05",
+      "followers": 5,
+      "plays": 1126,
+      "at": "2026-11-05T18:08:51+00:00"
+    },
+    {
+      "platform": "youtube",
+      "date": "2026-11-06",
+      "followers": 5,
+      "plays": 1182,
+      "at": "2026-11-06T22:33:20+00:00"
+    },
+    {
+      "platform": "youtube",
+      "date": "2026-11-07",
+      "followers": 5,
+      "plays": 1219,
+      "at": "2026-11-07T14:27:35+00:00"
+    }
+  ]
+}

@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '../../..');
 const PACKAGE_CANDIDATES = [
@@ -77,6 +78,24 @@ function validate(item) {
   if (!item.title || item.title.length < 6) throw new Error('short title must be at least 6 characters');
   if (/[，。！？、；：,.!?;:#@]/.test(item.title)) {
     throw new Error('short title must not contain punctuation, emoji or hashtags');
+  }
+}
+
+function printTuiQr(qrPath) {
+  if (process.env.WECHAT_TUI_QR === '0') return;
+  const venv = path.join(ROOT, '.venv', 'bin', 'python');
+  const python = fs.existsSync(venv) ? venv : 'python3';
+  const result = spawnSync(python, [path.join(__dirname, 'tui_qr.py'), qrPath], {
+    encoding: 'utf8',
+  });
+  if (result.status === 0 && String(result.stdout || '').trim()) {
+    console.log('\nTUI QR — scan this block:');
+    process.stdout.write(String(result.stdout).endsWith('\n')
+      ? result.stdout
+      : `${result.stdout}\n`);
+    console.log('If the block is too wide, open the PNG path above instead.\n');
+  } else {
+    console.log(`TUI QR render failed: ${String(result.stderr || '').slice(0, 200)}`);
   }
 }
 
@@ -161,12 +180,67 @@ async function runItem(page, item, args, index) {
   console.log(`\n[item ${index}] ${item.title}`);
   await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await sleep(2500);
-  if (page.url().includes('login') || page.url().includes('Login')) {
-    console.log('LOGIN REQUIRED: scan the QR in the opened browser; waiting up to 5 minutes...');
-    await page.waitForURL('**/post/create**', { timeout: 300000 });
+  const waitForLogin = async () => {
+    // The redirect to login.html can land after the first check; re-check.
+    await sleep(1500);
+    if (!page.url().includes('login')) return;
+    const waitMs = Number(process.env.WECHAT_LOGIN_TIMEOUT_MS || 900000);
+    console.log(`LOGIN REQUIRED: scan the QR in the opened browser; waiting up to ${Math.round(waitMs / 60000)} minutes...`);
+    fs.mkdirSync(SS_DIR, { recursive: true });
+    await page.screenshot({ path: path.join(SS_DIR, 'login.png'), fullPage: true }).catch(() => {});
+    console.log(`login url: ${page.url()}`);
+    let loginText = await page.locator('body').innerText().catch(() => '');
+    console.log(`login page text: ${String(loginText).replace(/\s+/g, ' ').slice(0, 800)}`);
+    // The embedded QR panel sometimes reports "加载失败，点击重试" on first load.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const failed = await page.getByText('加载失败', { exact: false }).first()
+        .isVisible({ timeout: 1200 }).catch(() => false);
+      if (!failed) break;
+      console.log(`login QR failed to load; retrying (${attempt + 1}/3)`);
+      const retry = page.getByText('点击重试', { exact: false }).first();
+      if (await retry.isVisible({ timeout: 1200 }).catch(() => false)) {
+        await retry.click().catch(() => {});
+      } else {
+        await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+      }
+      await sleep(3000);
+    }
+    await page.screenshot({ path: path.join(SS_DIR, 'login-after-retry.png'), fullPage: true }).catch(() => {});
+    loginText = await page.locator('body').innerText().catch(() => '');
+    console.log(`login page after retry: ${String(loginText).replace(/\s+/g, ' ').slice(0, 500)}`);
+    // The QR panel's JS can fail while the iframe HTML still contains the
+    // session UUID. Pull the QR image out and save it for scanning.
+    await sleep(2500);
+    const qrFrame = page.frames().find((f) => f.url().includes('qrconnect'));
+    console.log(`qr frames: ${page.frames().map((f) => f.url()).filter(Boolean).length}`);
+    if (qrFrame) {
+      const html = await qrFrame.content().catch(() => '');
+      console.log(`qr frame html: ${html.length}`);
+      const match = html.match(/connect\/qrcode\/([A-Za-z0-9]+)/);
+      console.log(`qr uuid: ${match ? match[1] : 'none'}`);
+      if (match) {
+        const qrUrl = `https://open.weixin.qq.com/connect/qrcode/${match[1]}`;
+        try {
+          const response = await page.context().request.get(qrUrl);
+          if (response.ok()) {
+            const qrPath = path.join(SS_DIR, 'login-qr.png');
+            fs.writeFileSync(qrPath, await response.body());
+            console.log(`QR IMAGE: ${qrPath}`);
+            printTuiQr(qrPath);
+          } else {
+            console.log(`QR image fetch failed: HTTP ${response.status()}`);
+          }
+        } catch (error) {
+          console.log(`QR image fetch error: ${error.message}`);
+        }
+      }
+    }
+    await page.waitForURL('**/post/create**', { timeout: waitMs });
     await sleep(2000);
-  }
+  };
+  await waitForLogin();
   console.log('uploading video...');
+  await waitForLogin();
   await page.locator('input[type="file"][accept*="video"]').first().setInputFiles(item.video);
   await page.waitForSelector('input[placeholder*="短标题"]', { timeout: 300000 });
   await sleep(5000);

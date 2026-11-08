@@ -9,6 +9,7 @@ thumbnail is used as a slide background.
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 import sys
@@ -56,13 +57,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scenes")
     parser.add_argument("--cover", required=True)
     parser.add_argument("--out")
+    parser.add_argument(
+        "--allow-custom-no-backdrop",
+        action="store_true",
+        help="allow LinkZag custom visuals without a photo backdrop "
+             "(intentional with --no-generate)",
+    )
     args = parser.parse_args(argv)
 
     cover = Path(args.cover).expanduser()
     if not cover.exists():
         print(f"error: cover not found: {cover}", file=sys.stderr)
         return 1
-    expected = _theme(cover)
+    # One channel-wide theme; matches make_scenes/story_backgrounds.
+    expected = os.environ.get("LINKZAG_THEME", "light")
     plate = cover.with_name(cover.stem + ".plate.png")
     expected_hash = _sha(plate) if plate.exists() else None
     timing = _load(Path(args.timing))
@@ -79,6 +87,9 @@ def main(argv: list[str] | None = None) -> int:
             theme = str(scene.get("theme") or "")
             asset = _asset_path(background)
             if not background.startswith("image:") or asset is None:
+                if args.allow_custom_no_backdrop:
+                    styled += 1
+                    continue
                 problems.append({"id": sid, "issue": "custom visual has no image backdrop"})
             elif theme != expected:
                 problems.append({"id": sid, "issue": f"theme {theme} != cover {expected}"})

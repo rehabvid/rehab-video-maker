@@ -59,6 +59,8 @@ def graph(
     seed: int = 1234,
     control_image: str | None = None,
     control_strength: float = 0.85,
+    init_image: str | None = None,
+    denoise: float = 1.0,
     ipadapter_image: str | None = None,
     ipadapter_weight: float = 0.75,
     ckpt: str = "sd_xl_base_1.0.safetensors",
@@ -126,6 +128,15 @@ def graph(
         }
         model = ["13", 0]
 
+    latent = ["4", 0]
+    if init_image:
+        g["14"] = {"class_type": "LoadImage", "inputs": {"image": init_image}}
+        g["15"] = {
+            "class_type": "VAEEncode",
+            "inputs": {"pixels": ["14", 0], "vae": ["1", 2]},
+        }
+        latent = ["15", 0]
+
     g["5"] = {
         "class_type": "KSampler",
         "inputs": {
@@ -137,8 +148,8 @@ def graph(
             "scheduler": "karras",
             "positive": pos,
             "negative": neg,
-            "latent_image": ["4", 0],
-            "denoise": 1.0,
+            "latent_image": latent,
+            "denoise": denoise,
         },
     }
     return g

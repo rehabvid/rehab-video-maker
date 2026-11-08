@@ -19,6 +19,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
+import subprocess
 import os
 import re
 import sys
@@ -35,7 +37,9 @@ if str(SHARED) not in sys.path:
 from lib import find_font, draw_paragraph, load_json, save_json, wrap_by_width  # noqa: E402
 
 CONFIG = ROOT / "skills" / "podcast-cover-agent" / "config" / "cover-styles.json"
+COMFY_INPUT = ROOT / "tools" / "ComfyUI" / "input"
 W, H = 1920, 1080
+ORIENTATION = "landscape"
 SCENE_WORDS = {
     "price tag", "grocery", "egg", "basket", "agent", "server", "data center",
     "data centre", "chip", "robot", "oil", "tanker", "refinery", "pipeline",
@@ -85,24 +89,48 @@ def _scene_worthy(text: str) -> bool:
     return any(word in low for word in SCENE_WORDS)
 
 
-def _scene_prompt(text: str, style: str) -> str:
+def _overlay_for(text: str, config: dict) -> str:
+    low = text.lower()
+    overlays = config.get("overlays") or {}
+    rules = [
+        ("ai", ("ai", "model", "agent", "gpu", "chip", "compute", "data center",
+                "数据中心", "算力", "芯片", "模型", "智能体")),
+        ("venture", ("venture", "startup", "fund", "investor", "valuation",
+                     "融资", "初创", "估值", "基金")),
+        ("trading", ("bond", "yield", "fed", "inflation", "market", "stock",
+                     "债券", "收益率", "美联储", "通胀", "市场", "股票")),
+    ]
+    for name, words in rules:
+        if any(word in low for word in words):
+            return str((overlays.get(name) or {}).get("prompt") or "")
+    default = config.get("defaults", {}).get("overlay")
+    return str((overlays.get(default) or {}).get("prompt") or "")
+
+
+def _scene_prompt(text: str, style: dict, config: dict) -> str:
     subject = re.sub(r"\s+", " ", text).strip()[:220]
-    if style == "photo":
-        return (
-            "cinematic editorial photograph illustrating "
-            f"{subject}, dramatic side light, shallow depth of field, muted teal "
-            "and amber palette, photorealistic, 35mm, premium finance magazine, "
-            "no people, no text, no logos, 16:9"
-        )
-    return (
-        "architectural ink and watercolour sketch illustrating "
-        f"{subject}, fine linework, cross-hatching, muted teal and amber "
-        "watercolour washes, cream paper, editorial magazine illustration, "
-        "no people, no text, no logos, 16:9"
-    )
+    aspect = "9:16" if H > W else "16:9"
+    parts = [
+        str(style.get("prefix") or "").replace("16:9", aspect),
+        f"illustrating {subject}",
+        _overlay_for(text, config),
+        f"no people, no text, no logos, {aspect}",
+    ]
+    return ", ".join(part for part in parts if part)
 
 
-def _generate_scene(prompt: str, out: Path, seed: int, comfy_url: str, timeout: float) -> bool:
+def _reference(text: str, config: dict) -> str | None:
+    refs = config.get("references") or {}
+    names = refs.get(ORIENTATION) or refs.get("landscape") or []
+    if not names:
+        return None
+    index = int(hashlib.sha1(text.encode("utf-8")).hexdigest()[:8], 16) % len(names)
+    path = Path(refs.get("source_dir") or "") / names[index]
+    return str(path) if path.exists() else None
+
+
+def _generate_scene(prompt: str, out: Path, seed: int, comfy_url: str, timeout: float,
+                    reference: str | None = None, theme: str = "dark") -> bool:
     try:
         urllib.request.urlopen(comfy_url.rstrip("/") + "/system_stats", timeout=4)
     except OSError:
@@ -110,15 +138,28 @@ def _generate_scene(prompt: str, out: Path, seed: int, comfy_url: str, timeout: 
     sys.path.insert(0, str(ROOT / "tools" / "gen"))
     import comfy  # noqa: PLC0415
     comfy.SERVER = comfy_url.rstrip("/")
+    ipadapter = None
+    if reference and Path(reference).exists():
+        try:
+            COMFY_INPUT.mkdir(parents=True, exist_ok=True)
+            source = Path(reference)
+            name = f"story-reference-{source.stem}{source.suffix.lower()}"
+            if not (COMFY_INPUT / name).exists():
+                shutil.copyfile(source, COMFY_INPUT / name)
+            ipadapter = name
+        except OSError:
+            ipadapter = None
     graph = comfy.graph(
         prompt,
         SCENE_NEGATIVE,
-        width=1216,
-        height=704,
+        width=W,
+        height=H,
         steps=24,
         cfg=5.2,
         seed=seed,
         ckpt="sd_xl_base_1.0.safetensors",
+        init_image=ipadapter,
+        denoise=0.7,
     )
     try:
         comfy.generate(graph, out, timeout=timeout)
@@ -137,6 +178,68 @@ def _panel(draw: ImageDraw.ImageDraw, light: bool) -> None:
         draw.rectangle([96, 112, 106, 240], fill=(242, 184, 75))
 
 
+def _compose_portrait(background: Path, shot: dict, out: Path, language: str,
+                      light: bool = True) -> None:
+    """Native 9:16 card: light paper panel, dark ink, larger title."""
+    image = _fit(background)
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    panel = (247, 243, 234, 220) if light else (8, 10, 14, 228)
+    bar = (178, 92, 48) if light else (242, 184, 75)
+    draw.rounded_rectangle([44, 100, W - 44, H - 120], radius=40, fill=panel)
+    draw.rectangle([88, 150, 100, 330], fill=bar)
+    image = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(image)
+    if light:
+        ink, muted, accent, accent2 = (24, 26, 30), (78, 80, 84), (178, 92, 48), (24, 116, 112)
+    else:
+        ink, muted, accent, accent2 = (244, 241, 234), (166, 173, 184), (242, 184, 75), (79, 209, 197)
+    x, width = 132, W - 264
+    kicker = str(shot.get("kicker") or "INDEPENDENT COMMENTARY")
+    draw.text((x, 164), kicker.upper(), font=find_font(30, bold=True, text=kicker), fill=accent)
+    kind = str(shot.get("kind") or "chart")
+    if kind == "title":
+        title = str(shot.get("on_screen") or shot.get("title") or "")
+        title_size = 104 if len(title) <= 12 else 92 if len(title) <= 18 else 80
+        y = draw_paragraph(draw, title, find_font(title_size, bold=True, text=title),
+                           (x, 270), width, ink, 12, 4)
+        sub = str(shot.get("subtitle") or "")
+        if sub:
+            draw_paragraph(draw, sub, find_font(38, text=sub), (x, max(1080, y + 60)), width, muted, 10, 4)
+    elif kind == "quote":
+        quote = str(shot.get("quote") or "")
+        y = draw_paragraph(draw, f"“{quote}”", find_font(54, bold=True, text=quote), (x, 360), width, ink, 12, 6)
+        attr = str(shot.get("attribution") or "")
+        if attr:
+            draw.text((x, y + 40), attr, font=find_font(32, bold=True, text=attr), fill=accent2)
+    elif kind == "end":
+        heading = str(shot.get("heading") or "")
+        y = draw_paragraph(draw, heading, find_font(70, bold=True, text=heading), (x, 320), width, ink, 12, 3)
+        question = str(shot.get("question") or "")
+        if question:
+            draw_paragraph(draw, question, find_font(36, text=question), (x, max(700, y + 50)), width, muted, 10, 5)
+        nxt = str(shot.get("next_text") or "")
+        if nxt:
+            draw.text((x, H - 260), nxt, font=find_font(28, text=nxt), fill=muted)
+    else:
+        heading = str(shot.get("heading") or "")
+        y = draw_paragraph(draw, heading, find_font(66, bold=True, text=heading), (x, 300), width, ink, 10, 3)
+        y += 70
+        accent2 = (79, 209, 197)
+        for bullet in (shot.get("bullets") or [])[:3]:
+            draw.ellipse([x, y + 14, x + 22, y + 36], fill=accent2)
+            y = draw_paragraph(draw, str(bullet), find_font(40, text=str(bullet)),
+                               (x + 46, y), width - 46, ink, 10, 3) + 46
+        source = str(shot.get("source") or "")
+        if source:
+            draw.text((x, H - 250), source[:80], font=find_font(22, text=source), fill=muted)
+    disclosure = "AI 生成语音 · 独立评论" if language.lower().startswith("zh") else "AI-generated voice · independent commentary"
+    draw.text((x, H - 150), disclosure, font=find_font(22, text=disclosure), fill=muted)
+    draw.text((x, H - 112), "LINKZAG.SHOW", font=find_font(22, text="LINKZAG.SHOW"), fill=muted)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    image.save(out, "PNG")
+
+
 def _compose(
     background: Path,
     shot: dict,
@@ -144,6 +247,8 @@ def _compose(
     light: bool,
     language: str,
 ) -> None:
+    if H > W:
+        return _compose_portrait(background, shot, out, language, light=light)
     image = _fit(background)
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -208,14 +313,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cover", required=True)
     parser.add_argument("--out", required=True, help="output timing JSON")
     parser.add_argument("--language", default="en")
-    parser.add_argument("--render-style", choices=["sketch", "photo"], default="sketch")
+    parser.add_argument("--orientation", choices=["landscape", "portrait"], default="landscape")
+    parser.add_argument("--render-style", default=None,
+                        help="style id from cover-styles.json (default: sketch_dark)")
     parser.add_argument("--max-scenes", type=int, default=6)
     parser.add_argument("--no-generate", action="store_true")
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188")
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument("--seed-base", type=int, default=1200)
+    parser.add_argument("--reference", help="optional img2img reference (off by default)")
+    parser.add_argument("--engine", choices=["photo", "night", "minimal", "sdxl"], default="sdxl")
     args = parser.parse_args(argv)
 
+    global W, H, ORIENTATION
+    config = load_json(CONFIG)
+    ORIENTATION = args.orientation
+    if ORIENTATION == "portrait":
+        W, H = 1080, 1920
+    render_id = args.render_style or config["defaults"].get("render_style", "sketch")
+    style = config["render_styles"].get(render_id)
+    if not style:
+        print(f"error: unknown render style {render_id}", file=sys.stderr)
+        return 1
     slides = load_json(Path(args.slides))
     scene_slides = load_json(Path(args.scene_slides)) if args.scene_slides else slides
     timing = load_json(Path(args.timing))
@@ -231,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
             cover = plate
     by_id = {str(s.get("id")): s for s in slides.get("shots", [])}
     scene_by_id = {str(s.get("id")): s for s in scene_slides.get("shots", [])}
-    light = _light(_fit(cover))
+    light = str(style.get("theme") or "dark") == "light"
     out_dir = Path(args.out).parent / "story-cards"
     out_dir.mkdir(parents=True, exist_ok=True)
     scenes = 0
@@ -254,10 +373,54 @@ def main(argv: list[str] | None = None) -> int:
             and scenes < args.max_scenes
             and _scene_worthy(text)
         ):
-            prompt = _scene_prompt(text, args.render_style)
+            prompt = _scene_prompt(text, style, config)
             seed = args.seed_base + int(hashlib.sha1(str(shot.get("id")).encode()).hexdigest()[:6], 16) % 10000
             candidate = out_dir / f"scene-{shot['id']}.png"
-            if _generate_scene(prompt, candidate, seed, args.comfy_url, args.timeout):
+            generated = False
+            if args.engine == "photo":
+                refs = (config.get("references") or {}).get("landscape") or []
+                index = int(hashlib.sha1(str(shot.get("id")).encode()).hexdigest()[:6], 16) % max(1, len(refs))
+                source = Path(config.get("references", {}).get("source_dir", "")) / refs[index]
+                generated = subprocess.run([
+                    sys.executable, str(ROOT / "tools" / "gen" / "photo_night.py"),
+                    "--source", str(source), "--out", str(candidate),
+                    "--orientation", ORIENTATION,
+                ]).returncode == 0
+            elif args.engine == "night":
+                # draw the light sketch (known good), then grade the PNG to night
+                light_style = config["render_styles"]["sketch"]
+                light_prompt = _scene_prompt(text, light_style, config)
+                temp = out_dir / f"scene-{shot['id']}-light.png"
+                generated = _generate_scene(light_prompt, temp, seed, args.comfy_url,
+                                            args.timeout, reference=None, theme="light")
+                if generated:
+                    graded = subprocess.run([
+                        sys.executable, str(ROOT / "tools" / "gen" / "night_grade.py"),
+                        "--in", str(temp), "--out", str(candidate),
+                        "--warmth", "0.4", "--accent", "0.3", "--teal", "0.55",
+                    ]).returncode == 0
+                    generated = graded
+            elif args.engine == "minimal":
+                overlay = "none"
+                low = text.lower()
+                if any(w in low for w in ("ai", "gpu", "chip", "compute", "数据中心", "算力", "芯片")):
+                    overlay = "ai"
+                elif any(w in low for w in ("venture", "startup", "fund", "融资", "初创", "基金")):
+                    overlay = "venture"
+                elif any(w in low for w in ("bond", "yield", "fed", "债券", "收益率", "美联储")):
+                    overlay = "trading"
+                refs = (config.get("references") or {}).get("landscape") or []
+                source = Path(config.get("references", {}).get("source_dir", "")) / (refs[1] if len(refs) > 1 else refs[0])
+                generated = subprocess.run([
+                    sys.executable, str(ROOT / "tools" / "gen" / "minimal_skyline.py"),
+                    "--source", str(source), "--out", str(candidate),
+                    "--orientation", ORIENTATION, "--overlay", overlay,
+                ]).returncode == 0
+            else:
+                generated = _generate_scene(prompt, candidate, seed, args.comfy_url, args.timeout,
+                                            reference=args.reference,
+                                            theme=str(style.get("theme") or "dark"))
+            if generated:
                 background = candidate
                 scenes += 1
                 print(f"scene background {shot['id']}: {candidate.name}", flush=True)
