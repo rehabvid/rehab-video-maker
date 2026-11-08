@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-store" />
 <title>Rehab patient — full body</title>
 <style>
   html,body{margin:0;background:transparent;overflow:hidden}
@@ -37,6 +38,7 @@ if (location.protocol === 'file:') {
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { fitGlasses } from './glasses.js?v=4';
 
 // Scene is calibrated in metres against the 2D illustration. The renderer
 // passes the same constants it uses for the layout, so the figure lands on
@@ -92,6 +94,7 @@ loader.load(modelUrl, (gltf) => {
   VRMUtils.removeUnnecessaryVertices(vrm.scene);
   VRMUtils.combineSkeletons(vrm.scene);
   scene.add(vrm.scene);
+  window.__glasses = fitGlasses(vrm);
   try { inspect(); } catch (e) { window.__error = String(e && e.stack || e); }
 }, undefined, (err) => { window.__error = String(err); });
 

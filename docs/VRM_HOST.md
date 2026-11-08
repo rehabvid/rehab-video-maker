@@ -201,6 +201,24 @@ Poses come only from the storyboard names (`intro`, `stance`, `hands`, `climb`,
 finger-walk steps. It does not invent a movement the clinical script does not
 ask for.
 
+### Glasses fit
+
+`me.vrm` parents its glasses to the head bone with an offset that floats the
+frame in front of the nose and below the eyes. `tools/vrm/glasses.js` corrects
+that at load time, for both `rehab.html` and `avatar.html`:
+
+- the lens plane is placed 4 mm in front of the nose tip (the +Z extent of the
+  `Face` mesh),
+- the frame's vertical centre sits 5 mm below the `leftEye`/`rightEye` bones,
+  so the pupil lands inside the lens instead of under its lower edge,
+- the frame is scaled 1.08x about the lens centre: the exported pair is small
+  for this head and leaves the eyes uncovered,
+- the correction is applied in the head bone's local space, so head turns keep
+  the frames on the face.
+
+On `me.vrm` that is about +13 mm up and -31 mm back from the exported offset. A model whose glasses
+already fit moves by ~0. Nothing is written to the 16 MB asset.
+
 ### Limits
 
 - The VRM is a stylised VRoid figure, not a photoreal patient. It reads as 3D

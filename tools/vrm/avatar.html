@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-store" />
 <style>
   html,body{margin:0;background:transparent;overflow:hidden}
   canvas{display:block;position:relative;z-index:1}
@@ -46,6 +47,7 @@ if (location.protocol === 'file:') {
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { fitGlasses } from './glasses.js?v=4';
 
 const params = new URLSearchParams(location.search);
 const modelUrl = params.get('model');
@@ -76,6 +78,7 @@ loader.load(modelUrl, (gltf) => {
   vrm = gltf.userData.vrm;
   if (!vrm) { window.__error = 'VRM plugin did not return a VRM'; return; }
   scene.add(vrm.scene);
+  fitGlasses(vrm);
   // VRM 1.0 already faces +Z (the camera); VRM 0.x needs a 180° flip.
   const isVRM0 = !gltf.userData.vrm.meta?.metaVersion;
   if (isVRM0) VRMUtils.rotateVRM0(vrm);
