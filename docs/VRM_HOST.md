@@ -38,6 +38,13 @@ assets/avatar/me.vrm
 
 VRM 0.x also loads via three-vrm, but 1.0 is preferred.
 
+After exporting, bake the glasses fit into the file once (see “Glasses fit”
+below), so the frame is right in the asset and not only at render time:
+
+```bash
+node tools/vrm/bake_glasses.mjs --vrm assets/avatar/me.vrm
+```
+
 ## 2. Enable the VRM engine
 
 VRM is the **default**. `apply_avatar.py` prefers `assets/avatar/me.vrm`; if it
@@ -203,21 +210,38 @@ ask for.
 
 ### Glasses fit
 
-`me.vrm` parents its glasses to the head bone with an offset that floats the
-frame in front of the nose and below the eyes. `tools/vrm/glasses.js` corrects
-that at load time, for both `rehab.html` and `avatar.html`:
+`me.vrm` used to parent its glasses to the head bone with an offset that
+floated the frame in front of the nose and below the eyes. That offset is now
+**baked into the asset**: `tools/vrm/bake_glasses.mjs` runs the fit once and
+writes the resulting node translation and scale into the glTF, marking the
+nodes with `extras.linkzagGlassesFit`. Re-running it on a baked model reports
+`already` and changes nothing.
 
-- the lens plane is placed 4 mm in front of the nose tip (the +Z extent of the
+The fit itself follows three rules, measured from the loaded scene:
+
+- the lens plane sits 4 mm in front of the nose tip (the +Z extent of the
   `Face` mesh),
 - the frame's vertical centre sits 5 mm below the `leftEye`/`rightEye` bones,
   so the pupil lands inside the lens instead of under its lower edge,
 - the frame is scaled 1.08x about the lens centre: the exported pair is small
-  for this head and leaves the eyes uncovered,
-- the correction is applied in the head bone's local space, so head turns keep
-  the frames on the face.
+  for this head and leaves the eyes uncovered.
 
-On `me.vrm` that is about +13 mm up and -31 mm back from the exported offset. A model whose glasses
-already fit moves by ~0. Nothing is written to the 16 MB asset.
+`tools/vrm/glasses.js` still applies that correction at load time, for a model
+that arrives un-baked, in the head bone's local space so head turns keep the
+frames on the face. On an un-fitted `me.vrm` the correction is about +14 mm up
+and -31 mm back. A baked model is left alone; the helper returns
+`{ baked: true }` instead of applying the offset twice.
+
+To re-bake after swapping the model:
+
+```bash
+node tools/vrm/bake_glasses.mjs --vrm assets/avatar/me.vrm            # in place
+node tools/vrm/bake_glasses.mjs --vrm new.vrm --dry-run               # report only
+```
+
+The script verifies itself: it reloads the patched file both through the
+`VRMUtils` pipeline and raw, and fails unless the frame lands where the live
+fit put it (box delta under 0.2 mm) and the marker makes a second pass a no-op.
 
 ### Limits
 

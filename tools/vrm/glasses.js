@@ -1,39 +1,56 @@
 /**
  * Fit a VRM's glasses accessory to the face.
  *
- * Some exports (including assets/avatar/me.vrm) parent the frame to the head
- * bone with a constant offset that is too far forward and too low: the lens
- * floats in front of the nose and sits under the brow instead of on it. The
- * offset is a property of the asset, so correct it at load time instead of
- * editing the 16 MB VRM.
+ * `assets/avatar/me.vrm` shipped its frame parented to the head bone with a
+ * constant offset that is too far forward and too low: the lens floated in
+ * front of the nose and sat under the brow instead of on it. That offset is
+ * now baked into the asset with `tools/vrm/bake_glasses.mjs`, and the fitted
+ * nodes carry `extras.linkzagGlassesFit`. For a baked model this helper does
+ * nothing.
  *
- * Placement rules:
+ * A model that still carries a wrong offset is corrected at load time, in
+ * memory:
  *   - the lens plane sits `gap` metres in front of the nose tip
- *   - the frame's vertical centre matches the eye bones
+ *   - the frame's vertical centre sits `lift` below the eye bones
  *
- * Both are measured from the loaded scene, so a swapped model only needs no
+ * The placement is measured from the loaded scene, so a swapped model needs no
  * code change (and an already-correct pair moves by ~0).
  */
 import * as THREE from 'three';
 
 const GLASSES = /glass/i;
 
+/** Marker written into `node.extras` by tools/vrm/bake_glasses.mjs. */
+export const FIT_MARKER = 'linkzagGlassesFit';
+
 function humanoidBone(vrm, name) {
   return vrm.humanoid?.getNormalizedBoneNode(name) || null;
+}
+
+/** Outermost glasses accessories parented under the head bone. */
+export function findGlassesRoots(vrm) {
+  const head = vrm.humanoid?.getRawBoneNode?.('head');
+  if (!head) return [];
+  const roots = [];
+  head.traverse((o) => {
+    if (o !== head && GLASSES.test(o.name || '')) roots.push(o);
+  });
+  // Keep only the outermost matches (a group plus its meshes are one object).
+  return roots.filter((o) => !roots.some((p) => p !== o && isAncestor(p, o)));
 }
 
 export function fitGlasses(vrm, { gap = 0.004, scale = 1.08, lift = -0.005 } = {}) {
   const head = vrm.humanoid?.getRawBoneNode?.('head');
   if (!head) return null;
 
-  // Collect the accessory roots: direct children of the head bone.
-  const roots = [];
-  head.traverse((o) => {
-    if (o !== head && GLASSES.test(o.name || '')) roots.push(o);
-  });
-  // Keep only the outermost matches (a group plus its meshes are one object).
-  const rootsTop = roots.filter((o) => !roots.some((p) => p !== o && isAncestor(p, o)));
+  const rootsTop = findGlassesRoots(vrm);
   if (!rootsTop.length) return null;
+
+  const names = rootsTop.map((o) => o.name);
+  if (rootsTop.some((o) => o.userData?.[FIT_MARKER])) {
+    // Baked into the asset: applying the offset again would double it.
+    return { baked: true, dy: 0, dz: 0, scale: 1, lift, glasses: names, face: null };
+  }
 
   vrm.scene.updateMatrixWorld(true);
   const glassesBox = new THREE.Box3();
@@ -85,7 +102,7 @@ export function fitGlasses(vrm, { gap = 0.004, scale = 1.08, lift = -0.005 } = {
   vrm.scene.updateMatrixWorld(true);
   return {
     dy, dz, scale, lift,
-    glasses: rootsTop.map((o) => o.name),
+    glasses: names,
     face: face?.name || null,
   };
 }

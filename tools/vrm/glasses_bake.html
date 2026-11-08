@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../modules/linkZagShow/node_modules/three/build/three.module.js",
+    "three/addons/": "../../modules/linkZagShow/node_modules/three/examples/jsm/",
+    "@pixiv/three-vrm": "../../modules/linkZagShow/node_modules/@pixiv/three-vrm/lib/three-vrm.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<!--
+  Headless probe for tools/vrm/bake_glasses.mjs.
+
+  Loads a VRM the same way avatar.html / rehab.html do, then exposes the
+  glasses fit so the bake script can read the resulting node transforms and
+  write them into the asset. Nothing is rendered.
+
+  Query: ?model=<url>&utils=0|1&gap=0.004&scale=1.08&lift=-0.005
+-->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { fitGlasses, findGlassesRoots } from './glasses.js?v=5';
+
+const params = new URLSearchParams(location.search);
+const modelUrl = params.get('model');
+const withUtils = params.get('utils') !== '0';
+const opts = {
+  gap: Number(params.get('gap') || 0.004),
+  scale: Number(params.get('scale') || 1.08),
+  lift: Number(params.get('lift') || -0.005),
+};
+
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+loader.load(modelUrl, (gltf) => {
+  const vrm = gltf.userData.vrm;
+  if (!vrm) { window.__error = 'VRM plugin did not return a VRM'; return; }
+  if (withUtils) {
+    VRMUtils.removeUnnecessaryVertices(vrm.scene);
+    VRMUtils.combineSkeletons(vrm.scene);
+  }
+  window.__vrm = vrm;
+  window.__gltf = gltf;
+  window.__measure = () => measure(vrm);
+  window.__fit = () => {
+    const result = fitGlasses(vrm, opts);
+    vrm.scene.updateMatrixWorld(true);
+    return { result, after: measure(vrm), nodes: nodesInfo(gltf, vrm) };
+  };
+  window.__ready = true;
+}, undefined, (err) => { window.__error = String(err); });
+
+function nodesInfo(gltf, vrm) {
+  return findGlassesRoots(vrm).map((o) => {
+    const parent = o.parent;
+    return {
+      name: o.name,
+      nodeIndex: gltf.parser.associations.get(o)?.nodes ?? null,
+      parent: parent ? parent.name : null,
+      parentNodeIndex: parent ? (gltf.parser.associations.get(parent)?.nodes ?? null) : null,
+      position: o.position.toArray(),
+      quaternion: o.quaternion.toArray(),
+      scale: o.scale.toArray(),
+    };
+  });
+}
+
+function measure(vrm) {
+  const scene = vrm.scene;
+  scene.updateMatrixWorld(true);
+  const roots = findGlassesRoots(vrm);
+  const glassesBox = new THREE.Box3();
+  for (const o of roots) glassesBox.union(new THREE.Box3().setFromObject(o));
+
+  const face = scene.getObjectByName('Face');
+  const faceBox = new THREE.Box3();
+  if (face) faceBox.setFromObject(face);
+
+  const eyes = ['leftEye', 'rightEye']
+    .map((n) => vrm.humanoid?.getNormalizedBoneNode(n))
+    .filter(Boolean)
+    .map((b) => b.getWorldPosition(new THREE.Vector3()));
+  const eyeY = eyes.length
+    ? eyes.reduce((s, p) => s + p.y, 0) / eyes.length
+    : (glassesBox.min.y + glassesBox.max.y) / 2;
+
+  const c = glassesBox.getCenter(new THREE.Vector3());
+  return {
+    glasses: roots.map((o) => o.name),
+    face: face ? face.name : null,
+    box: {
+      glasses: [glassesBox.min.toArray(), glassesBox.max.toArray()],
+      face: faceBox.isEmpty() ? null : [faceBox.min.toArray(), faceBox.max.toArray()],
+    },
+    center: c.toArray(),
+    eyeY,
+    // residual error against the placement rules, in millimetres
+    dyMm: (eyeY + opts.lift - c.y) * 1000,
+    dzMm: -(glassesBox.max.z - (faceBox.max.z + opts.gap)) * 1000,
+  };
+}
+</script>
+</body>
+</html>
