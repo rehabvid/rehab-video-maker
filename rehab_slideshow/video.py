@@ -67,13 +67,21 @@ def _render(master: Image.Image, zoom: float, pan_x: float, pan_y: float) -> Ima
 
 def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
                 work_dir: Path | None = None,
-                overlays: list[Path] | None = None) -> dict:
+                overlays: list[Path] | None = None,
+                patient_dir: Path | None = None,
+                patient_fps: int = 30) -> dict:
     if len(frame_paths) != len(timeline):
         raise ValueError("frames and timeline must have the same length")
 
     overlay_layers = [Image.open(p).convert("RGBA") for p in overlays] if overlays else None
     if overlay_layers is not None and len(overlay_layers) != len(frame_paths):
         raise ValueError("one overlay per frame is required")
+
+    patient_frames = sorted(Path(patient_dir).glob("p-*.png")) if patient_dir else []
+    if patient_dir and not patient_frames:
+        raise ValueError(f"no patient frames in {patient_dir}")
+    patient_layer: Image.Image | None = None
+    patient_index = -1
 
     masters: list[Image.Image] = []
     for path in frame_paths:
@@ -102,6 +110,22 @@ def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
     assert encoder.stdin is not None
 
     try:
+        def _composited(i: int, t: float) -> Image.Image:
+            if not patient_frames:
+                return masters[i]
+            nonlocal patient_layer, patient_index
+            pi = min(int(round(t * patient_fps)), len(patient_frames) - 1)
+            if pi != patient_index:
+                with Image.open(patient_frames[pi]) as src:
+                    patient_layer = src.convert("RGBA").resize(
+                        (WIDTH * MASTER_SCALE, HEIGHT * MASTER_SCALE), Image.BILINEAR
+                    )
+                patient_index = pi
+            base = masters[i].convert("RGBA")
+            assert patient_layer is not None
+            base.alpha_composite(patient_layer)
+            return base.convert("RGB")
+
         for n in range(total_frames):
             t = n / FPS
             index = min(bisect_right(starts, t) - 1, len(timeline) - 1)
@@ -109,7 +133,7 @@ def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
             cue = timeline[index]
             progress = (t - cue.frame_start) / cue.frame_duration
             zoom, px, py = _camera(index, progress)
-            current = _render(masters[index], zoom, px, py)
+            current = _render(_composited(index, t), zoom, px, py)
 
             overlay_index = index
             if index > 0 and t - cue.frame_start < TRANSITION:
@@ -117,7 +141,7 @@ def build_track(frame_paths: list[Path], timeline: list[Cue], out_path: Path,
                 prev = timeline[index - 1]
                 prev_progress = (t - prev.frame_start) / prev.frame_duration
                 p_zoom, p_px, p_py = _camera(index - 1, prev_progress)
-                previous = _render(masters[index - 1], p_zoom, p_px, p_py)
+                previous = _render(_composited(index - 1, t), p_zoom, p_px, p_py)
                 current = Image.blend(previous, current, alpha)
                 # text stays crisp: it swaps at the midpoint instead of ghosting
                 overlay_index = index - 1 if alpha < 0.5 else index

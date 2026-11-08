@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -49,6 +50,22 @@ def cmd_validate(args) -> None:
     print(f"{ex.id}: {len(sb['frames'])} frames, metadata and storyboard are valid")
 
 
+def _render_patient(root: Path, work: Path, sb: dict, timeline: list) -> Path:
+    """Build the VRM pose track and render the full-body patient layer."""
+    sys.path.insert(0, str(root / "tools/gen"))
+    import vrm_patient  # noqa: PLC0415
+    import vrm_pose  # noqa: PLC0415
+
+    track = vrm_pose.write_track(work / "pose-track.json", sb["frames"], timeline, video.FPS)
+    model = os.environ.get("VRM_MODEL", vrm_patient.DEFAULT_VRM)
+    if not vrm_patient.available(root):
+        _fail("VRM engine needs node and tools/vrm/render_rehab.mjs")
+    print(f"  patient layer: {model} at {video.FPS} fps")
+    stage = illustrations.STAGE
+    return vrm_patient.render(root, track, work / "patient", fps=video.FPS, vrm=model,
+                              k=stage["k"], floor=stage["floor_y"], wall=stage["wall_x"])
+
+
 def cmd_build(args) -> None:
     root = Path(args.root)
     work = Path(args.work) / args.exercise
@@ -76,7 +93,9 @@ def cmd_build(args) -> None:
     )
 
     total = len(sb["frames"])
-    print(f"[3/8] preparing {total} illustrations")
+    engine = getattr(args, "engine", "vector")
+    layout = illustrations.STAGE if engine == "vrm" else None
+    print(f"[3/8] preparing {total} illustrations ({engine} patient)")
     (work / "overlays").mkdir(parents=True, exist_ok=True)
     frame_paths = []
     overlay_paths: list[Path] = []
@@ -112,9 +131,11 @@ def cmd_build(args) -> None:
             illustrations.render_overlay(ex.raw, frame).save(overlay_path)
             overlay_paths.append(overlay_path)
         else:
-            illustrations.render_frame(ex.raw, frame, path, hi_res=True, with_overlay=False)
+            illustrations.render_frame(ex.raw, frame, path, hi_res=True,
+                                       with_figure=engine != "vrm", with_overlay=False,
+                                       layout=layout)
             overlay_path = work / "overlays" / name
-            illustrations.render_overlay(ex.raw, frame).save(overlay_path)
+            illustrations.render_overlay(ex.raw, frame, layout=layout).save(overlay_path)
             overlay_paths.append(overlay_path)
         frame_paths.append(path)
         print(f"  {name}  {frame['heading']}")
@@ -143,9 +164,13 @@ def cmd_build(args) -> None:
           f"{audio_info['clipped_samples']}")
 
     print("[7/8] rendering video track")
+    patient_dir = None
+    if engine == "vrm":
+        patient_dir = _render_patient(root, work, sb, timeline)
     track_info = video.build_track(
         frame_paths, timeline, work / "video-track.mp4", work,
         overlays=overlay_paths or None,
+        patient_dir=patient_dir,
     )
     print(f"  video-track.mp4 {track_info['duration']:.2f} s, {track_info['segments']} segments")
 
@@ -162,6 +187,9 @@ def cmd_build(args) -> None:
     checks = review.run_checks(ex, sb, timeline, audio_info, video_info)
     if persons:
         backend = "SDXL + OpenPose ControlNet + IPAdapter; figures reviewed frame by frame"
+    elif engine == "vrm":
+        backend = ("animated full-body VRM (me.vrm), IK-on-wall wrist targets, "
+                   "side view; stage layout with side text panel")
     elif external:
         backend = f"pre-rendered frames from {external}"
     else:
@@ -210,6 +238,11 @@ def main(argv: list[str] | None = None) -> int:
         "--person-dir",
         help="use generated figure cut-outs (canvas-XX.png, RGBA 2560x1440) on top of the "
              "built-in room and text layout",
+    )
+    p_build.add_argument(
+        "--engine", default="vector", choices=["vector", "vrm"],
+        help="patient rendering: built-in vector figure, or an animated "
+             "full-body VRM composited under the same layout",
     )
     p_build.add_argument(
         "--frames-dir",

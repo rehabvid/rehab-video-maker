@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Rehab patient — full body</title>
+<style>
+  html,body{margin:0;background:transparent;overflow:hidden}
+  canvas{display:block}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../modules/linkZagShow/node_modules/three/build/three.module.js",
+    "three/addons/": "../../modules/linkZagShow/node_modules/three/examples/jsm/",
+    "@pixiv/three-vrm": "../../modules/linkZagShow/node_modules/@pixiv/three-vrm/lib/three-vrm.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<script>
+// ES modules cannot load over file://; show the preview command instead of a
+// silent blank page. The headless renderers start their own server.
+if (location.protocol === 'file:') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.innerHTML = '<pre style="font:14px/1.6 ui-monospace,monospace;padding:28px;white-space:pre-wrap">'
+      + 'This page uses ES modules and must be served over HTTP.\n\n'
+      + 'cd <repo root>\npython3 -m http.server 8765\n\n'
+      + 'then open:\n'
+      + '  http://localhost:8765/tools/vrm/rehab.html?model=/assets/avatar/me.vrm&w=1280&h=720&k=0.00448&floor=612&wall=596\n\n'
+      + 'render_vrm.mjs / render_rehab.mjs start their own server.</pre>';
+  });
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+// Scene is calibrated in metres against the 2D illustration. The renderer
+// passes the same constants it uses for the layout, so the figure lands on
+// the floor line and its palm meets the wall line every time.
+const params = new URLSearchParams(location.search);
+const modelUrl = params.get('model');
+const width = Number(params.get('w') || 2560);
+const height = Number(params.get('h') || 1440);
+const k = Number(params.get('k') || 0.00224);       // metres per output pixel
+const floorPx = Number(params.get('floor') || 1224); // floor line, output px
+const wallPx = Number(params.get('wall') || 1192);  // wall line, output px
+const zWall = Number(params.get('zwall') || 0.30);  // wall plane, metres in front
+const side = params.get('side') || 'right';
+
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(width, height);
+renderer.setPixelRatio(1);
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+// Orthographic side view: camera on the model's right (-X), looking +X, so
+// the model's facing direction (+Z) maps to screen right.
+const scene = new THREE.Scene();
+const camH = height * k;
+const camW = width * k;
+const camera = new THREE.OrthographicCamera(-camW / 2, camW / 2, camH / 2, -camH / 2, 0.01, 100);
+
+const key = new THREE.DirectionalLight(0xffffff, 1.9);
+key.position.set(-2, 3, 2);
+const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+fill.position.set(-3, 1.2, -1.5);
+scene.add(key, fill, new THREE.HemisphereLight(0xffffff, 0x9a8f80, 0.9));
+
+let vrm = null;
+let bones = {};
+let rest = {};
+let elbows = {};
+const clock = new THREE.Clock();
+
+const JOINTS = ['hips', 'spine', 'chest', 'neck', 'head',
+  'rightShoulder', 'rightUpperArm', 'rightLowerArm', 'rightHand',
+  'leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand',
+  'rightUpperLeg', 'rightLowerLeg', 'rightFoot',
+  'leftUpperLeg', 'leftLowerLeg', 'leftFoot'];
+
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+loader.load(modelUrl, (gltf) => {
+  if (gltf.userData.vrm) vrm = gltf.userData.vrm;
+  if (!vrm) { window.__error = 'VRM plugin did not return a VRM'; return; }
+  if (vrm.meta && vrm.meta.metaVersion === '0') VRMUtils.rotateVRM0(vrm);
+  VRMUtils.removeUnnecessaryVertices(vrm.scene);
+  VRMUtils.combineSkeletons(vrm.scene);
+  scene.add(vrm.scene);
+  try { inspect(); } catch (e) { window.__error = String(e && e.stack || e); }
+}, undefined, (err) => { window.__error = String(err); });
+
+function inspect() {
+  vrm.scene.updateMatrixWorld(true);
+  for (const name of JOINTS) {
+    const b = vrm.humanoid.getNormalizedBoneNode(name);
+    if (!b) continue;
+    bones[name] = b;
+    rest[name] = b.quaternion.clone();
+    b.userData.restPos = b.position.clone();
+  }
+  for (const s of ['right', 'left']) {
+    const up = bones[`${s}UpperArm`], lo = bones[`${s}LowerArm`], ha = bones[`${s}Hand`];
+    elbows[s] = {
+      upper: up.getWorldPosition(new THREE.Vector3()).distanceTo(lo.getWorldPosition(new THREE.Vector3())),
+      lower: lo.getWorldPosition(new THREE.Vector3()).distanceTo(ha.getWorldPosition(new THREE.Vector3())),
+    };
+  }
+  // local rest direction of each arm segment (children sit along it)
+  const dir = (a, b) => {
+    const p = new THREE.Vector3();
+    b.getWorldPosition(p);
+    return bones[a].worldToLocal(p).normalize();
+  };
+  for (const s of ['right', 'left']) {
+    elbows[s].restDir = dir(`${s}UpperArm`, bones[`${s}LowerArm`]);
+  }
+  const sh = bones.rightUpperArm.getWorldPosition(new THREE.Vector3());
+  const hip = bones.hips.getWorldPosition(new THREE.Vector3());
+  // Anchor the wall plane on the design wall line, so the palm meets it at
+  // any output size. Screen x = W/2 + (z - camZ)/k.
+  const camZ = zWall - (wallPx - width / 2) * k;
+  camera.position.set(-8, (floorPx - height / 2) * k, camZ);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(0, (floorPx - height / 2) * k, camZ);
+  // phone: shift the whole model so the right hip sits over the design x
+  vrm.scene.position.set(0, 0, 0);
+  vrm.scene.updateMatrixWorld(true);
+  const probe = new THREE.Vector3();
+  bones.head.getWorldPosition(probe);
+  window.__info = {
+    height: new THREE.Box3().setFromObject(vrm.scene).getSize(new THREE.Vector3()).y,
+    head: probe.toArray(),
+    shoulder: sh.toArray(),
+    hip: hip.toArray(),
+    elbows,
+  };
+  vrm.update(0);
+  renderer.render(scene, camera);
+  window.__ready = true;
+}
+
+const _q = new THREE.Quaternion();
+const _qa = new THREE.Quaternion();
+const _qb = new THREE.Quaternion();
+const _v = new THREE.Vector3();
+const _x = new THREE.Vector3(-1, 0, 0);
+
+function smooth(t) { t = Math.min(1, Math.max(0, t)); return t * t * (3 - 2 * t); }
+
+// Point a bone (whose child rests along `restDir` in local space) at a world
+// direction. Returns the bone's resulting world quaternion.
+function aim(bone, restDir, worldDir, parentWorld) {
+  const qWorld = _q.setFromUnitVectors(restDir, worldDir.clone().normalize()).clone();
+  const qLocal = parentWorld ? parentWorld.clone().invert().multiply(qWorld) : qWorld;
+  bone.quaternion.copy(qLocal);
+  bone.updateMatrixWorld(true);
+  return qWorld;
+}
+
+function solveArm(s, target) {
+  const up = bones[`${s}UpperArm`];
+  const lo = bones[`${s}LowerArm`];
+  if (!up || !lo) return;
+  const shoulder = up.getWorldPosition(new THREE.Vector3());
+  const parent = new THREE.Quaternion();
+  up.parent.getWorldQuaternion(parent);
+  const restDir = elbows[s].restDir;
+  const L1 = elbows[s].upper, L2 = elbows[s].lower;
+
+  let upperDir, foreDir;
+  if (target && target.dir) {
+    upperDir = new THREE.Vector3(...target.dir).normalize();
+    foreDir = new THREE.Vector3(...(target.fore || target.dir)).normalize();
+  } else {
+    const T = new THREE.Vector3(shoulder.x, target.y, target.z);
+    const to = T.clone().sub(shoulder);
+    let d = to.length();
+    d = Math.min(Math.max(d, 0.05), (L1 + L2) * 0.999);
+    to.normalize();
+    // elbow hangs below the shoulder->wrist line, and a little behind it
+    const perp = new THREE.Vector3(0, -to.z, to.y).normalize();
+    if (perp.y > 0) perp.negate();
+    const cosA = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d);
+    const a = Math.acos(Math.min(1, Math.max(-1, cosA)));
+    const elbow = shoulder.clone()
+      .addScaledVector(to, Math.cos(a) * L1)
+      .addScaledVector(perp, Math.sin(a) * L1);
+    const wrist = shoulder.clone().addScaledVector(to, d);
+    upperDir = elbow.clone().sub(shoulder).normalize();
+    foreDir = wrist.clone().sub(elbow).normalize();
+  }
+
+  const qUp = aim(up, restDir, upperDir, parent);
+  // lower arm: world rotation needed, relative to the upper arm's world rotation
+  const qNeeded = new THREE.Quaternion().setFromUnitVectors(restDir, foreDir);
+  lo.quaternion.copy(qUp.clone().invert().multiply(qNeeded));
+  lo.updateMatrixWorld(true);
+  // hand: fingers up, palm toward the wall
+  const hand = bones[`${s}Hand`];
+  if (hand) {
+    const qHand = new THREE.Quaternion().setFromUnitVectors(restDir, new THREE.Vector3(0, 1, 0));
+    hand.quaternion.copy(qUp.clone().multiply(lo.quaternion).invert().multiply(qHand));
+    hand.updateMatrixWorld(true);
+  }
+}
+
+let pose = null;
+function apply(p) {
+  pose = p;
+  if (!vrm || !bones.head) return;
+  // torso
+  const lean = p.lean || 0;
+  bones.spine.quaternion.copy(rest.spine);
+  bones.chest.quaternion.copy(rest.chest);
+  bones.spine.rotateX(lean * 0.35);
+  bones.chest.rotateX(lean * 0.45);
+  bones.chest.rotateY((p.yaw || 0) * 0.5);
+  bones.spine.updateMatrixWorld(true);
+  bones.chest.updateMatrixWorld(true);
+  bones.hips.position.copy(bones.hips.userData.restPos);
+  bones.hips.position.y += p.crouch || 0;
+
+  solveArm('right', p.right);
+  solveArm('left', p.left);
+
+  bones.neck.quaternion.copy(rest.neck);
+  bones.head.quaternion.copy(rest.head);
+  if (p.headTurn) {
+    bones.neck.rotateY(p.headTurn * 0.5);
+    bones.head.rotateY(p.headTurn * 0.5);
+  }
+  if (vrm.expressionManager) {
+    vrm.expressionManager.setValue('blink', p.blink || 0);
+  }
+  // normalized bones -> raw bones, spring bones, expression blend
+  vrm.update(0);
+  vrm.scene.updateMatrixWorld(true);
+  renderer.render(scene, camera);
+}
+
+window.__applyPose = (p) => { apply(p); };
+window.__info = window.__info || null;
+window.__ready = false;
+</script>
+</body>
+</html>

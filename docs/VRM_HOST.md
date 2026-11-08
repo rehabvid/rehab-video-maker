@@ -4,7 +4,7 @@ The repo supports two host engines:
 
 | Engine | Source | Look | Lip sync |
 |---|---|---|---|
-| `vrm` (default) | `assets/avatar/me.vrm` (fallback: `host.vrm`, then `sample.vrm`) | rigged 3D avatar | `aa/ih/ou/ee/oh` blendshapes from syllable visemes + natural blink |
+| `vrm` (default) | `assets/avatar/me.vrm` (fallback: `host.vrm`) | rigged 3D avatar | `aa/ih/ou/ee/oh` blendshapes from syllable visemes + natural blink |
 | `svg` | `lee.svg` | flat 2D portrait | syllable visemes (`aa/ih/ou/ee/oh`) |
 
 Both are composited **bottom-right**, above the footer. Landscape uses **1/3 of
@@ -18,7 +18,8 @@ anchored (no vertical bob) and keeps clear of captions.
 - `tools/vrm/render_vrm.mjs` — headless Playwright renderer → alpha PNG frames → MOV.
 - `tools/gen/apply_avatar.py --engine vrm` — renders the host and overlays it.
 - `assets/avatar/me.vrm` — the owner’s current presenter and the default model.
-- `assets/avatar/sample.vrm` — the older VRoid model kept as a fallback.
+- `sample.vrm` / `sample1.vrm` / `sample2.vrm` were older experiments and are not
+  committed; `apply_avatar.py` still accepts them via `VRM_MODEL`.
 
 ## 1. Get a VRM model
 
@@ -40,7 +41,7 @@ VRM 0.x also loads via three-vrm, but 1.0 is preferred.
 ## 2. Enable the VRM engine
 
 VRM is the **default**. `apply_avatar.py` prefers `assets/avatar/me.vrm`; if it
-is absent it uses `host.vrm`, then `sample.vrm`. To pin a model explicitly:
+is absent it uses `host.vrm`. To pin a model explicitly:
 
 ```bash
 VRM_MODEL=assets/avatar/me.vrm \
@@ -113,9 +114,90 @@ Then apply:
 
 ## 6. Known limits
 
-- `assets/avatar/me.vrm` is the owner’s current VRoid model (16 MB);
-  `sample.vrm` is the older fallback. Both have `aa/ih/ou/ee/oh/blink`
-  blendshapes and no jaw bone.
+- `assets/avatar/me.vrm` is the owner’s current VRoid model (16 MB). It has
+  `aa/ih/ou/ee/oh/blink` blendshapes, no jaw bone, and a full 54-bone humanoid
+  rig (fingers included).
 - Lip sync is syllable-level (pinyin final), not phoneme-accurate.
 - 8 fps keeps long renders cheap; 12–15 fps is smoother (the 20s sample uses 15).
 - Model licensing is the owner’s responsibility.
+
+## 7. Previewing the pages
+
+`tools/vrm/avatar.html` and `tools/vrm/rehab.html` are three.js **scenes**, not
+stand-alone documents. Their imports are ES modules, so opening the file
+directly (`file://`) is blocked by the browser's CORS rules and you get a blank
+page plus `ERR_FAILED` on `three.module.js`. That is not a bug in the page.
+
+Serve the repository and open the page over HTTP:
+
+```bash
+cd /path/to/rehab-video-maker
+python3 -m http.server 8765
+```
+
+Then:
+
+```
+http://localhost:8765/tools/vrm/avatar.html?model=/assets/avatar/me.vrm&size=512
+http://localhost:8765/tools/vrm/rehab.html?model=/assets/avatar/me.vrm&w=1280&h=720&k=0.00448&floor=612&wall=596
+```
+
+If you do open the file directly, both pages now print this command instead of
+showing a blank canvas. The headless renderers (`render_vrm.mjs`,
+`render_rehab.mjs`) start their own server and never need this step.
+
+## 8. Full-body rehab patient
+
+`rehab.html` is a second, separate scene: a **full-body** patient in strict
+right profile, animated from a pose track, used by the rehab video.
+
+```bash
+.venv/bin/rehab-slideshow build --exercise wall-climb --engine vrm
+```
+
+How it fits:
+
+1. `rehab_slideshow/cli.py` renders the storyboard frames **without** the
+   vector figure (`with_figure=False`); the room, floor and text overlay are
+   unchanged.
+2. `tools/gen/vrm_pose.py` turns the storyboard poses into wrist targets on the
+   wall plane (`build/<id>/pose-track.json`). The track is in absolute seconds,
+   so the climb carries across cue cuts.
+2. The layout switches to the **stage** composition (`illustrations.STAGE`):
+   the patient fills ~72% of the frame height and the copy moves into a side
+   panel on the wall, like a training video. The vector engine keeps the
+   original wide composition.
+3. `tools/vrm/render_rehab.mjs` renders alpha PNGs at 1280x720, 30 fps.
+4. `rehab_slideshow/video.py` composites each patient frame onto the 2x master
+   below the text overlay, then applies the usual camera move.
+
+Calibration is shared with `rehab_slideshow.illustrations`:
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `k` | 0.003242 m/px | metres per design pixel (figure ≈ 520 px tall, ~72% of the frame) |
+| floor | 618 | floor line in the 1280x720 design space |
+| wall | 640 | wall line; the palm meets it and the text panel starts at 700 |
+| `zWall` | 0.30 m | wall plane in front of the hips |
+
+The arm is solved with two-bone IK: the storyboard gives a wrist height, and
+the elbow angle follows, so the hand stays on the wall at every step instead of
+floating. The upper bound (`HIGH_Y = 1.50 m`) sits inside the 0.426 m reach, so
+the elbow is never hyperextended to fake contact.
+
+Poses come only from the storyboard names (`intro`, `stance`, `hands`, `climb`,
+`high`, `hold`, `lower`, `close`); the track times the transitions and adds the
+finger-walk steps. It does not invent a movement the clinical script does not
+ask for.
+
+### Limits
+
+- The VRM is a stylised VRoid figure, not a photoreal patient. It reads as 3D
+  cartoon; the vector version remains the default (`--engine vector`).
+- One arm is animated (the affected side). The far arm is held at shoulder
+  height on the wall.
+- The model's own clothes (white shirt, trousers) replace the illustration's
+  teal top. Wardrobe is not medically meaningful but it is a visible change.
+- Lip sync and facial acting are off; the narration is voice-over, so the
+  patient does not talk.
+

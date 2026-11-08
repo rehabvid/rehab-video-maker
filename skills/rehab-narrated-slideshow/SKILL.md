@@ -134,8 +134,8 @@ Automated checks (`uv run rehab-slideshow validate`):
 
 ## 3. Illustration
 
-Two backends produce the same layout, text, and clinical furniture. Pick one per
-project; do not mix them inside a video.
+Three backends produce the same layout, text, and clinical furniture. Pick one
+per project; do not mix them inside a video.
 
 ### 3a. Generated figures (recommended when a GPU is available)
 
@@ -226,6 +226,48 @@ repetition / hold / frequency line, a comfort-range reminder, and the hold
 countdown ring.
 
 Keep all text inside a 40 px safe margin: the camera move crops the outer edge.
+
+### 3c. Animated VRM patient (no GPU, moving figure)
+
+`--engine vrm` replaces the still figure with an animated full-body VRM in the
+same profile view. The layout switches to the **stage** composition: the patient
+fills about 72% of the frame height and the copy moves to a side panel on the
+wall (a training-video look). The badges, captions and clinical furniture are
+unchanged; the patient moves (arms to the wall, finger-walk up, hold, lower)
+while the narration plays.
+
+```bash
+uv run rehab-slideshow build --exercise wall-climb --engine vrm
+```
+
+What it needs:
+
+- `node` + the `playwright` package from `modules/linkZagShow/node_modules`
+- `three` and `@pixiv/three-vrm` in the same `node_modules`
+- `assets/avatar/me.vrm` (54-bone humanoid rig; override with `VRM_MODEL`)
+
+Pipeline:
+
+```
+storyboard pose ──► tools/gen/vrm_pose.py ──► pose-track.json (absolute seconds)
+                                   │
+                     tools/vrm/render_rehab.mjs (alpha PNG, 30 fps)
+                                   │
+             composited on the 2x master, under the text overlay
+```
+
+- The patient is drawn at 0.003242 m/px with the feet on the 618 floor line, so
+  it fills ~72% of the frame. The wall line is at 640 and the palm meets it.
+- Wrist targets come from the storyboard pose name; two-bone IK bends the elbow
+  so the palm stays on the wall through the whole climb.
+- Poses are only the storyboard's own (`intro`, `stance`, `hands`, `climb`,
+  `high`, `hold`, `lower`, `close`); the track times transitions and the
+  finger-walk steps, it does not add movements the script did not ask for.
+- Render cost: about 1 s per 15 frames at 720p, ~2-3 minutes for a 90 s video.
+
+Limits: the VRM is a stylised VRoid figure (3D cartoon, not photoreal), the far
+arm is held on the wall at shoulder height, and the model keeps its own clothes.
+The vector renderer stays the default; VRM is opt-in.
 
 ---
 

@@ -24,6 +24,21 @@
 </script>
 </head>
 <body>
+<script>
+// ES modules cannot load over file://; show the preview command instead of a
+// silent blank page. The headless renderers start their own server.
+if (location.protocol === 'file:') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.innerHTML = '<pre style="font:14px/1.6 ui-monospace,monospace;padding:28px;white-space:pre-wrap">'
+      + 'This page uses ES modules and must be served over HTTP.\n\n'
+      + 'cd <repo root>\npython3 -m http.server 8765\n\n'
+      + 'then open:\n'
+      + '  http://localhost:8765/tools/vrm/avatar.html?model=/assets/avatar/me.vrm&size=512\n\n'
+      + 'render_vrm.mjs / render_rehab.mjs start their own server.</pre>';
+  });
+}
+</script>
+
 <div id="mouth"></div>
 <div id="eyeL"></div>
 <div id="eyeR"></div>
@@ -117,6 +132,9 @@ loader.load(modelUrl, (gltf) => {
     };
   };
   window.__ready = true;
+  // draw one idle frame so opening the page in a browser shows the host
+  // instead of a blank canvas; render_vrm.mjs drives renderFrame itself
+  if (typeof window.renderFrame === 'function') window.renderFrame({});
 }, undefined, (err) => { window.__error = String(err); });
 
 window.renderFrame = ({ viseme = null, mouth = 0, blink = 0, yaw = 0, t = 0, dt = 1 / 15 }) => {

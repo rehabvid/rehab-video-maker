@@ -57,6 +57,19 @@ FLOOR_Y = 612
 WALL_X = 596  # left edge of the wall the patient faces
 HAND_X = WALL_X + 16
 
+# "stage" puts the patient at ~72% of the frame height and moves the text into
+# a side panel on the wall. The VRM engine uses it; the vector engine keeps the
+# original wide composition (figure drawn at its fixed design coordinates).
+STAGE = {
+    "wall_x": 640,
+    "floor_y": 618,
+    "text_x": 700,
+    "text_w": 500,
+    "arch": [248, 92, 742, 628],
+    "shadow": [468, 596, 646, 626],
+    "k": 0.003242,       # metres per design pixel (figure ~520 px tall)
+}
+
 SHOULDER = (510.0, 356.0)
 HIP = (490.0, 486.0)
 HEAD = (498.0, 292.0)
@@ -193,7 +206,12 @@ def text_width(s: str, size: int, style: str = "regular", spacing: float = 0) ->
 # --------------------------------------------------------------------------
 # scene layers
 # --------------------------------------------------------------------------
-def _background(pen: Pen):
+def _background(pen: Pen, layout: dict | None = None):
+    wall_x = layout["wall_x"] if layout else WALL_X
+    floor_y = layout["floor_y"] if layout else FLOOR_Y
+    arch = layout["arch"] if layout else [214, 166, 646, 598]
+    shadow = layout["shadow"] if layout else [398, 590, 594, 622]
+
     top = (247, 243, 236)
     bottom = (240, 233, 221)
     for y in range(DESIGN_H):
@@ -201,23 +219,23 @@ def _background(pen: Pen):
         color = tuple(int(top[i] + (bottom[i] - top[i]) * t) for i in range(3))
         pen.rect([0, y, DESIGN_W, y + 1], fill=color)
 
+    # soft portrait arch behind the patient (the wall occludes its far edge)
+    pen.ellipse(arch, fill="#FAF0E8")
+
     # the wall the patient faces: soft tonal plane with no hard card edge
-    pen.rect([WALL_X, 0, DESIGN_W, FLOOR_Y], fill=WALL)
+    pen.rect([wall_x, 0, DESIGN_W, floor_y], fill=WALL)
     for i in range(46):
         alpha = int(46 * (1 - i / 46))
-        pen.rect([WALL_X + i, 0, WALL_X + i + 1, FLOOR_Y], fill=(206, 192, 171, alpha))
-    pen.rect([WALL_X, FLOOR_Y - 14, DESIGN_W, FLOOR_Y], fill="#F1E9DC")
-    pen.rect([WALL_X, FLOOR_Y - 14, DESIGN_W, FLOOR_Y - 12], fill="#E6D9C4")
-
-    # soft portrait arch behind the patient
-    pen.ellipse([214, 166, 646, 598], fill="#FAF0E8")
+        pen.rect([wall_x + i, 0, wall_x + i + 1, floor_y], fill=(206, 192, 171, alpha))
+    pen.rect([wall_x, floor_y - 14, DESIGN_W, floor_y], fill="#F1E9DC")
+    pen.rect([wall_x, floor_y - 14, DESIGN_W, floor_y - 12], fill="#E6D9C4")
 
     # floor
-    pen.rect([0, FLOOR_Y, DESIGN_W, DESIGN_H], fill=FLOOR)
-    pen.rect([0, FLOOR_Y, DESIGN_W, FLOOR_Y + 2], fill="#D8CBB6")
+    pen.rect([0, floor_y, DESIGN_W, DESIGN_H], fill=FLOOR)
+    pen.rect([0, floor_y, DESIGN_W, floor_y + 2], fill="#D8CBB6")
 
     # contact shadow on the floor
-    pen.ellipse([398, 590, 594, 622], fill=(202, 188, 166, 110))
+    pen.ellipse(shadow, fill=(202, 188, 166, 110))
 
 
 def _arm_pose(reach: float):
@@ -354,7 +372,7 @@ def _wrap(text: str, max_width: float, size=16, style="regular") -> list[str]:
     return lines
 
 
-def _overlay(pen: Pen, exercise: dict, frame: dict):
+def _overlay(pen: Pen, exercise: dict, frame: dict, layout: dict | None = None):
     title = exercise["title"]
     phase = exercise.get("phase_label") or exercise["recovery_phase"]
     reps = exercise["repetitions"]
@@ -362,7 +380,8 @@ def _overlay(pen: Pen, exercise: dict, frame: dict):
     hold = exercise.get("hold_seconds")
     freq = exercise.get("frequency", "as advised")
     side = (exercise.get("affected_side") or "right").capitalize()
-    x0 = WALL_X + 34
+    x0 = (layout["text_x"] if layout else WALL_X + 34)
+    text_w = layout["text_w"] if layout else 556
 
     pen.text((x0, 76), title, size=38, style="bold", fill=INK)
     pen.text((x0, 122), exercise.get("subtitle", ""), size=17, fill=INK_SOFT)
@@ -400,7 +419,7 @@ def _overlay(pen: Pen, exercise: dict, frame: dict):
     y = 258
     for bullet in frame.get("bullets", [])[:3]:
         first = True
-        for line in _wrap(bullet, 556):
+        for line in _wrap(bullet, text_w):
             if first:
                 pen.ellipse([x0, y + 7, x0 + 6, y + 13], fill=ACCENT)
                 pen.text((x0 + 16, y), line, size=16, fill=INK_SOFT)
@@ -424,16 +443,17 @@ def _overlay(pen: Pen, exercise: dict, frame: dict):
         _timer(pen, hold or 10)
 
 
-def render_overlay(exercise: dict, frame: dict) -> Image.Image:
+def render_overlay(exercise: dict, frame: dict,
+                   layout: dict | None = None) -> Image.Image:
     """Text and badges only, on a transparent 1280x720 layer."""
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    _overlay(Pen(layer), exercise, frame)
+    _overlay(Pen(layer), exercise, frame, layout)
     return layer.resize((DESIGN_W, DESIGN_H), Image.LANCZOS)
 
 
 def render_scene(exercise: dict, frame: dict, hi_res: bool = False,
                  with_figure: bool = True, person: Image.Image | None = None,
-                 with_overlay: bool = True) -> Image.Image:
+                 with_overlay: bool = True, layout: dict | None = None) -> Image.Image:
     """Render a single storyboard frame as 1280x720 or its 2x master.
 
     `person` is an optional full-canvas RGBA illustration (for example a
@@ -441,7 +461,7 @@ def render_scene(exercise: dict, frame: dict, hi_res: bool = False,
     """
     image = Image.new("RGB", (W, H), PAPER)
     pen = Pen(image)
-    _background(pen)
+    _background(pen, layout)
     if person is not None:
         layer = person.convert("RGBA")
         if layer.size != (W, H):
@@ -451,16 +471,18 @@ def render_scene(exercise: dict, frame: dict, hi_res: bool = False,
         pose = POSES[frame["pose"]]
         _figure(pen, pose)
     if with_overlay:
-        _overlay(pen, exercise, frame)
+        _overlay(pen, exercise, frame, layout)
     if hi_res:
         return image
     return image.resize((DESIGN_W, DESIGN_H), Image.LANCZOS)
 
 
 def render_frame(exercise: dict, frame: dict, out_path: Path, hi_res: bool = False,
-                 person: Image.Image | None = None, with_overlay: bool = True) -> Path:
+                 person: Image.Image | None = None, with_overlay: bool = True,
+                 with_figure: bool = True, layout: dict | None = None) -> Path:
     image = render_scene(exercise, frame, hi_res=hi_res, person=person,
-                         with_overlay=with_overlay)
+                         with_figure=with_figure, with_overlay=with_overlay,
+                         layout=layout)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(out_path, "PNG", optimize=True)
     return out_path
