@@ -179,12 +179,19 @@ def _encode_segment(
     preset: str = "medium",
     crf: int = 18,
 ) -> Path:
-    filters = [
-        f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase",
-        f"crop={OUT_W}:{OUT_H}",
-        "setsar=1",
-        f"fps={fps}",
-    ]
+    if OUT_H > OUT_W:
+        filters = [
+            f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=decrease",
+            f"pad={OUT_W}:{OUT_H}:(ow-iw)/2:(oh-ih)/2:color=0xF4F1EA",
+            "setsar=1",
+        ]
+    else:
+        filters = [
+            f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase",
+            f"crop={OUT_W}:{OUT_H}",
+            "setsar=1",
+        ]
+    filters.append(f"fps={fps}")
     if lead > 0 or tail > 0:
         filters.append(
             f"tpad=start_mode=clone:start_duration={lead:.3f}:"

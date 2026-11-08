@@ -5,6 +5,8 @@ description: Build a reusable AI presenter from your photos, then produce a ~15-
 
 # Podcast Avatar Commentary
 
+> **Preflight:** before generating or publishing, follow `skills/video-preflight/SKILL.md` — daily readiness gate, promotion strategy brief, and a stated YouTube/WeChat split.
+
 Turn a trending podcast into a ~15-minute YouTube commentary video with a
 reusable AI presenter built from your own photos.
 

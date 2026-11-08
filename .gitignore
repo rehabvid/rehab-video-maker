@@ -33,6 +33,9 @@ client_secret*.json
 youtube-token*.json
 youtube-upload.json
 
+# runtime locks (state itself is tracked; the lock is not)
+state/*.lock
+
 # os
 .DS_Store
 

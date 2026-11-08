@@ -28,7 +28,9 @@ CAPTION_LINES = 2
 CAPTION_TAIL = 0.35
 
 MASTER_W, MASTER_H = 2560, 1440
-OUT_W, OUT_H = 1920, 1080
+import os as _os
+_PORTRAIT = _os.environ.get("VIDEO_ORIENTATION") == "portrait"
+OUT_W, OUT_H = (1080, 1920) if _PORTRAIT else (1920, 1080)
 
 INK = (14, 17, 22)
 PAPER = (244, 241, 234)
@@ -553,10 +555,10 @@ def _ass_time(seconds: float) -> str:
     return f"{h:d}:{m:02d}:{s:02d}.{cs:02d}"
 
 
-ASS_HEADER = """[Script Info]
+ASS_HEADER = f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: 1920
-PlayResY: 1080
+PlayResX: {OUT_W}
+PlayResY: {OUT_H}
 WrapStyle: 2
 ScaledBorderAndShadow: yes
 
