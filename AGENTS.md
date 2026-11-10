@@ -37,6 +37,12 @@ once, not replayed. It never starts a long render by itself.
 - One theme everywhere: `LINKZAG_THEME` (default `light`) governs covers, story
   cards, LinkZag scenes and portrait cards. Do not auto-pick theme from image
   brightness.
+- If ComfyUI is not running, start it first: `bash tools/gen/start_comfyui.sh`
+  (idempotent; `autopilot.py` calls it automatically). Only if it cannot start,
+  generate covers with `cover.py --engine ink` (CPU light ink/watercolour
+  sketch). Never fall back to `--engine minimal`: that engine paints a *night*
+  palette and the light card compositor turns a dark plate into grey haze.
+  `qa_backgrounds.py` fails a light build whose cover plate is a night image.
 - Add one quiet motif: `trading` (candles/yield curve), `venture` (valuation
   staircase), or `ai` (node lattice). No window-level detail; hundreds of small
   lights are noise.

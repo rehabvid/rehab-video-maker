@@ -34,6 +34,18 @@ def _theme(path: Path) -> str:
     return "light" if average > 145 else "dark"
 
 
+def _mean_luminance(path: Path) -> float:
+    with Image.open(path) as image:
+        gray = image.convert("L").resize((64, 64))
+        return sum(gray.getdata()) / 4096.0
+
+
+# A real light watercolour plate measures ~135-175; the night skyline engine
+# paints ~9. The 145 cut used for theme labelling is too high for plates, so
+# the dark-plate guard gets its own floor.
+DARK_PLATE_LUMINANCE = 95.0
+
+
 def _asset_path(url: str) -> Path | None:
     if not url.startswith("image:"):
         return None
@@ -71,13 +83,32 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     # One channel-wide theme; matches make_scenes/story_backgrounds.
     expected = os.environ.get("LINKZAG_THEME", "light")
-    plate = cover.with_name(cover.stem + ".plate.png")
+    # Callers pass either the composited cover or the raw plate; accept both.
+    if cover.stem.endswith(".plate"):
+        plate = cover
+    else:
+        plate = cover.with_name(cover.stem + ".plate.png")
     expected_hash = _sha(plate) if plate.exists() else None
+    plate_luminance = _mean_luminance(plate) if plate.exists() else None
     timing = _load(Path(args.timing))
     scenes = _load(Path(args.scenes)) if args.scenes and Path(args.scenes).exists() else {"scenes": []}
     by_id = {str(scene.get("id")): scene for scene in scenes.get("scenes", [])}
     problems: list[dict] = []
     styled = 0
+    # A dark plate under the light theme is washed to grey haze by the cream
+    # card panels. Catch that here instead of in the finished video: the plate
+    # must belong to the same channel-wide theme as the cards.
+    if (
+        expected == "light"
+        and plate_luminance is not None
+        and plate_luminance < DARK_PLATE_LUMINANCE
+    ):
+        problems.append({
+            "id": "background",
+            "issue": f"cover plate is a night image (mean luminance "
+                     f"{plate_luminance:.0f}) but the theme is light; "
+                     "regenerate it with cover.py --engine ink",
+        })
     for shot in timing.get("shots", []):
         sid = str(shot.get("id"))
         kind = str(shot.get("kind"))
@@ -86,13 +117,22 @@ def main(argv: list[str] | None = None) -> int:
             background = str(scene.get("background") or "")
             theme = str(scene.get("theme") or "")
             asset = _asset_path(background)
-            if not background.startswith("image:") or asset is None:
+            scene_sha = str(scene.get("background_sha") or "")
+            if not background.startswith("image:"):
                 if args.allow_custom_no_backdrop:
                     styled += 1
                     continue
                 problems.append({"id": sid, "issue": "custom visual has no image backdrop"})
             elif theme != expected:
                 problems.append({"id": sid, "issue": f"theme {theme} != cover {expected}"})
+            elif asset is None:
+                # render_scenes deletes the generated scene/assets for its slug
+                # once the visuals are rendered. The manifest keeps the plate
+                # hash, so an approved plate still verifies after cleanup.
+                if expected_hash and scene_sha == expected_hash:
+                    styled += 1
+                else:
+                    problems.append({"id": sid, "issue": "custom visual has no image backdrop"})
             elif expected_hash and _sha(asset) != expected_hash:
                 problems.append({"id": sid, "issue": "backdrop is not the approved cover plate"})
             else:

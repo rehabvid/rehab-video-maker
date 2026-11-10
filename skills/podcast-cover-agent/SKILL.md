@@ -172,9 +172,13 @@ The engine is `tools/gen/cover.py`; it talks to a local ComfyUI server.
 # Check the server
 curl -s http://127.0.0.1:8188/system_stats >/dev/null
 
-# Start it if needed
-tools/ComfyUI/.venv/bin/python tools/ComfyUI/main.py --port 8188 &
+# Start it if needed (idempotent; waits until the port answers)
+bash tools/gen/start_comfyui.sh
 ```
+
+`autopilot.py` calls `start_comfyui.sh` once when the port is closed
+(`COMFYUI_AUTOSTART=0` disables it). The server is not a daemon, so after a
+reboot nothing starts it by itself.
 
 Models (gitignored, about 8 GB):
 

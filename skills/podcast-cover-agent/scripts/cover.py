@@ -199,8 +199,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--orientation", choices=["landscape", "portrait"], default="landscape")
     parser.add_argument("--overlay", default="auto",
                         help="trading|venture|ai|markets|none|auto (topic-driven)")
-    parser.add_argument("--engine", choices=["photo", "night", "minimal", "sdxl"], default="sdxl",
-                        help="night = light sketch graded to night (default); minimal; sdxl")
+    parser.add_argument("--engine", choices=["photo", "night", "minimal", "ink", "sdxl"], default="sdxl",
+                        help="ink = CPU light sketch plate (no ComfyUI); night = light sketch graded to night; "
+                             "minimal = CPU night skyline; sdxl = diffusion (default)")
     parser.add_argument("--angle", help="angle id from cover-styles.json")
     parser.add_argument("--candidates", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
@@ -303,6 +304,38 @@ def main(argv: list[str] | None = None) -> int:
             "--orientation", args.orientation,
         ]).returncode:
             minimal_background = None
+    elif args.engine == "ink":
+        # CPU light ink/watercolour sketch: the fallback when ComfyUI is down.
+        # `minimal` paints a night palette and would grey out under the light
+        # theme, so it must never stand in for the default sketch.
+        overlay_name = args.overlay
+        if overlay_name not in ("trading", "venture", "ai", "markets", "none"):
+            overlay_name = {
+                "ai_power": "ai", "ai_advances": "ai", "investor": "venture",
+                "energy": "trading", "europe": "trading", "macro": "trading",
+                "default": "venture",
+            }.get(topic_id, "trading")
+        if overlay_name == "markets":
+            overlay_name = "trading"
+        refs = (config.get("references") or {}).get(
+            "portrait" if args.orientation == "portrait" else "landscape") or []
+        # The first landscape and the fourth portrait are the cleanest
+        # Marina Bay frames (no watermarks, sky above the skyline).
+        index = 3 if (args.orientation == "portrait" and len(refs) > 3) else 0
+        if not refs:
+            print("no ink references configured; falling back to SDXL", file=sys.stderr)
+            minimal_background = None
+        else:
+            source = Path(config.get("references", {}).get("source_dir", "")) / refs[index]
+            minimal_background = out.with_suffix(".plate.png")
+            code = subprocess.run([
+                sys.executable, str(ROOT / "tools" / "gen" / "ink_skyline_light.py"),
+                "--source", str(source), "--out", str(minimal_background),
+                "--orientation", args.orientation, "--overlay", overlay_name,
+            ]).returncode
+            if code:
+                print("ink sketch failed; falling back to SDXL", file=sys.stderr)
+                minimal_background = None
     elif args.engine == "minimal":
         overlay_name = args.overlay
         if overlay_name not in ("trading", "venture", "ai", "markets", "none"):

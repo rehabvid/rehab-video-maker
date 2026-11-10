@@ -10,6 +10,7 @@ only where it earns attention.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -309,6 +310,7 @@ def _scene(
     language: str = "en",
     background: str | None = None,
     theme: str | None = None,
+    background_sha: str | None = None,
 ) -> dict:
     visual = shot["visual"]
     kind = visual["type"]
@@ -453,6 +455,7 @@ def _scene(
         "animated": animated,
         "duration": scene["duration"],
         "background": background,
+        "background_sha": background_sha,
         "theme": theme or "light",
     }
 
@@ -496,6 +499,7 @@ def main(argv: list[str] | None = None) -> int:
                     child.rmdir()
 
     background_value = None
+    background_sha = None
     # One channel-wide theme. LinkZag must match covers, cards and captions.
     background_theme = args.background_theme or os.environ.get("LINKZAG_THEME", "light")
     if args.background:
@@ -508,6 +512,10 @@ def main(argv: list[str] | None = None) -> int:
             generated_asset_dir.mkdir(parents=True, exist_ok=True)
             dest = generated_asset_dir / "background.png"
             shutil.copyfile(source, dest)
+            # Record provenance: render_scenes deletes the copied asset after
+            # rendering, and the background QA runs later. The hash lets QA
+            # still prove the scene used the approved cover plate.
+            background_sha = hashlib.sha256(dest.read_bytes()).hexdigest()[:16]
             rel = _rel(dest, module)
             from urllib.parse import quote
             background_value = "image:/__linkzag/asset?path=" + quote(rel, safe="")
@@ -523,6 +531,7 @@ def main(argv: list[str] | None = None) -> int:
         scenes.append(_scene(
             slug, shot, module, episode=episode, language=language,
             background=background_value, theme=background_theme,
+            background_sha=background_sha,
         ))
 
     manifest = {

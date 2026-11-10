@@ -102,6 +102,15 @@ def _en_number_words(text: str) -> str:
         compound, text,
     )
 
+    def year(match: re.Match) -> str:
+        # Years are spoken as two tokens: "twenty twenty-six" is 2026, and
+        # Whisper writes it as one. Without this the gate reports the century
+        # and the year tail as missing whenever the script spells a year out.
+        prefix = 2000 if match.group(1) == "twenty" else 1900
+        return str(prefix + int(match.group(2)))
+
+    text = re.sub(r"\b(twenty|nineteen)[- ](\d{2})\b", year, text)
+
     def hundred(match: re.Match) -> str:
         return str(int(match.group(1)) * 100)
 

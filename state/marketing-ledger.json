@@ -481,6 +481,17 @@
       "asset": "out/autopilot/ramtin-naimi-the-state-of-venture-invest-like-the-be/final.zh.mp4",
       "cover": "build/marketing/wechat/linkZag/covers/ramtin-naimi-the-state-of-venture-invest-like-the-be-final.png",
       "manifest": "build/marketing/wechat/linkZag/manifest-ramtin-full.json"
+    },
+    {
+      "account": "linkZag",
+      "status": "published",
+      "title": "日历价差等不到应验",
+      "platform_family": "wechat-channels",
+      "published_at": "2026-11-10T05:09:17.854Z",
+      "format": "vertical-short",
+      "asset": "build/marketing/wechat/linkZag/clips/structural-flows-will-support-stocks-until-the-u-s-t.mp4",
+      "cover": "build/marketing/wechat/linkZag/covers/structural-flows-will-support-stocks-until-the-u-s-t-final.png",
+      "manifest": "build/marketing/wechat/linkZag/manifest-structural-flows-will-support-stocks-until-the-u-s-t-final.json"
     }
   ]
 }

@@ -178,5 +178,64 @@ class SceneFactoryTests(unittest.TestCase):
             self.assertTrue(asset.exists())
 
 
+class BackgroundThemeTests(unittest.TestCase):
+    """The plate must match the channel-wide theme, not just the cards."""
+
+    def setUp(self):
+        self.qa = _load("qa_backgrounds")
+
+    def test_light_plate_reads_light(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "light.png"
+            Image.new("RGB", (64, 64), (245, 242, 234)).save(path)
+            self.assertEqual(self.qa._theme(path), "light")
+
+    def test_night_plate_reads_dark(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "night.png"
+            Image.new("RGB", (64, 64), (12, 18, 30)).save(path)
+            self.assertEqual(self.qa._theme(path), "dark")
+
+    def test_light_theme_rejects_dark_plate(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cover = root / "cover.en.png"
+            plate = root / "cover.en.plate.png"
+            Image.new("RGB", (64, 64), (245, 242, 234)).save(cover)
+            Image.new("RGB", (64, 64), (9, 14, 26)).save(plate)
+            timing = root / "timing.json"
+            timing.write_text(json.dumps({"shots": []}))
+            out = root / "qa.json"
+            code = self.qa.main([
+                "--timing", str(timing), "--cover", str(cover), "--out", str(out),
+            ])
+            report = json.loads(out.read_text())
+            self.assertEqual(code, 1)
+            self.assertTrue(any(p["id"] == "background" for p in report["problems"]))
+
+    def test_midtone_sdxl_sketch_is_not_rejected(self):
+        # Real light watercolour plates measure ~137-172, below the 145 theme
+        # cut. They are legitimate and must not trip the dark-plate guard.
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cover = root / "cover.en.png"
+            plate = root / "cover.en.plate.png"
+            Image.new("RGB", (64, 64), (245, 242, 234)).save(cover)
+            Image.new("RGB", (64, 64), (138, 138, 138)).save(plate)
+            timing = root / "timing.json"
+            timing.write_text(json.dumps({"shots": []}))
+            out = root / "qa.json"
+            code = self.qa.main([
+                "--timing", str(timing), "--cover", str(cover), "--out", str(out),
+            ])
+            report = json.loads(out.read_text())
+            self.assertEqual(code, 0, report)
+            self.assertEqual(report["problems"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

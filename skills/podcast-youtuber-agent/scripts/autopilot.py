@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -649,13 +650,33 @@ def main(argv: list[str] | None = None) -> int:
             def _cover(metadata: Path, out: Path, label: str) -> bool:
                 if out.exists():
                     return True
+                comfy_up = True
                 try:
                     urllib.request.urlopen(
                         "http://127.0.0.1:8188/system_stats", timeout=2
                     )
                 except OSError:
-                    log(f"ComfyUI not running; cannot generate {label} cover")
-                    return False
+                    # The server is not a daemon: after a reboot nothing
+                    # restarts it. Try once, then fall back to the CPU sketch.
+                    comfy_up = False
+                    if os.environ.get("COMFYUI_AUTOSTART", "1") != "0":
+                        starter = ROOT / "tools" / "gen" / "start_comfyui.sh"
+                        if starter.exists():
+                            log("ComfyUI not running; attempting to start it")
+                            run(["bash", str(starter)], quiet=True)
+                            try:
+                                urllib.request.urlopen(
+                                    "http://127.0.0.1:8188/system_stats", timeout=3
+                                )
+                                comfy_up = True
+                                log("ComfyUI started; generating the real sketch")
+                            except OSError:
+                                comfy_up = False
+                if not comfy_up:
+                    log(
+                        f"ComfyUI unavailable; {label} cover uses the CPU light "
+                        "ink sketch (--engine ink)"
+                    )
                 cmd = [
                     sys.executable,
                     str(ROOT / "skills" / "podcast-cover-agent" / "scripts" / "cover.py"),
@@ -663,6 +684,10 @@ def main(argv: list[str] | None = None) -> int:
                     "--out", str(out),
                     "--candidates", "1",
                 ]
+                if not comfy_up:
+                    # CPU light ink/watercolour plate; never the night
+                    # `minimal` engine under the light theme.
+                    cmd += ["--engine", "ink"]
                 if label.lower().startswith("mandarin"):
                     # WeChat cover is a native 3:4 design, not a landscape crop.
                     cmd += ["--orientation", "portrait"]

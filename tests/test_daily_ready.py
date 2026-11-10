@@ -67,6 +67,14 @@ class NumberNormalisationTests(unittest.TestCase):
         tokens = qa._normalise("in the nineteen-fifties", "en")
         self.assertIn("1950s", tokens)
 
+    def test_spelled_year_matches_asr_digits(self):
+        tokens = qa._normalise("published November ninth, twenty twenty-six", "en")
+        self.assertIn("2026", tokens)
+        tokens = qa._normalise("a crisis in twenty twenty-seven", "en")
+        self.assertIn("2027", tokens)
+        tokens = qa._normalise("back in nineteen ninety-nine", "en")
+        self.assertIn("1999", tokens)
+
 
 class AvatarSizingTests(unittest.TestCase):
     def test_landscape_uses_one_third_height(self):
